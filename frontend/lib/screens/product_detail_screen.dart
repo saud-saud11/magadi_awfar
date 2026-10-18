@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/models.dart';
+import '../services/url_launcher_helper.dart';
 
 class ProductDetailScreen extends StatelessWidget {
   final ProductItem product;
@@ -228,8 +229,20 @@ class ProductDetailScreen extends StatelessWidget {
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                 ),
-                                onPressed: () {
-                                  // Open store link
+                                onPressed: () async {
+                                  final launched = await UrlLauncherHelper.openStoreUrl(
+                                    offer.productUrl,
+                                    deepLink: offer.deepLink,
+                                  );
+                                  if (ctx.mounted && !launched) {
+                                    ScaffoldMessenger.of(ctx).showSnackBar(
+                                      SnackBar(
+                                        content: Text('تعذر فتح الرابط تلقائيًا: ${offer.productUrl}'),
+                                        backgroundColor: Colors.red.shade700,
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  }
                                 },
                                 child: const Text('افتح بالمتجر', style: TextStyle(fontSize: 11)),
                               ),

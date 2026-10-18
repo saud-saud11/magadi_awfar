@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
+import '../services/url_launcher_helper.dart';
 import 'product_detail_screen.dart';
 
 class ResultsScreen extends StatefulWidget {
@@ -686,10 +687,20 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   side: const BorderSide(color: AppTheme.primary),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 ),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('الانتقال لرابط ${offer.storeNameAr}: ${offer.productUrl}')),
+                onPressed: () async {
+                  final launched = await UrlLauncherHelper.openStoreUrl(
+                    offer.productUrl,
+                    deepLink: offer.deepLink,
                   );
+                  if (mounted && !launched) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('تعذر فتح الرابط تلقائيًا: ${offer.productUrl}'),
+                        backgroundColor: Colors.red.shade700,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
                 },
               ),
             ],
