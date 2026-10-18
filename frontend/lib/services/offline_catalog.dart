@@ -379,6 +379,122 @@ class OfflineCatalog {
         'danube': 9200,
       }
     },
+    // Baby Joy Diapers (Size 5, 4)
+    {
+      'id': 1102,
+      'name_ar': 'حفاضات بيبي جوي مضغوطة مقاس ٥ كبير جداً عبوة عملاقة ٦٦ حفاض',
+      'brand_ar': 'بيبي جوي',
+      'barcode': '6281008000501',
+      'category': 'حليب ورعاية الأطفال',
+      'amount': 66.0,
+      'unit': 'حبة',
+      'keywords': ['بيبي جوي', 'بيبيجوي', 'حفاضات', 'حفايض', 'baby joy', 'babyjoy', 'مقاس 5', 'مقاس ٥'],
+      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281008000501.jpg',
+      'prices': {
+        'tamimi': 6995,
+        'othaim': 7250,
+        'panda': 7495,
+        'carrefour': 7495,
+        'danube': 7850,
+        'nahdi': 7995,
+        'dawaa': 7995,
+      }
+    },
+    {
+      'id': 1103,
+      'name_ar': 'حفاضات بيبي جوي مضغوطة مقاس ٤ كبير عبوة عملاقة ٧٤ حفاض',
+      'brand_ar': 'بيبي جوي',
+      'barcode': '6281008000402',
+      'category': 'حليب ورعاية الأطفال',
+      'amount': 74.0,
+      'unit': 'حبة',
+      'keywords': ['بيبي جوي', 'بيبيجوي', 'حفاضات', 'حفايض', 'baby joy', 'مقاس 4', 'مقاس ٤'],
+      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281008000402.jpg',
+      'prices': {
+        'tamimi': 7195,
+        'othaim': 7250,
+        'panda': 7395,
+        'carrefour': 7450,
+        'danube': 7850,
+        'nahdi': 7995,
+        'dawaa': 7995,
+      }
+    },
+    // NAN Optipro 3
+    {
+      'id': 1104,
+      'name_ar': 'حليب أطفال نان أوبتي برو مرحلة ٣ ٨٠٠ جرام',
+      'brand_ar': 'نان',
+      'barcode': '7613036000012',
+      'category': 'حليب ورعاية الأطفال',
+      'amount': 800.0,
+      'unit': 'g',
+      'keywords': ['نان', 'nan', 'حليب اطفال', 'حليب نان'],
+      'image': 'https://images.deliveryhero.io/image/hungerstation/products/7613036000012.jpg',
+      'prices': {
+        'othaim': 8295,
+        'panda': 8350,
+        'carrefour': 8350,
+        'nahdi': 8450,
+        'dawaa': 8450,
+        'danube': 8695,
+      }
+    },
+    // Panadol Extra
+    {
+      'id': 1801,
+      'name_ar': 'بنادول إكسترا أحمر مسكن للألم ٢٤ قرص',
+      'brand_ar': 'بنادول',
+      'barcode': '5000347000014',
+      'category': 'الأدوية والرعاية الصحية',
+      'amount': 24.0,
+      'unit': 'حبة',
+      'keywords': ['بنادول', 'بانادول', 'بندول', 'panadol', 'مسكن', 'صداع', 'اكسترا'],
+      'image': 'https://images.deliveryhero.io/image/hungerstation/products/5000347000014.jpg',
+      'prices': {
+        'nahdi': 690,
+        'dawaa': 690,
+        'tamimi': 690,
+        'danube': 690,
+      }
+    },
+    // Cetaphil Cream 453g
+    {
+      'id': 1802,
+      'name_ar': 'كريم سيتافيل المرطب للوجه والجسم عبوة ٤٥٣ جم',
+      'brand_ar': 'سيتافيل',
+      'barcode': '3499320000018',
+      'category': 'الأدوية والرعاية الصحية',
+      'amount': 453.0,
+      'unit': 'g',
+      'keywords': ['سيتافيل', 'cetaphil', 'مرطب', 'كريم مرطب', 'كريم'],
+      'image': 'https://images.deliveryhero.io/image/hungerstation/products/3499320000018.jpg',
+      'prices': {
+        'amazon_sa': 8400,
+        'nahdi': 9900,
+        'carrefour': 11000,
+        'danube': 11500,
+        'dawaa': 12250,
+      }
+    },
+    // Bepanthen Pink 100g
+    {
+      'id': 1803,
+      'name_ar': 'مرهم بيبانثين الوردي للعناية وحماية الأطفال ١٠٠ جم',
+      'brand_ar': 'بيبانثين',
+      'barcode': '4008500000019',
+      'category': 'حليب ورعاية الأطفال',
+      'amount': 100.0,
+      'unit': 'g',
+      'keywords': ['بيبانثين', 'بيبانثين الوردي', 'bepanthen', 'مرهم'],
+      'image': 'https://images.deliveryhero.io/image/hungerstation/products/4008500000019.jpg',
+      'prices': {
+        'othaim': 5195,
+        'panda': 5250,
+        'nahdi': 5405,
+        'dawaa': 5405,
+      }
+    },
     // Tuna
     {
       'id': 1201,

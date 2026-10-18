@@ -54,6 +54,19 @@ class StrictMatcher:
         if "كيلو ونصف" in normalized or "كيلو ونص" in normalized:
             return 1500.0, "g", pack_count
 
+        # Check if product is diaper (body weight range like "14-25 كيلو" and size like "مقاس 5" must NOT be treated as package weight or pack count!)
+        is_diaper = any(w in normalized for w in ['حفاض', 'حفايض', 'بامبرز', 'بيبي جوي', 'بيبيجوي', 'هجيز', 'فاين بيبي'])
+        if is_diaper:
+            pack_count = 1
+            diaper_count_m = re.search(r'(\d+)\s*(?:حفاض|حفايض|حفاضه|قطعه|قطعة|حبه|حبة)', normalized)
+            if diaper_count_m:
+                return float(diaper_count_m.group(1)), "حبة", pack_count
+
+        # Check OTC medicines / vitamins count (e.g. 24 قرص, 15 قرص فوار, 60 كبسولة)
+        count_match = re.search(r'(\d+)\s*(?:قرص|اقراص|كبسوله|كبسولات|كيس|حبة|حبات)(?![a-zA-Z\u0600-\u06FF])', normalized)
+        if count_match and not any(u in normalized for u in ['كجم', 'كغم', 'كيلو', 'جرام', 'غرام', 'لتر', 'مل']):
+            return float(count_match.group(1)), "حبة", pack_count
+
         # Regular regex for numbers + units
         # e.g., 500g, 500 جرام, 500 غرام, 500 جم, 1 كجم, 1كغم, 1.5 l, 1 لتر
         unit_match = re.search(
@@ -76,18 +89,48 @@ class StrictMatcher:
 
         return None, None, pack_count
 
+    KNOWN_BRANDS = [
+        ('بيبي جوي', ['بيبي جوي', 'بيبيجوي', 'baby joy', 'babyjoy']),
+        ('بامبرز', ['بامبرز', 'pampers']),
+        ('هجيز', ['هجيز', 'huggies']),
+        ('سيميلاك', ['سيميلاك', 'similac']),
+        ('نان', ['نان', 'nan']),
+        ('بليميل بلس', ['بليميل', 'blemil']),
+        ('ابتاميل', ['ابتاميل', 'أبتاميل', 'aptamil']),
+        ('سيتافيل', ['سيتافيل', 'cetaphil']),
+        ('كيو في', ['كيو في', 'كيوفي', 'qv']),
+        ('بيبانثين', ['بيبانثين', 'bepanthen']),
+        ('سودوكريم', ['سودوكريم', 'sudocrem']),
+        ('بنادول', ['بنادول', 'بانادول', 'بندول', 'panadol']),
+        ('أدول', ['أدول', 'ادول', 'adol']),
+        ('نوتيلا', ['نوتيلا', 'nutella']),
+        ('المراعي', ['المراعي', 'almarai']),
+        ('نادك', ['نادك', 'nadec']),
+        ('السعودية', ['السعودية', 'saudia']),
+        ('الشعلان', ['الشعلان', 'shalan']),
+        ('ربيع', ['ربيع', 'rabea']),
+        ('لبتون', ['لبتون', 'ليبتون', 'lipton']),
+        ('قودي', ['قودي', 'goody']),
+        ('كيري', ['كيري', 'kiri']),
+        ('بوك', ['بوك', 'puck']),
+        ('كرافت', ['كرافت', 'kraft']),
+        ('تايد', ['تايد', 'tide']),
+        ('فيري', ['فيري', 'fairy']),
+        ('بيبسي', ['بيبسي', 'pepsi']),
+        ('سفن اب', ['سفن اب', 'سفن', '7up']),
+    ]
+
+    def detect_brand(self, text: str) -> Optional[str]:
+        norm = self.normalize_text(text)
+        for canonical, aliases in self.KNOWN_BRANDS:
+            if any(a in norm for a in aliases):
+                return canonical
+        return None
+
     def parse_query(self, query: str) -> ParsedQuery:
         cleaned = self.normalize_text(query)
         amount, unit, pack_count = self.parse_size_and_unit(cleaned)
-        
-        # Detect brand if obvious
-        brand = None
-        if "نوتيلا" in cleaned or "nutella" in cleaned:
-            brand = "نوتيلا"
-        elif "المراعي" in cleaned or "almarai" in cleaned:
-            brand = "المراعي"
-        elif "نادك" in cleaned or "nadec" in cleaned:
-            brand = "نادك"
+        brand = self.detect_brand(cleaned)
 
         return ParsedQuery(
             raw_query=query,
@@ -235,6 +278,13 @@ class StrictMatcher:
                 types.append('stage2')
             elif any(p in norm for p in [' 3 ', ' ٣ ', 'رقم 3', 'مرحله 3', 'مرحلة 3', 'أوبتي برو 3', 'اوبتي برو 3', 'جولد 3']):
                 types.append('stage3')
+
+        # Diapers size detection
+        is_diaper = any(w in norm for w in ['حفاض', 'حفايض', 'بامبرز', 'بيبي جوي', 'بيبيجوي', 'هجيز', 'فاين بيبي'])
+        if is_diaper:
+            diaper_size_m = re.search(r'مقاس\s*([1-6]|\+?[1-6])', norm)
+            if diaper_size_m:
+                types.append(f'size_{diaper_size_m.group(1)}')
 
         type_sig = '_'.join(types) if types else 'general'
         return f"{brand}_{type_sig}_{amount}_{unit}_{pack}"

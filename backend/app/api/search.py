@@ -37,7 +37,7 @@ async def search_and_compare(
 
     for item in raw_items:
         amount, unit, pack = strict_matcher.parse_size_and_unit(f"{item.title_ar} {item.raw_size_text or ''}")
-        brand = item.brand_ar or parsed.brand or "عام"
+        brand = item.brand_ar or strict_matcher.detect_brand(item.title_ar) or parsed.brand or "عام"
         key = strict_matcher.generate_product_key(
             title_ar=item.title_ar,
             brand=brand,
