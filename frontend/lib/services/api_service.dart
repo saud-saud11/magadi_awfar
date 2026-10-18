@@ -3,12 +3,16 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/models.dart';
 import 'offline_catalog.dart';
+import 'live_danube_client.dart';
 
 class ApiService {
+  // Public live HTTPS cloud backend URL
+  static const String liveCloudUrl = 'https://vessel-integrity-rubber-culture.trycloudflare.com/api/v1';
+
   // Optional custom backend URL
   static String? customBaseUrl;
 
-  // Dynamically uses host/port, but immediately uses client catalog on GitHub Pages
+  // Dynamically uses host/port, or live cloud backend on GitHub Pages and mobile
   static String get baseUrl {
     if (customBaseUrl != null && customBaseUrl!.isNotEmpty) {
       return customBaseUrl!;
@@ -16,19 +20,19 @@ class ApiService {
     if (kIsWeb) {
       final uri = Uri.base;
       if (uri.host.contains('github.io')) {
-        // GitHub Pages has no python backend, use instant catalog
-        return '';
+        // Connected to public live HTTPS real-time backend
+        return liveCloudUrl;
       }
       final portPart = (uri.hasPort && uri.port != 80 && uri.port != 443) ? ':${uri.port}' : '';
       return '${uri.scheme}://${uri.host}$portPart/api/v1';
     }
-    return 'http://127.0.0.1:8000/api/v1';
+    return liveCloudUrl;
   }
 
   static Future<List<District>> getDistricts() async {
     if (baseUrl.isNotEmpty) {
       try {
-        final res = await http.get(Uri.parse('$baseUrl/districts')).timeout(const Duration(seconds: 3));
+        final res = await http.get(Uri.parse('$baseUrl/districts')).timeout(const Duration(seconds: 4));
         if (res.statusCode == 200) {
           final List<dynamic> data = jsonDecode(utf8.decode(res.bodyBytes));
           return data.map((d) => District.fromJson(d)).toList();
@@ -56,6 +60,7 @@ class ApiService {
     String district = 'سلطانة',
     String sortBy = 'cheapest_product',
   }) async {
+    // 1. Try real-time query to live cloud backend (fetches Othaim, Panda, Tamimi, Carrefour, Danube)
     if (baseUrl.isNotEmpty) {
       try {
         final uri = Uri.parse('$baseUrl/search').replace(queryParameters: {
@@ -64,21 +69,50 @@ class ApiService {
           'sort_by': sortBy,
         });
 
-        final res = await http.get(uri).timeout(const Duration(seconds: 3));
+        final res = await http.get(uri).timeout(const Duration(seconds: 9));
         if (res.statusCode == 200) {
           final Map<String, dynamic> data = jsonDecode(utf8.decode(res.bodyBytes));
-          return SearchResult.fromJson(data);
+          final searchRes = SearchResult.fromJson(data);
+          if (searchRes.matchedProducts.isNotEmpty || searchRes.alternativeSizes.isNotEmpty) {
+            return searchRes;
+          }
         }
       } catch (e) {
-        print('ApiService.search error, falling back to catalog: $e');
+        print('ApiService.search live backend error: $e');
       }
     }
-    // Instant fallback to Al-Madinah staple catalog
-    return OfflineCatalog.search(
+
+    // 2. Direct browser Algolia live search for Danube
+    List<ProductItem> danubeLive = [];
+    try {
+      danubeLive = await LiveDanubeClient.search(query);
+    } catch (e) {
+      print('LiveDanubeClient error: $e');
+    }
+
+    // 3. Fallback to expanded offline catalog
+    final offlineRes = OfflineCatalog.search(
       query: query,
       district: district,
       sortBy: sortBy,
     );
+
+    if (danubeLive.isNotEmpty) {
+      final combinedMatched = [...danubeLive, ...offlineRes.matchedProducts];
+      return SearchResult(
+        query: query,
+        districtName: district,
+        exactSizeMatched: offlineRes.exactSizeMatched,
+        statusMessage: 'تم العثور على ${combinedMatched.length} منتجات في المدينة المنورة (تحديث حي مباشر).',
+        disclaimer: 'الأرخص بين العروض المطابقة التي تم فحصها لموقعك',
+        matchedProducts: combinedMatched,
+        alternativeSizes: offlineRes.alternativeSizes,
+        subCategories: ['الكل', ...offlineRes.subCategories],
+        sourcesSummary: offlineRes.sourcesSummary,
+      );
+    }
+
+    return offlineRes;
   }
 
   static Future<List<SourceInfo>> getSources() async {
