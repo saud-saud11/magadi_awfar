@@ -125,6 +125,19 @@ class VoiceBasketService:
 
         q_norm = strict_matcher.normalize_text(query).strip()
 
+        # Handle empty query (e.g. initial fetch of session)
+        if not q_norm:
+            current_out = [VoiceBasketItemOut(**i) for i in session["basket"]]
+            return VoiceParseResponse(
+                status="success",
+                recognized_text="",
+                intent="fetch_session",
+                message_ar="جاهز للاستماع لأمرك الصوتي",
+                current_basket=current_out,
+                can_undo=len(session["history"]) > 0,
+                session_id=session_id
+            )
+
         # 2. Check Undo Commands («رجّع آخر تعديل»، «تراجع»، «الغِ آخر عملية»)
         if any(w in q_norm for w in ["تراجع", "رجع اخر تعديل", "الغ اخر تعديل", "الغي اخر عملية", "رجع اخر شي"]):
             success, msg, basket_out = self.undo_last_action(session_id)
@@ -468,6 +481,22 @@ class VoiceBasketService:
             session["processed_request_ids"].add(request_id)
 
         current_out = [VoiceBasketItemOut(**i) for i in session["basket"]]
+
+        if not added_items:
+            # Revert the snapshot so history isn't polluted
+            if session["history"]:
+                session["history"].pop()
+            return VoiceParseResponse(
+                status="no_op",
+                recognized_text=query,
+                intent="unrecognized",
+                message_ar="لم نتمكن من تحديد منتجات في هذا الطلب، يرجى التحديد بوضوح (مثال: حليب، جبن، خبز)",
+                items_added=[],
+                current_basket=current_out,
+                can_undo=len(session["history"]) > 0,
+                session_id=session_id
+            )
+
         names_str = "، ".join([f"«{it.name_ar}» ({it.quantity} حبة)" for it in added_items])
 
         return VoiceParseResponse(

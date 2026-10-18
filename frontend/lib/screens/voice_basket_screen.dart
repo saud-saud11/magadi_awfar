@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
+import '../services/voice_service.dart';
 
 class VoiceBasketScreen extends StatefulWidget {
   final Function(ProductItem) onAddToBasket;
@@ -63,6 +64,7 @@ class _VoiceBasketScreenState extends State<VoiceBasketScreen> with SingleTicker
 
   @override
   void dispose() {
+    VoiceRecognitionService.stopListening();
     _pulseController.dispose();
     _textController.dispose();
     super.dispose();
@@ -135,22 +137,86 @@ class _VoiceBasketScreenState extends State<VoiceBasketScreen> with SingleTicker
 
   void _toggleRecording() {
     if (_isRecording) {
-      // Stop recording and process
+      // Stop recording immediately
+      VoiceRecognitionService.stopListening();
       setState(() => _isRecording = false);
-      _executeVoiceQuery('أبي حليب السعودية واثنين جبن كيري وخبز توست');
-    } else {
-      // Start recording
-      setState(() {
-        _isRecording = true;
-        _statusMessage = 'جاري الاستماع... تحدّث بلهجتك الطبيعية';
-      });
+      return;
+    }
 
-      // Simulate voice completion after 2.5 seconds if user stops speaking
-      Future.delayed(const Duration(milliseconds: 2500), () {
-        if (_isRecording && mounted) {
-          setState(() => _isRecording = false);
-          _executeVoiceQuery('أبي حليب السعودية واثنين جبن كيري وخبز توست');
+    if (!VoiceRecognitionService.isSupported) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('التعرف الصوتي غير مدعوم في هذا المتصفح. يمكنك كتابة طلبك بالأسفل أو استخدام Chrome أو Safari أو Edge.'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      setState(() {
+        _statusMessage = 'المتصفح لا يدعم ميزة المايكروفون مباشرة، يرجى استخدام حقل الكتابة بالأسفل.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isRecording = true;
+      _statusMessage = 'جاري الاستماع... تحدّث بلهجتك الطبيعية الآن';
+      _lastSpokenText = null;
+    });
+
+    final started = VoiceRecognitionService.startListening(
+      onStart: () {
+        if (mounted) {
+          setState(() {
+            _isRecording = true;
+            _statusMessage = 'نسمعك الآن... تحدّث بوضوح';
+          });
         }
+      },
+      onResult: (transcript, isFinal) {
+        if (mounted) {
+          setState(() {
+            _lastSpokenText = transcript;
+            _statusMessage = isFinal ? 'تم التقاط الكلام' : 'نسمعك الآن...';
+          });
+        }
+      },
+      onError: (err) {
+        if (mounted) {
+          setState(() {
+            _isRecording = false;
+            if (err == 'no-speech') {
+              _statusMessage = 'لم يتم التقاط أي صوت، يرجى التحدث بوضوح أو كتابة طلبك بالأسفل.';
+            } else if (err == 'not-allowed' || err == 'permission-denied') {
+              _statusMessage = 'يرجى السماح بصلاحية المايكروفون في إعدادات المتصفح.';
+            } else if (err == 'audio-capture') {
+              _statusMessage = 'لم يتم العثور على مايكروفون موصول بالجهاز.';
+            } else {
+              _statusMessage = 'توقف الاستماع ($err). يمكنك كتابة طلبك بالأسفل.';
+            }
+          });
+        }
+      },
+      onEnd: (finalTranscript) {
+        if (mounted) {
+          setState(() {
+            _isRecording = false;
+          });
+          final text = finalTranscript.trim();
+          if (text.isNotEmpty) {
+            _executeVoiceQuery(text);
+          } else {
+            setState(() {
+              _statusMessage = 'لم يتم التقاط أي كلام، يرجى الضغط على المايك والتحدث بوضوح.';
+            });
+          }
+        }
+      },
+    );
+
+    if (!started && mounted) {
+      setState(() {
+        _isRecording = false;
+        _statusMessage = 'تعذر تشغيل المايكروفون، يرجى التحقق من إذن المايك في المتصفح.';
       });
     }
   }
