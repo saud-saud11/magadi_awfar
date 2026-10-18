@@ -2,12 +2,23 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/models.dart';
+import 'offline_catalog.dart';
 
 class ApiService {
-  // Dynamically uses current host/port on web so it works from iPhone over local network
+  // Optional custom backend URL
+  static String? customBaseUrl;
+
+  // Dynamically uses host/port, but immediately uses client catalog on GitHub Pages
   static String get baseUrl {
+    if (customBaseUrl != null && customBaseUrl!.isNotEmpty) {
+      return customBaseUrl!;
+    }
     if (kIsWeb) {
       final uri = Uri.base;
+      if (uri.host.contains('github.io')) {
+        // GitHub Pages has no python backend, use instant catalog
+        return '';
+      }
       final portPart = (uri.hasPort && uri.port != 80 && uri.port != 443) ? ':${uri.port}' : '';
       return '${uri.scheme}://${uri.host}$portPart/api/v1';
     }
@@ -15,14 +26,16 @@ class ApiService {
   }
 
   static Future<List<District>> getDistricts() async {
-    try {
-      final res = await http.get(Uri.parse('$baseUrl/districts')).timeout(const Duration(seconds: 5));
-      if (res.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(utf8.decode(res.bodyBytes));
-        return data.map((d) => District.fromJson(d)).toList();
+    if (baseUrl.isNotEmpty) {
+      try {
+        final res = await http.get(Uri.parse('$baseUrl/districts')).timeout(const Duration(seconds: 3));
+        if (res.statusCode == 200) {
+          final List<dynamic> data = jsonDecode(utf8.decode(res.bodyBytes));
+          return data.map((d) => District.fromJson(d)).toList();
+        }
+      } catch (e) {
+        print('ApiService.getDistricts error: $e');
       }
-    } catch (e) {
-      print('ApiService.getDistricts error: $e');
     }
     // Fallback default districts in Madinah if backend is temporarily unreachable
     return [
@@ -43,22 +56,29 @@ class ApiService {
     String district = 'سلطانة',
     String sortBy = 'cheapest_product',
   }) async {
-    try {
-      final uri = Uri.parse('$baseUrl/search').replace(queryParameters: {
-        'q': query,
-        'district': district,
-        'sort_by': sortBy,
-      });
+    if (baseUrl.isNotEmpty) {
+      try {
+        final uri = Uri.parse('$baseUrl/search').replace(queryParameters: {
+          'q': query,
+          'district': district,
+          'sort_by': sortBy,
+        });
 
-      final res = await http.get(uri).timeout(const Duration(seconds: 10));
-      if (res.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(utf8.decode(res.bodyBytes));
-        return SearchResult.fromJson(data);
+        final res = await http.get(uri).timeout(const Duration(seconds: 3));
+        if (res.statusCode == 200) {
+          final Map<String, dynamic> data = jsonDecode(utf8.decode(res.bodyBytes));
+          return SearchResult.fromJson(data);
+        }
+      } catch (e) {
+        print('ApiService.search error, falling back to catalog: $e');
       }
-    } catch (e) {
-      print('ApiService.search error: $e');
     }
-    return null;
+    // Instant fallback to Al-Madinah staple catalog
+    return OfflineCatalog.search(
+      query: query,
+      district: district,
+      sortBy: sortBy,
+    );
   }
 
   static Future<List<SourceInfo>> getSources() async {
@@ -93,44 +113,48 @@ class ApiService {
     String? requestId,
     Map<String, dynamic>? userPreferences,
   }) async {
-    try {
-      final res = await http.post(
-        Uri.parse('$baseUrl/voice/parse'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'query': query,
-          'session_id': sessionId,
-          'request_id': requestId,
-          'user_preferences': userPreferences,
-        }),
-      ).timeout(const Duration(seconds: 10));
+    if (baseUrl.isNotEmpty) {
+      try {
+        final res = await http.post(
+          Uri.parse('$baseUrl/voice/parse'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'query': query,
+            'session_id': sessionId,
+            'request_id': requestId,
+            'user_preferences': userPreferences,
+          }),
+        ).timeout(const Duration(seconds: 4));
 
-      if (res.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(utf8.decode(res.bodyBytes));
-        return VoiceBasketResult.fromJson(data);
+        if (res.statusCode == 200) {
+          final Map<String, dynamic> data = jsonDecode(utf8.decode(res.bodyBytes));
+          return VoiceBasketResult.fromJson(data);
+        }
+      } catch (e) {
+        print('ApiService.parseVoiceCommand error: $e');
       }
-    } catch (e) {
-      print('ApiService.parseVoiceCommand error: $e');
     }
-    return null;
+    return OfflineCatalog.parseVoice(query);
   }
 
   static Future<VoiceBasketResult?> undoVoiceCommand({
     String sessionId = 'default_session',
   }) async {
-    try {
-      final res = await http.post(
-        Uri.parse('$baseUrl/voice/undo?session_id=$sessionId'),
-      ).timeout(const Duration(seconds: 5));
+    if (baseUrl.isNotEmpty) {
+      try {
+        final res = await http.post(
+          Uri.parse('$baseUrl/voice/undo?session_id=$sessionId'),
+        ).timeout(const Duration(seconds: 4));
 
-      if (res.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(utf8.decode(res.bodyBytes));
-        return VoiceBasketResult.fromJson(data);
+        if (res.statusCode == 200) {
+          final Map<String, dynamic> data = jsonDecode(utf8.decode(res.bodyBytes));
+          return VoiceBasketResult.fromJson(data);
+        }
+      } catch (e) {
+        print('ApiService.undoVoiceCommand error: $e');
       }
-    } catch (e) {
-      print('ApiService.undoVoiceCommand error: $e');
     }
-    return null;
+    return OfflineCatalog.parseVoice('تراجع');
   }
 
   static Future<Map<String, dynamic>?> compareBasket({

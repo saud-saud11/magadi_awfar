@@ -55,8 +55,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
       if (mounted) {
         setState(() {
           _result = res;
-          if (res == null) {
-            _errorMessage = 'تعذر الاتصال بخادم مقاضي أوفر (127.0.0.1:8000). يرجى التأكد من تشغيل الخدمة.';
+          if (res == null || (res.matchedProducts.isEmpty && res.alternativeSizes.isEmpty)) {
+            _errorMessage = 'لم نتمكن من العثور على عروض لبحث «${widget.initialQuery}». يرجى تجربة كلمات أخرى مثل: أرز الشعلان، نوتيلا، حليب السعودية.';
           }
           _isLoading = false;
         });
@@ -64,7 +64,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'تعذر الاتصال بالخادم. يرجى التأكد من تشغيل الخدمة.';
+          _errorMessage = 'حدث خطأ أثناء جلب النتائج. يرجى إعادة المحاولة.';
           _isLoading = false;
         });
       }
