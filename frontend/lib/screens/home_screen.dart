@@ -25,7 +25,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   
   List<District> _districts = [];
-  List<SourceInfo> _sources = [];
 
   final List<String> _recentSearches = [
     'نوتيلا 500 جرام',
@@ -54,11 +53,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadInitialData() async {
     final districts = await ApiService.getDistricts();
-    final sources = await ApiService.getSources();
     if (mounted) {
       setState(() {
         _districts = districts;
-        _sources = sources;
       });
     }
   }
@@ -449,111 +446,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 }).toList(),
               ),
             ],
-
-            const SizedBox(height: 24),
-
-            // Monitored Stores Status Strip
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Expanded(
-                  child: Text(
-                    'المصادر والمتاجر في المدينة المنورة',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textDark),
-                  ),
-                ),
-                Text(
-                  '${_sources.where((s) => s.status == 'connected').length} متصلة',
-                  style: const TextStyle(fontSize: 12, color: AppTheme.success, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 90,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  _buildStoreBadge('الدانوب', 'متصل حيًا', AppTheme.success, Icons.check_circle),
-                  _buildStoreBadge('بنده', 'متصل بالكتالوج', AppTheme.success, Icons.check_circle),
-                  _buildStoreBadge('العثيم', 'متصل بالكتالوج', AppTheme.success, Icons.check_circle),
-                  _buildStoreBadge('أسواق التميمي', 'متصل بالفرع', AppTheme.success, Icons.check_circle),
-                  _buildStoreBadge('نون منتس', 'توصيل فوري', AppTheme.success, Icons.bolt),
-                  _buildStoreBadge('أمازون السعودية', 'شحن للمدينة', AppTheme.success, Icons.local_shipping),
-                  _buildStoreBadge('صيدلية النهدي', 'متصل بالصيدلية', AppTheme.success, Icons.medical_services),
-                  _buildStoreBadge('صيدلية الدواء', 'متصل بالصيدلية', AppTheme.success, Icons.medical_services),
-                  _buildStoreBadge('كارفور', 'يحتاج وكيل WAF', AppTheme.accentGold, Icons.settings),
-                  _buildStoreBadge('هنقرستيشن', 'يحتاج مفاتيح API', AppTheme.warning, Icons.vpn_key),
-                  _buildStoreBadge('نينجا', 'دارك ستور مغلق', AppTheme.warning, Icons.lock),
-                  _buildStoreBadge('كيتا', 'حساب شريك مطلوب', AppTheme.warning, Icons.handshake),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Disclaimer Banner
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blueGrey.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blueGrey.shade200),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.blueGrey, size: 20),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'ملاحظة: المقارنة تعتمد على العروض المفحوصة فعليًا لموقعك في المدينة المنورة، ولا تدعي تغطية السوق كاملًا.',
-                      style: TextStyle(fontSize: 11, color: Colors.blueGrey, height: 1.4),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            const SizedBox(height: 16),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildStoreBadge(String name, String status, Color color, IconData icon) {
-    return Container(
-      width: 125,
-      margin: const EdgeInsets.only(left: 10),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: color, size: 14),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  name,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            status,
-            style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
       ),
     );
   }
