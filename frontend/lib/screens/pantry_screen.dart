@@ -10,12 +10,14 @@ class PantryScreen extends StatefulWidget {
   final Function(List<PantryItemModel>) onAddPantryToBasket;
   final Function(ProductItem) onAddSingleToBasket;
   final VoidCallback onNavigateToBasket;
+  final VoidCallback? onNavigateToSearch;
 
   const PantryScreen({
     super.key,
     required this.onAddPantryToBasket,
     required this.onAddSingleToBasket,
     required this.onNavigateToBasket,
+    this.onNavigateToSearch,
   });
 
   @override
@@ -141,113 +143,7 @@ class _PantryScreenState extends State<PantryScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            List<NotificationLogItem> history = List.from(_pantryService.cachedNotifications);
-            bool isFetchingFresh = false;
-
-            // Trigger background refresh if empty or on open
-            if (history.isEmpty) {
-              isFetchingFresh = true;
-              _pantryService.fetchNotificationHistory().then((fresh) {
-                if (ctx.mounted) {
-                  setSheetState(() {
-                    history = fresh;
-                    isFetchingFresh = false;
-                  });
-                }
-              });
-            }
-
-            return Directionality(
-              textDirection: TextDirection.rtl,
-              child: Container(
-                height: MediaQuery.of(context).size.height * 0.75,
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.history, color: AppTheme.primary),
-                            SizedBox(width: 8),
-                            Text('سجل تنبيهات الأسعار', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => Navigator.pop(ctx),
-                        ),
-                      ],
-                    ),
-                    const Divider(),
-                    if (isFetchingFresh)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8),
-                        child: LinearProgressIndicator(minHeight: 2),
-                      ),
-                    Expanded(
-                      child: history.isEmpty && !isFetchingFresh
-                          ? const Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.notifications_none, size: 50, color: Colors.grey),
-                                  SizedBox(height: 12),
-                                  Text('لا توجد تنبيهات مسجلة حتى الآن', style: TextStyle(color: Colors.grey)),
-                                ],
-                              ),
-                            )
-                          : ListView.separated(
-                              itemCount: history.length,
-                              separatorBuilder: (_, __) => const Divider(height: 1),
-                              itemBuilder: (c, idx) {
-                                final notif = history[idx];
-                                final timeStr = notif.createdAt != null
-                                    ? '${notif.createdAt!.hour.toString().padLeft(2, '0')}:${notif.createdAt!.minute.toString().padLeft(2, '0')} - ${notif.createdAt!.day}/${notif.createdAt!.month}'
-                                    : '';
-                                return ListTile(
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 4),
-                                  leading: CircleAvatar(
-                                    backgroundColor: notif.eventType == 'price_drop'
-                                        ? Colors.green.shade100
-                                        : AppTheme.primaryContainer,
-                                    child: Icon(
-                                      notif.eventType == 'price_drop' ? Icons.trending_down : Icons.notifications,
-                                      color: notif.eventType == 'price_drop' ? Colors.green.shade800 : AppTheme.primary,
-                                      size: 20,
-                                    ),
-                                  ),
-                                  title: Text(notif.titleAr, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                  subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const SizedBox(height: 4),
-                                      Text(notif.bodyAr, style: const TextStyle(fontSize: 12, color: AppTheme.textDark)),
-                                      if (timeStr.isNotEmpty) ...[
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          timeStr,
-                                          style: const TextStyle(fontSize: 10, color: Colors.grey),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
+      builder: (ctx) => const NotificationHistorySheet(),
     );
   }
 
@@ -566,13 +462,17 @@ class _PantryScreenState extends State<PantryScreen> {
       ),
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppTheme.primaryContainer.withOpacity(0.5),
-              shape: BoxShape.circle,
+          InkWell(
+            onTap: widget.onNavigateToSearch,
+            borderRadius: BorderRadius.circular(50),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryContainer.withOpacity(0.5),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.notifications_active_outlined, size: 48, color: AppTheme.primary),
             ),
-            child: const Icon(Icons.notifications_active_outlined, size: 48, color: AppTheme.primary),
           ),
           const SizedBox(height: 16),
           const Text(
@@ -585,6 +485,19 @@ class _PantryScreenState extends State<PantryScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: AppTheme.textMuted, height: 1.5),
           ),
+          const SizedBox(height: 16),
+          if (widget.onNavigateToSearch != null)
+            ElevatedButton.icon(
+              onPressed: widget.onNavigateToSearch,
+              icon: const Icon(Icons.search, size: 18),
+              label: const Text('ابحث عن مقاضيك وأضفها للمتابعة'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(12),
@@ -847,3 +760,221 @@ class _PantryScreenState extends State<PantryScreen> {
     );
   }
 }
+
+class NotificationHistorySheet extends StatefulWidget {
+  const NotificationHistorySheet({super.key});
+
+  @override
+  State<NotificationHistorySheet> createState() => _NotificationHistorySheetState();
+}
+
+class _NotificationHistorySheetState extends State<NotificationHistorySheet> {
+  final PantryService _pantryService = PantryService();
+  bool _isLoading = false;
+  bool _isSendingTest = false;
+  List<NotificationLogItem> _notifications = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _notifications = _pantryService.cachedNotifications;
+    _fetchHistory();
+  }
+
+  Future<void> _fetchHistory() async {
+    setState(() => _isLoading = true);
+    try {
+      final list = await _pantryService.fetchNotificationHistory();
+      if (mounted) {
+        setState(() {
+          _notifications = list;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _sendTestNotification() async {
+    setState(() => _isSendingTest = true);
+    await _pantryService.sendTestNotification();
+    if (mounted) {
+      setState(() {
+        _isSendingTest = false;
+        _notifications = _pantryService.cachedNotifications;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('🔔 تم إرسال تنبيه تجريبي بنجاح!'),
+          backgroundColor: AppTheme.primary,
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.75,
+        ),
+        padding: const EdgeInsets.only(top: 16, bottom: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.notifications_active, color: AppTheme.primary),
+                      SizedBox(width: 8),
+                      Text(
+                        'سجل الإشعارات والتنبيهات',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textDark),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _isSendingTest ? null : _sendTestNotification,
+                      icon: _isSendingTest
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.send, size: 16),
+                      label: const Text('تجربة تنبيه فوري 🔔', style: TextStyle(fontSize: 12)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.primary,
+                        side: const BorderSide(color: AppTheme.primary),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (_isLoading && _notifications.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: CircularProgressIndicator(color: AppTheme.primary),
+                ),
+              )
+            else if (_notifications.isEmpty)
+              Expanded(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.notifications_none, size: 48, color: Colors.grey.shade400),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'لا توجد تنبيهات سابقة بعد',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textDark),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'ستظهر هنا جميع التنبيهات الفورية فور نزول أسعار مقاضيك المتابعة أو توفر عروض استثنائية.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600, height: 1.4),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  itemCount: _notifications.length,
+                  separatorBuilder: (_, __) => const Divider(height: 12),
+                  itemBuilder: (context, index) {
+                    final notif = _notifications[index];
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: CircleAvatar(
+                        backgroundColor: notif.isRead
+                            ? Colors.grey.shade200
+                            : AppTheme.primaryContainer,
+                        child: Icon(
+                          Icons.notifications,
+                          color: notif.isRead ? Colors.grey : AppTheme.primary,
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(
+                        notif.titleAr,
+                        style: TextStyle(
+                          fontWeight: notif.isRead ? FontWeight.normal : FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 4),
+                          Text(
+                            notif.bodyAr,
+                            style: const TextStyle(fontSize: 12, color: AppTheme.textDark),
+                          ),
+                          if (notif.createdAt != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              _formatTime(notif.createdAt!),
+                              style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                            ),
+                          ],
+                        ],
+                      ),
+                      onTap: () {
+                        if (!notif.isRead) {
+                          _pantryService.markNotificationRead(notif.id);
+                        }
+                      },
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatTime(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inMinutes < 1) return 'الآن';
+    if (diff.inMinutes < 60) return 'منذ ${diff.inMinutes} دقيقة';
+    if (diff.inHours < 24) return 'منذ ${diff.inHours} ساعة';
+    return 'منذ ${diff.inDays} يوم';
+  }
+}
+

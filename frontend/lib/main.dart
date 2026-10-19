@@ -108,6 +108,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         onAddPantryToBasket: _addPantryToBasket,
         onAddSingleToBasket: _addToBasket,
         onNavigateToBasket: () => setState(() => _currentIndex = 3),
+        onNavigateToSearch: () => setState(() => _currentIndex = 0),
       ),
       BasketScreen(
         basketItems: _basket,

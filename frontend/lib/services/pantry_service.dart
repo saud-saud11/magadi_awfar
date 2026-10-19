@@ -66,11 +66,11 @@ class PantryService {
   }
 
   Future<void> _saveToLocalCache(List<PantryItemModel> items) async {
+    trackedItemsNotifier.value = items;
     try {
       final prefs = await SharedPreferences.getInstance();
       final list = items.map((i) => i.toJson()).toList();
       await prefs.setString(_prefKeyCachedPantry, jsonEncode(list));
-      trackedItemsNotifier.value = items;
     } catch (e) {
       debugPrint('Error saving pantry local cache: $e');
     }
@@ -117,12 +117,12 @@ class PantryService {
     );
   }
 
-  /// Add product to pantry watchlist (Instant 0ms Optimistic UI + Background Sync)
+  /// Add product to pantry watchlist (Synchronous 0ms Optimistic UI + Background Sync)
   Future<bool> addToPantry(ProductItem product, {int usualQuantity = 1, double? targetPriceSar}) async {
-    final uuid = await getDeviceUuid();
-    final baseUrl = ApiService.baseUrl;
+    // 1. Instant SYNCHRONOUS optimistic local update (0 ms latency)
+    final currentList = List<PantryItemModel>.from(trackedItemsNotifier.value);
+    final existingIdx = currentList.indexWhere((it) => it.productId == product.id);
 
-    // Find lowest confirmed offer
     StoreOffer? lowestOffer;
     for (var off in product.offers) {
       if (off.priceSar > 0 && off.isInStock) {
@@ -135,10 +135,7 @@ class PantryService {
     final double baselinePriceSar = lowestOffer?.priceSar ?? 0.0;
     final String baselineStore = lowestOffer?.storeCode ?? 'othaim';
     final String baselineStoreName = lowestOffer?.storeNameAr ?? 'المتجر';
-
-    // 1. Instant optimistic local update (0 ms latency)
-    final currentList = List<PantryItemModel>.from(trackedItemsNotifier.value);
-    final existingIdx = currentList.indexWhere((it) => it.productId == product.id);
+    final String initialUuid = _cachedDeviceUuid ?? 'dev_${DateTime.now().millisecondsSinceEpoch}';
 
     PantryItemModel itemToTrack;
     if (existingIdx >= 0) {
@@ -176,7 +173,7 @@ class PantryService {
     } else {
       itemToTrack = PantryItemModel(
         id: DateTime.now().millisecondsSinceEpoch,
-        deviceUuid: uuid,
+        deviceUuid: initialUuid,
         productId: product.id,
         productNameAr: product.nameAr,
         productNameEn: product.nameEn,
@@ -202,11 +199,16 @@ class PantryService {
       );
       currentList.add(itemToTrack);
     }
-    await _saveToLocalCache(currentList);
+
+    // SYNCHRONOUSLY UPDATE NOTIFIER RIGHT HERE (0ms)
+    trackedItemsNotifier.value = currentList;
+    _saveToLocalCache(currentList);
 
     // 2. Background HTTP sync
     () async {
       try {
+        final uuid = await getDeviceUuid();
+        final baseUrl = ApiService.baseUrl;
         final uri = Uri.parse('$baseUrl/pantry');
         final body = {
           'device_uuid': uuid,
@@ -228,7 +230,8 @@ class PantryService {
           final idx = updated.indexWhere((it) => it.productId == product.id);
           if (idx >= 0) {
             updated[idx] = serverItem;
-            await _saveToLocalCache(updated);
+            trackedItemsNotifier.value = updated;
+            _saveToLocalCache(updated);
           }
         }
       } catch (e) {
@@ -321,11 +324,12 @@ class PantryService {
   }
 
   /// Remove item from watchlist (Instant 0ms + Background Sync)
-  Future<bool> removeItem(int itemId) async {
+  Future<bool> removeItem(int itemId, {int? productId}) async {
     // 1. Instant local removal (0 ms latency)
     final currentList = List<PantryItemModel>.from(trackedItemsNotifier.value);
-    currentList.removeWhere((it) => it.id == itemId);
-    await _saveToLocalCache(currentList);
+    currentList.removeWhere((it) => it.id == itemId || (productId != null && it.productId == productId));
+    trackedItemsNotifier.value = currentList;
+    _saveToLocalCache(currentList);
 
     // 2. Background HTTP sync
     () async {
@@ -342,10 +346,10 @@ class PantryService {
   }
 
   /// Toggle single alert (Instant 0ms + Background Sync)
-  Future<bool> toggleAlert(int itemId) async {
+  Future<bool> toggleAlert(int itemId, {int? productId}) async {
     // 1. Instant optimistic local update (0 ms latency)
     final currentList = List<PantryItemModel>.from(trackedItemsNotifier.value);
-    final idx = currentList.indexWhere((it) => it.id == itemId);
+    final idx = currentList.indexWhere((it) => it.id == itemId || (productId != null && it.productId == productId));
     if (idx >= 0) {
       final it = currentList[idx];
       currentList[idx] = PantryItemModel(
@@ -377,17 +381,48 @@ class PantryService {
         hasPriceDrop: it.hasPriceDrop,
         isTargetMet: it.isTargetMet,
       );
-      await _saveToLocalCache(currentList);
+      // Synchronously notify listeners immediately!
+      trackedItemsNotifier.value = currentList;
+      _saveToLocalCache(currentList);
+
+      final realId = it.id;
+      // 2. Background HTTP sync
+      () async {
+        try {
+          final baseUrl = ApiService.baseUrl;
+          final uri = Uri.parse('$baseUrl/pantry/$realId/toggle-alert');
+          await http.post(uri).timeout(const Duration(seconds: 6));
+        } catch (e) {
+          debugPrint('Background sync toggling alert: $e');
+        }
+      }();
     }
 
-    // 2. Background HTTP sync
+    return true;
+  }
+
+  /// Sends an instant test notification
+  Future<bool> sendTestNotification() async {
+    final simulated = NotificationLogItem(
+      id: DateTime.now().millisecondsSinceEpoch,
+      titleAr: '🔔 تجربة تنبيهات مقاضي البيت',
+      bodyAr: 'تم تفعيل التنبيهات بنجاح! سيتم إخطارك فوراً عند نزول أسعار أي منتج تتابعه.',
+      eventType: 'price_drop',
+      isRead: false,
+      createdAt: DateTime.now(),
+    );
+    _cachedNotifications = [simulated, ..._cachedNotifications];
+    unreadNotificationsCountNotifier.value = _cachedNotifications.where((n) => !n.isRead).length;
+
     () async {
       try {
+        final uuid = await getDeviceUuid();
         final baseUrl = ApiService.baseUrl;
-        final uri = Uri.parse('$baseUrl/pantry/$itemId/toggle-alert');
+        final uri = Uri.parse('$baseUrl/push/test').replace(queryParameters: {'device_uuid': uuid});
         await http.post(uri).timeout(const Duration(seconds: 6));
+        await fetchNotificationHistory();
       } catch (e) {
-        debugPrint('Background sync toggling alert: $e');
+        debugPrint('Error triggering test notification: $e');
       }
     }();
 

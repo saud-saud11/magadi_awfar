@@ -30,5 +30,17 @@
   <script src="voice_recognition.js"></script>
   <script src="push_manager.js"></script>
   <script src="flutter_bootstrap.js" async></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        for (var r of regs) {
+          r.update();
+        }
+      });
+      navigator.serviceWorker.addEventListener('controllerchange', function() {
+        console.log('[SW] Controller changed, new service worker activated');
+      });
+    }
+  </script>
 </body>
 </html>
