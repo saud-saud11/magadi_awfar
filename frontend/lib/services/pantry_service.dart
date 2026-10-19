@@ -556,4 +556,81 @@ class PantryService {
       debugPrint('Error marking notification read: $e');
     }
   }
+
+  /// Clear all notification history (local + backend)
+  Future<void> clearNotificationHistory() async {
+    _cachedNotifications = [];
+    unreadNotificationsCountNotifier.value = 0;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_prefKeyCachedNotifications);
+    } catch (_) {}
+
+    () async {
+      try {
+        final uuid = await getDeviceUuid();
+        final baseUrl = ApiService.baseUrl;
+        final uri = Uri.parse('$baseUrl/push/history').replace(queryParameters: {'device_uuid': uuid});
+        await http.delete(uri).timeout(const Duration(seconds: 5));
+      } catch (e) {
+        debugPrint('Error clearing notification history: $e');
+      }
+    }();
+  }
+
+  static const String _prefKeyAlertPrefs = 'magadi_alert_prefs';
+
+  /// Fetch quiet hours and alert preferences (Cached + Backend)
+  Future<AlertPreferencesModel> fetchAlertPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_prefKeyAlertPrefs);
+      if (raw != null && raw.isNotEmpty) {
+        return AlertPreferencesModel.fromJson(jsonDecode(raw));
+      }
+    } catch (_) {}
+
+    try {
+      final uuid = await getDeviceUuid();
+      final baseUrl = ApiService.baseUrl;
+      final uri = Uri.parse('$baseUrl/push/preferences').replace(queryParameters: {'device_uuid': uuid});
+      final res = await http.get(uri).timeout(const Duration(seconds: 5));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(res.bodyBytes));
+        final model = AlertPreferencesModel.fromJson(data);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_prefKeyAlertPrefs, jsonEncode(model.toJson()));
+        return model;
+      }
+    } catch (e) {
+      debugPrint('Error fetching alert preferences: $e');
+    }
+
+    return const AlertPreferencesModel();
+  }
+
+  /// Update quiet hours and alert preferences (Optimistic + Backend)
+  Future<bool> updateAlertPreferences(AlertPreferencesModel model) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_prefKeyAlertPrefs, jsonEncode(model.toJson()));
+    } catch (_) {}
+
+    () async {
+      try {
+        final uuid = await getDeviceUuid();
+        final baseUrl = ApiService.baseUrl;
+        final uri = Uri.parse('$baseUrl/push/preferences').replace(queryParameters: {'device_uuid': uuid});
+        await http.put(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(model.toJson()),
+        ).timeout(const Duration(seconds: 6));
+      } catch (e) {
+        debugPrint('Error syncing alert preferences: $e');
+      }
+    }();
+
+    return true;
+  }
 }

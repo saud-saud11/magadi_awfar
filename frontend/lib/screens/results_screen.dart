@@ -5,6 +5,7 @@ import '../services/api_service.dart';
 import '../services/url_launcher_helper.dart';
 import '../services/pantry_service.dart';
 import '../widgets/pantry_alert_dialog.dart';
+import '../widgets/ui/ui_kit.dart';
 import 'product_detail_screen.dart';
 
 class ResultsScreen extends StatefulWidget {
@@ -192,27 +193,32 @@ class _ResultsScreenState extends State<ResultsScreen> {
             // Main Body
             Expanded(
               child: _isLoading
-                  ? const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(color: AppTheme.primary),
-                          SizedBox(height: 16),
-                          Text('جاري فحص المتاجر في المدينة المنورة...', style: TextStyle(color: AppTheme.textMuted)),
-                        ],
-                      ),
+                  ? const SingleChildScrollView(
+                      padding: EdgeInsets.all(16),
+                      child: ProductSkeletonList(count: 4),
                     )
                   : _errorMessage != null
                       ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.wifi_off, size: 48, color: AppTheme.danger),
-                              const SizedBox(height: 12),
-                              Text(_errorMessage!, style: const TextStyle(color: AppTheme.textMuted)),
-                              const SizedBox(height: 16),
-                              ElevatedButton(onPressed: _fetchResults, child: const Text('إعادة المحاولة')),
-                            ],
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const EmptyIllustration(icon: Icons.wifi_off_rounded),
+                                const SizedBox(height: 16),
+                                Text(
+                                  _errorMessage!,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(color: AppTheme.textMuted, fontSize: 13, height: 1.4),
+                                ),
+                                const SizedBox(height: 18),
+                                GradientButton(
+                                  label: 'إعادة المحاولة',
+                                  icon: Icons.refresh_rounded,
+                                  onPressed: _fetchResults,
+                                ),
+                              ],
+                            ),
                           ),
                         )
                       : _buildResultsList(),
@@ -230,11 +236,13 @@ class _ResultsScreenState extends State<ResultsScreen> {
       child: ChoiceChip(
         label: Text(label),
         selected: isSelected,
-        selectedColor: AppTheme.primaryContainer,
+        selectedColor: AppTheme.primary,
         backgroundColor: AppTheme.surface,
+        elevation: isSelected ? 2 : 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         labelStyle: TextStyle(
-          color: isSelected ? AppTheme.primary : AppTheme.textDark,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? Colors.white : AppTheme.textDark,
+          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
           fontSize: 12,
         ),
         side: BorderSide(color: isSelected ? AppTheme.primary : AppTheme.border),
@@ -253,10 +261,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
         label: Text(label),
         selected: isSelected,
         selectedColor: AppTheme.primary,
-        backgroundColor: Colors.grey.shade100,
+        backgroundColor: AppTheme.surface,
+        elevation: isSelected ? 2 : 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         labelStyle: TextStyle(
           color: isSelected ? Colors.white : AppTheme.textDark,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
           fontSize: 12,
         ),
         checkmarkColor: Colors.white,
@@ -276,25 +286,17 @@ class _ResultsScreenState extends State<ResultsScreen> {
       child: ChoiceChip(
         label: Text(label),
         selected: isSelected,
-        selectedColor: code == 'single'
-            ? Colors.green.shade100
-            : (code == 'bundle' ? Colors.purple.shade100 : AppTheme.primaryContainer),
+        selectedColor: AppTheme.primary,
         backgroundColor: AppTheme.surface,
+        elevation: isSelected ? 2 : 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         labelStyle: TextStyle(
-          color: isSelected
-              ? (code == 'single'
-                  ? Colors.green.shade900
-                  : (code == 'bundle' ? Colors.purple.shade900 : AppTheme.primary))
-              : AppTheme.textDark,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? Colors.white : AppTheme.textDark,
+          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
           fontSize: 12,
         ),
         side: BorderSide(
-          color: isSelected
-              ? (code == 'single'
-                  ? Colors.green.shade700
-                  : (code == 'bundle' ? Colors.purple.shade700 : AppTheme.primary))
-              : AppTheme.border,
+          color: isSelected ? AppTheme.primary : AppTheme.border,
         ),
         onSelected: (_) {
           setState(() => _selectedPackagingFilter = code);
@@ -418,19 +420,19 @@ class _ResultsScreenState extends State<ResultsScreen> {
             padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
             child: Column(
               children: [
-                const Icon(Icons.search_off, size: 64, color: AppTheme.textMuted),
-                const SizedBox(height: 16),
+                const EmptyIllustration(icon: Icons.search_off_rounded, size: 90),
+                const SizedBox(height: 18),
                 Text(
                   _result!.statusMessage.isNotEmpty
                       ? _result!.statusMessage
                       : 'لم يتم العثور على منتجات مطابقة لبحثك.',
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textDark),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textDark),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 10),
                 const Text(
                   'جرّب البحث باسم المنتج أو الماركة الأساسية مثل: «نوتيلا»، «حليب المراعي»، «أرز الشعلان»، «زيت عافية»، «سكر الأسرة».',
-                  style: TextStyle(fontSize: 12, color: AppTheme.textMuted, height: 1.4),
+                  style: TextStyle(fontSize: 13, color: AppTheme.textMuted, height: 1.5),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -527,9 +529,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
     if (visibleOffers.isEmpty) return const SizedBox();
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 20),
-      child: Padding(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: SoftCard(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -540,7 +542,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
               children: [
                 Expanded(
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -557,19 +559,23 @@ class _ResultsScreenState extends State<ResultsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Product Image
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            width: 70,
-                            height: 70,
-                            color: Colors.grey.shade100,
+                        Container(
+                          width: 70,
+                          height: 70,
+                          decoration: BoxDecoration(
+                            color: AppTheme.background,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppTheme.border.withOpacity(0.6)),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
                             child: product.imageUrl != null && product.imageUrl!.isNotEmpty
                                 ? Image.network(
                                     product.imageUrl!,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (c, e, s) => const Icon(Icons.image, color: Colors.grey),
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (c, e, s) => const Icon(Icons.shopping_bag_outlined, color: AppTheme.textMuted),
                                   )
-                                : const Icon(Icons.image, color: Colors.grey),
+                                : const Icon(Icons.shopping_bag_outlined, color: AppTheme.textMuted),
                           ),
                         ),
                         const SizedBox(width: 14),
@@ -579,7 +585,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                             children: [
                               Text(
                                 product.nameAr,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textDark),
+                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppTheme.textDark),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -591,10 +597,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                 children: [
                                   // Packaging Badge (بالحبة vs حزمة/كرتون)
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                     decoration: BoxDecoration(
                                       color: product.isBundle ? const Color(0xFFF3E8FF) : const Color(0xFFECFDF5),
-                                      borderRadius: BorderRadius.circular(6),
+                                      borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
                                         color: product.isBundle ? const Color(0xFFD8B4FE) : const Color(0xFFA7F3D0),
                                       ),
@@ -603,7 +609,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Icon(
-                                          product.isBundle ? Icons.inventory_2 : Icons.sports_bar_outlined,
+                                          product.isBundle ? Icons.inventory_2_rounded : Icons.sports_bar_rounded,
                                           size: 12,
                                           color: product.isBundle ? const Color(0xFF7E22CE) : const Color(0xFF047857),
                                         ),
@@ -612,7 +618,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                           product.displayPackBadge,
                                           style: TextStyle(
                                             fontSize: 11,
-                                            fontWeight: FontWeight.bold,
+                                            fontWeight: FontWeight.w700,
                                             color: product.isBundle ? const Color(0xFF6B21A8) : const Color(0xFF065F46),
                                           ),
                                         ),
@@ -621,16 +627,16 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                   ),
                                   if (product.normalizedSizeAmount != null)
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                       decoration: BoxDecoration(
                                         color: AppTheme.primaryContainer,
-                                        borderRadius: BorderRadius.circular(6),
+                                        borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
                                         product.normalizedSizeAmount! >= 1000 && product.normalizedSizeUnit == 'ml'
                                             ? '${(product.normalizedSizeAmount! / 1000).toStringAsFixed(product.normalizedSizeAmount! % 1000 == 0 ? 0 : 2)} لتر'
                                             : '${product.normalizedSizeAmount!.toInt()} ${product.normalizedSizeUnit == 'g' ? 'جرام' : (product.normalizedSizeUnit ?? '')}',
-                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primary),
+                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.primary),
                                       ),
                                     ),
                                   if (product.gtinBarcode != null)
@@ -654,20 +660,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     final trackedItem = isTracked ? trackedItems.firstWhere((i) => i.productId == product.id) : null;
                     final isAlertActive = trackedItem?.isAlertEnabled ?? false;
 
-                    return IconButton(
-                      icon: Icon(
-                        isTracked
-                            ? (isAlertActive ? Icons.notifications_active : Icons.notifications_off_outlined)
-                            : Icons.notifications_none_outlined,
-                        color: isTracked
-                            ? (isAlertActive ? Colors.amber.shade800 : Colors.grey)
-                            : AppTheme.textMuted,
-                        size: 22,
-                      ),
+                    return AnimatedBell(
+                      active: isTracked && isAlertActive,
                       tooltip: isTracked
                           ? (isAlertActive ? 'التنبيه مفعل (انقر للتعطيل)' : 'التنبيه معطل (انقر للتفعيل)')
                           : 'تابع السعر في مقاضي البيت',
-                      onPressed: () async {
+                      onTap: () async {
                         if (!isTracked) {
                           await PantryService().addToPantry(product);
                           if (context.mounted) {
@@ -714,21 +712,22 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     );
                   },
                 ),
+                const SizedBox(width: 4),
                 IconButton(
-                  icon: const Icon(Icons.add_shopping_cart, color: AppTheme.primary),
+                  icon: const Icon(Icons.add_shopping_cart_rounded, color: AppTheme.primary),
                   tooltip: 'أضف لقائمة المشتريات',
                   onPressed: () {
                     widget.onAddToBasket(product);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('تمت إضافة ${product.nameAr} لقائمة المشتريات')),
+                      SnackBar(content: Text('تمت إضافة «${product.nameAr}» لقائمة المشتريات')),
                     );
                   },
                 ),
               ],
             ),
 
-            const SizedBox(height: 16),
-            const Divider(height: 1),
+            const SizedBox(height: 14),
+            Divider(height: 1, color: AppTheme.border.withOpacity(0.6)),
             const SizedBox(height: 12),
 
             // Store Offers List
@@ -740,18 +739,20 @@ class _ResultsScreenState extends State<ResultsScreen> {
   }
 
   Widget _buildOfferRow(StoreOffer offer) {
+    final isCheapest = offer.isCheapestProduct;
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: offer.isCheapestProduct
-            ? AppTheme.primaryContainer.withOpacity(0.3)
-            : Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(12),
+        color: isCheapest
+            ? const Color(0xFFFFFDF5)
+            : AppTheme.surfaceAlt,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: offer.isCheapestProduct ? AppTheme.primary : AppTheme.border,
-          width: offer.isCheapestProduct ? 1.5 : 1,
+          color: isCheapest ? AppTheme.accentGold : AppTheme.border,
+          width: isCheapest ? 1.5 : 1,
         ),
+        boxShadow: isCheapest ? AppTheme.glowShadow(AppTheme.accentGold.withOpacity(0.25)) : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -762,25 +763,18 @@ class _ResultsScreenState extends State<ResultsScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: AppTheme.surface,
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: AppTheme.border),
                 ),
                 child: Text(
                   offer.storeNameAr,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textDark),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppTheme.textDark),
                 ),
               ),
               const SizedBox(width: 8),
-              if (offer.isCheapestProduct)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppTheme.success,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Text('أرخص سعر', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                ),
+              if (isCheapest)
+                const SavingsBadge('الأرخص 👑', gold: true),
               const Spacer(),
               // Price
               Column(
@@ -790,9 +784,20 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     children: [
                       Text(
                         '${offer.priceSar.toStringAsFixed(2)} ',
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primary),
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: isCheapest ? const Color(0xFFB47D1E) : AppTheme.primary,
+                        ),
                       ),
-                      const Text('ر.س', style: TextStyle(fontSize: 13, color: AppTheme.primary, fontWeight: FontWeight.bold)),
+                      Text(
+                        'ر.س',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isCheapest ? const Color(0xFFB47D1E) : AppTheme.primary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                     ],
                   ),
                   if (offer.originalPriceSar != null && offer.originalPriceSar! > offer.priceSar)
@@ -816,18 +821,18 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.blue.shade200),
                   ),
                   child: Text(
                     'لكل 100 جم: ${offer.unitPricePer100gSar!.toStringAsFixed(2)} ر.س',
-                    style: TextStyle(fontSize: 11, color: Colors.blue.shade800, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 11, color: Colors.blue.shade800, fontWeight: FontWeight.w700),
                   ),
                 )
               else
                 const Row(
                   children: [
-                    Icon(Icons.verified_outlined, size: 14, color: AppTheme.primary),
+                    Icon(Icons.verified_rounded, size: 14, color: AppTheme.primary),
                     SizedBox(width: 4),
                     Text(
                       'سعر موحد في فروع المدينة',
@@ -835,14 +840,13 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     ),
                   ],
                 ),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.open_in_new, size: 14),
-                label: const Text('افتح لدى المتجر', style: TextStyle(fontSize: 11)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.surface,
+              OutlinedButton.icon(
+                icon: const Icon(Icons.open_in_new_rounded, size: 14),
+                label: const Text('افتح بالمتجر', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                style: OutlinedButton.styleFrom(
                   foregroundColor: AppTheme.primary,
-                  elevation: 0,
-                  side: const BorderSide(color: AppTheme.primary),
+                  side: const BorderSide(color: AppTheme.primary, width: 1.2),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 ),
                 onPressed: () async {

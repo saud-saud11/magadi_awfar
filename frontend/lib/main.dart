@@ -124,84 +124,105 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         index: _currentIndex,
         children: screens,
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 10,
-              offset: const Offset(0, -3),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          top: false,
-          child: BottomNavigationBar(
-            currentIndex: _currentIndex,
-            selectedItemColor: AppTheme.primary,
-            unselectedItemColor: AppTheme.textMuted,
-            backgroundColor: AppTheme.surface,
-            type: BottomNavigationBarType.fixed,
-            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-            unselectedLabelStyle: const TextStyle(fontSize: 11),
-            onTap: (index) => setState(() => _currentIndex = index),
-            items: [
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.search),
-                activeIcon: Icon(Icons.search, color: AppTheme.primary),
-                label: 'مقارنة الأسعار',
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.96),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: AppTheme.border, width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0E3B33).withOpacity(0.08),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
               ),
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.mic),
-                activeIcon: Icon(Icons.mic, color: AppTheme.primary),
-                label: 'السلة الصوتية',
-              ),
-              BottomNavigationBarItem(
-                icon: ValueListenableBuilder<List<PantryItemModel>>(
-                  valueListenable: PantryService().trackedItemsNotifier,
-                  builder: (context, items, _) {
-                    return Badge(
-                      isLabelVisible: items.isNotEmpty,
-                      label: Text('${items.length}'),
-                      backgroundColor: Colors.amber.shade800,
-                      child: const Icon(Icons.kitchen_outlined),
-                    );
-                  },
-                ),
-                activeIcon: ValueListenableBuilder<List<PantryItemModel>>(
-                  valueListenable: PantryService().trackedItemsNotifier,
-                  builder: (context, items, _) {
-                    return Badge(
-                      isLabelVisible: items.isNotEmpty,
-                      label: Text('${items.length}'),
-                      backgroundColor: Colors.amber.shade800,
-                      child: const Icon(Icons.kitchen, color: AppTheme.primary),
-                    );
-                  },
-                ),
-                label: 'مقاضي البيت',
-              ),
-              BottomNavigationBarItem(
-                icon: Badge(
-                  isLabelVisible: _basket.isNotEmpty,
-                  label: Text('${_basket.length}'),
-                  backgroundColor: AppTheme.primary,
-                  child: const Icon(Icons.shopping_basket_outlined),
-                ),
-                activeIcon: Badge(
-                  isLabelVisible: _basket.isNotEmpty,
-                  label: Text('${_basket.length}'),
-                  backgroundColor: AppTheme.primary,
-                  child: const Icon(Icons.shopping_basket, color: AppTheme.primary),
-                ),
-                label: 'سلة المقاضي',
-              ),
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.admin_panel_settings_outlined),
-                activeIcon: Icon(Icons.admin_panel_settings, color: AppTheme.primary),
-                label: 'إدارة المصادر',
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
               ),
             ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(30),
+            child: BottomNavigationBar(
+              currentIndex: _currentIndex,
+              selectedItemColor: AppTheme.primary,
+              unselectedItemColor: AppTheme.textMuted,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              type: BottomNavigationBarType.fixed,
+              selectedLabelStyle: const TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontWeight: FontWeight.w800,
+                fontSize: 11,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontWeight: FontWeight.w600,
+                fontSize: 10.5,
+              ),
+              onTap: (index) => setState(() => _currentIndex = index),
+              items: [
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.search_rounded),
+                  activeIcon: Icon(Icons.search_rounded, color: AppTheme.primary),
+                  label: 'مقارنة الأسعار',
+                ),
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.mic_none_rounded),
+                  activeIcon: Icon(Icons.mic_rounded, color: AppTheme.primary),
+                  label: 'السلة الصوتية',
+                ),
+                BottomNavigationBarItem(
+                  icon: ValueListenableBuilder<List<PantryItemModel>>(
+                    valueListenable: PantryService().trackedItemsNotifier,
+                    builder: (context, items, _) {
+                      return Badge(
+                        isLabelVisible: items.isNotEmpty,
+                        label: Text('${items.length}', style: const TextStyle(fontFamily: AppTheme.fontFamily, fontWeight: FontWeight.bold)),
+                        backgroundColor: AppTheme.accentGold,
+                        child: const Icon(Icons.kitchen_outlined),
+                      );
+                    },
+                  ),
+                  activeIcon: ValueListenableBuilder<List<PantryItemModel>>(
+                    valueListenable: PantryService().trackedItemsNotifier,
+                    builder: (context, items, _) {
+                      return Badge(
+                        isLabelVisible: items.isNotEmpty,
+                        label: Text('${items.length}', style: const TextStyle(fontFamily: AppTheme.fontFamily, fontWeight: FontWeight.bold)),
+                        backgroundColor: AppTheme.accentGold,
+                        child: const Icon(Icons.kitchen_rounded, color: AppTheme.primary),
+                      );
+                    },
+                  ),
+                  label: 'مقاضي البيت',
+                ),
+                BottomNavigationBarItem(
+                  icon: Badge(
+                    isLabelVisible: _basket.isNotEmpty,
+                    label: Text('${_basket.length}', style: const TextStyle(fontFamily: AppTheme.fontFamily, fontWeight: FontWeight.bold)),
+                    backgroundColor: AppTheme.primary,
+                    child: const Icon(Icons.shopping_basket_outlined),
+                  ),
+                  activeIcon: Badge(
+                    isLabelVisible: _basket.isNotEmpty,
+                    label: Text('${_basket.length}', style: const TextStyle(fontFamily: AppTheme.fontFamily, fontWeight: FontWeight.bold)),
+                    backgroundColor: AppTheme.primary,
+                    child: const Icon(Icons.shopping_basket_rounded, color: AppTheme.primary),
+                  ),
+                  label: 'سلة المقاضي',
+                ),
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.admin_panel_settings_outlined),
+                  activeIcon: Icon(Icons.admin_panel_settings_rounded, color: AppTheme.primary),
+                  label: 'إدارة المصادر',
+                ),
+              ],
+            ),
           ),
         ),
       ),

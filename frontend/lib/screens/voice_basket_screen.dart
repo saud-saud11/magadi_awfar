@@ -1,8 +1,10 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
 import '../services/voice_service.dart';
+import '../widgets/ui/ui_kit.dart';
 
 class VoiceBasketScreen extends StatefulWidget {
   final Function(ProductItem) onAddToBasket;
@@ -18,7 +20,7 @@ class VoiceBasketScreen extends StatefulWidget {
   State<VoiceBasketScreen> createState() => _VoiceBasketScreenState();
 }
 
-class _VoiceBasketScreenState extends State<VoiceBasketScreen> with SingleTickerProviderStateMixin {
+class _VoiceBasketScreenState extends State<VoiceBasketScreen> with TickerProviderStateMixin {
   final TextEditingController _textController = TextEditingController();
   final String _sessionId = 'mobile_user_session';
   bool _isRecording = false;
@@ -36,6 +38,7 @@ class _VoiceBasketScreenState extends State<VoiceBasketScreen> with SingleTicker
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+  late AnimationController _waveController;
 
   final List<String> _exampleVoiceCommands = [
     'أبي حليب السعودية واثنين جبن كيري وخبز توست',
@@ -47,16 +50,41 @@ class _VoiceBasketScreenState extends State<VoiceBasketScreen> with SingleTicker
     'رجّع آخر تعديل',
   ];
 
+  void _startAnimations() {
+    if (!_pulseController.isAnimating) {
+      _pulseController.repeat(reverse: true);
+    }
+    if (!_waveController.isAnimating) {
+      _waveController.repeat();
+    }
+  }
+
+  void _stopAnimations() {
+    if (_pulseController.isAnimating) {
+      _pulseController.stop();
+      _pulseController.reset();
+    }
+    if (_waveController.isAnimating) {
+      _waveController.stop();
+      _waveController.reset();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    )..repeat(reverse: true);
+      duration: const Duration(milliseconds: 900),
+    );
 
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.25).animate(
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.18).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
+    _waveController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
     );
 
     _fetchSession();
@@ -66,12 +94,12 @@ class _VoiceBasketScreenState extends State<VoiceBasketScreen> with SingleTicker
   void dispose() {
     VoiceRecognitionService.stopListening();
     _pulseController.dispose();
+    _waveController.dispose();
     _textController.dispose();
     super.dispose();
   }
 
   Future<void> _fetchSession() async {
-    // Initial parse to fetch existing items if any
     final res = await ApiService.parseVoiceCommand(
       query: '',
       sessionId: _sessionId,
@@ -137,8 +165,8 @@ class _VoiceBasketScreenState extends State<VoiceBasketScreen> with SingleTicker
 
   void _toggleRecording() {
     if (_isRecording) {
-      // Stop recording immediately
       VoiceRecognitionService.stopListening();
+      _stopAnimations();
       setState(() => _isRecording = false);
       return;
     }
@@ -146,17 +174,18 @@ class _VoiceBasketScreenState extends State<VoiceBasketScreen> with SingleTicker
     if (!VoiceRecognitionService.isSupported) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('التعرف الصوتي غير مدعوم في هذا المتصفح. يمكنك كتابة طلبك بالأسفل أو استخدام Chrome أو Safari أو Edge.'),
-          backgroundColor: Colors.orange,
+          content: Text('التعرف الصوتي غير مدعوم في هذا المتصفح. يمكنك كتابة طلبك بالأسفل.'),
+          backgroundColor: AppTheme.warning,
           behavior: SnackBarBehavior.floating,
         ),
       );
       setState(() {
-        _statusMessage = 'المتصفح لا يدعم ميزة المايكروفون مباشرة، يرجى استخدام حقل الكتابة بالأسفل.';
+        _statusMessage = 'المتصفح لا يدعم ميزة المايك مباشرة، يمكنك الكتابة في الحقل أدناه.';
       });
       return;
     }
 
+    _startAnimations();
     setState(() {
       _isRecording = true;
       _statusMessage = 'جاري الاستماع... تحدّث بلهجتك الطبيعية الآن';
@@ -166,6 +195,7 @@ class _VoiceBasketScreenState extends State<VoiceBasketScreen> with SingleTicker
     final started = VoiceRecognitionService.startListening(
       onStart: () {
         if (mounted) {
+          _startAnimations();
           setState(() {
             _isRecording = true;
             _statusMessage = 'نسمعك الآن... تحدّث بوضوح';
@@ -182,14 +212,13 @@ class _VoiceBasketScreenState extends State<VoiceBasketScreen> with SingleTicker
       },
       onError: (err) {
         if (mounted) {
+          _stopAnimations();
           setState(() {
             _isRecording = false;
             if (err == 'no-speech') {
               _statusMessage = 'لم يتم التقاط أي صوت، يرجى التحدث بوضوح أو كتابة طلبك بالأسفل.';
             } else if (err == 'not-allowed' || err == 'permission-denied') {
               _statusMessage = 'يرجى السماح بصلاحية المايكروفون في إعدادات المتصفح.';
-            } else if (err == 'audio-capture') {
-              _statusMessage = 'لم يتم العثور على مايكروفون موصول بالجهاز.';
             } else {
               _statusMessage = 'توقف الاستماع ($err). يمكنك كتابة طلبك بالأسفل.';
             }
@@ -198,9 +227,8 @@ class _VoiceBasketScreenState extends State<VoiceBasketScreen> with SingleTicker
       },
       onEnd: (finalTranscript) {
         if (mounted) {
-          setState(() {
-            _isRecording = false;
-          });
+          _stopAnimations();
+          setState(() => _isRecording = false);
           final text = finalTranscript.trim();
           if (text.isNotEmpty) {
             _executeVoiceQuery(text);
@@ -214,9 +242,10 @@ class _VoiceBasketScreenState extends State<VoiceBasketScreen> with SingleTicker
     );
 
     if (!started && mounted) {
+      _stopAnimations();
       setState(() {
         _isRecording = false;
-        _statusMessage = 'تعذر تشغيل المايكروفون، يرجى التحقق من إذن المايك في المتصفح.';
+        _statusMessage = 'تعذر تشغيل المايكروفون، يرجى مراجعة إذن المتصفح.';
       });
     }
   }
@@ -229,7 +258,7 @@ class _VoiceBasketScreenState extends State<VoiceBasketScreen> with SingleTicker
     }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('تم نقل ${_sessionItems.length} أصناف إلى مقارنة السلة'),
+        content: Text('تم نقل ${_sessionItems.length} أصناف إلى مقارنة السلة ✨'),
         backgroundColor: AppTheme.primary,
         behavior: SnackBarBehavior.floating,
       ),
@@ -247,73 +276,99 @@ class _VoiceBasketScreenState extends State<VoiceBasketScreen> with SingleTicker
           title: const Text('السلة الصوتية بالذكاء الاصطناعي'),
           actions: [
             if (_canUndo)
-              TextButton.icon(
-                onPressed: _isLoading ? null : _handleUndo,
-                icon: const Icon(Icons.undo, color: Colors.white, size: 20),
-                label: const Text(
-                  'تراجع',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: TextButton.icon(
+                  onPressed: _isLoading ? null : _handleUndo,
+                  icon: const Icon(Icons.undo_rounded, size: 18),
+                  label: const Text('تراجع', style: TextStyle(fontWeight: FontWeight.w800)),
                 ),
               ),
           ],
         ),
         body: Column(
           children: [
-            // Hero Voice Assistant Header
+            // ── Glowing Microphone Orb Header ─────────────────
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 8,
-                    offset: Offset(0, 3),
-                  )
-                ],
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+                boxShadow: AppTheme.softShadow,
               ),
               child: Column(
                 children: [
-                  // Microphone Button with Pulse Animation
                   GestureDetector(
                     onTap: _toggleRecording,
                     child: ScaleTransition(
                       scale: _isRecording ? _pulseAnimation : const AlwaysStoppedAnimation(1.0),
                       child: Container(
-                        width: 80,
-                        height: 80,
+                        width: 90,
+                        height: 90,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: _isRecording ? Colors.red.shade600 : AppTheme.primary,
+                          gradient: _isRecording
+                              ? const LinearGradient(colors: [Color(0xFFEF4444), Color(0xFFDC2626)])
+                              : AppTheme.heroGradient,
+                          border: Border.all(
+                            color: _isRecording ? Colors.white : AppTheme.accentGold,
+                            width: 3,
+                          ),
                           boxShadow: [
                             BoxShadow(
                               color: (_isRecording ? Colors.red : AppTheme.primary).withOpacity(0.4),
-                              blurRadius: 20,
-                              spreadRadius: _isRecording ? 8 : 2,
+                              blurRadius: 28,
+                              spreadRadius: _isRecording ? 10 : 2,
+                              offset: const Offset(0, 6),
                             ),
                           ],
                         ),
                         child: Icon(
-                          _isRecording ? Icons.mic : Icons.mic_none,
+                          _isRecording ? Icons.mic_rounded : Icons.mic_none_rounded,
                           color: Colors.white,
-                          size: 40,
+                          size: 44,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
+
+                  // Sound waves animation when listening
+                  if (_isRecording)
+                    AnimatedBuilder(
+                      animation: _waveController,
+                      builder: (_, __) {
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(7, (i) {
+                            final phase = (i * 0.4 + _waveController.value * 2 * math.pi);
+                            final height = 8.0 + 16.0 * (0.5 + 0.5 * math.sin(phase));
+                            return Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                              width: 3.5,
+                              height: height,
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade400,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            );
+                          }),
+                        );
+                      },
+                    )
+                  else
+                    const SizedBox(height: 4),
+
+                  const SizedBox(height: 8),
                   Text(
-                    _isRecording
-                        ? 'نسمعك الآن... جارٍ التقاط الصوت'
-                        : 'اضغط على الميكروفون أو اكتب طلبك بالأسفل',
+                    _isRecording ? 'نسمعك الآن... جارٍ التقاط الصوت' : 'اضغط على الميكروفون وتحدّث بحرية',
                     style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: _isRecording ? Colors.red.shade700 : AppTheme.textDark,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: _isRecording ? AppTheme.danger : AppTheme.textDark,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   const Text(
                     'يدعم اللهجة السعودية: «حبتين حليب السعودية»، «لا خله كبير»، «زيد واحدة»',
                     style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
@@ -323,97 +378,88 @@ class _VoiceBasketScreenState extends State<VoiceBasketScreen> with SingleTicker
               ),
             ),
 
-            // Transcript / Status Card
+            // ── Live Transcript & Feedback ─────────────────────
             if (_lastSpokenText != null || _statusMessage != null)
-              Container(
-                margin: const EdgeInsets.all(16),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.primary.withOpacity(0.2)),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.record_voice_over, color: AppTheme.primary, size: 24),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (_lastSpokenText != null)
-                            Text(
-                              '«$_lastSpokenText»',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.textDark,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: SoftCard(
+                  color: AppTheme.primaryContainer.withOpacity(0.6),
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.record_voice_over_rounded, color: AppTheme.primary, size: 22),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (_lastSpokenText != null)
+                              Text(
+                                '«$_lastSpokenText»',
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.textDark),
                               ),
-                            ),
-                          if (_statusMessage != null) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              _statusMessage!,
-                              style: const TextStyle(fontSize: 13, color: AppTheme.primary),
-                            ),
+                            if (_statusMessage != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                _statusMessage!,
+                                style: const TextStyle(fontSize: 13, color: AppTheme.primary, fontWeight: FontWeight.w700),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
 
-            // Clarification Question with Clickable Option Chips (Section 7)
+            // ── Clarification Question ─────────────────────────
             if (_clarificationQuestion != null)
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.amber.shade50,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.amber.shade300),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.help_outline, color: Colors.amber.shade800, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _clarificationQuestion!,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.amber.shade900,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                child: SoftCard(
+                  color: const Color(0xFFFEF3C7),
+                  border: Border.all(color: AppTheme.accentGold.withOpacity(0.5)),
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.help_outline_rounded, color: Color(0xFFB45309), size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _clarificationQuestion!,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF92400E)),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _clarificationOptions.map((opt) {
-                        return ActionChip(
-                          backgroundColor: Colors.white,
-                          side: BorderSide(color: Colors.amber.shade400),
-                          label: Text(opt, style: const TextStyle(fontSize: 12)),
-                          onPressed: () => _executeVoiceQuery('شيل $opt'),
-                        );
-                      }).toList(),
-                    ),
-                  ],
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _clarificationOptions.map((opt) {
+                          return ActionChip(
+                            backgroundColor: Colors.white,
+                            side: const BorderSide(color: AppTheme.accentGold),
+                            label: Text(opt, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF92400E))),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            onPressed: () => _executeVoiceQuery('شيل $opt'),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
                 ),
               ),
 
-            // Quick Example Command Chips
+            // ── Quick Example Command Chips ────────────────────
+            const SizedBox(height: 8),
             SizedBox(
-              height: 44,
+              height: 42,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -422,18 +468,19 @@ class _VoiceBasketScreenState extends State<VoiceBasketScreen> with SingleTicker
                 itemBuilder: (ctx, i) {
                   final cmd = _exampleVoiceCommands[i];
                   return ActionChip(
-                    backgroundColor: Colors.white,
-                    side: BorderSide(color: Colors.grey.shade300),
-                    label: Text(cmd, style: const TextStyle(fontSize: 12)),
+                    backgroundColor: AppTheme.surface,
+                    elevation: 0,
+                    side: const BorderSide(color: AppTheme.border),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    label: Text(cmd, style: const TextStyle(fontSize: 12, color: AppTheme.textDark, fontWeight: FontWeight.w600)),
                     onPressed: _isLoading ? null : () => _executeVoiceQuery(cmd),
                   );
                 },
               ),
             ),
-
             const SizedBox(height: 8),
 
-            // Items List Header
+            // ── Recognized Items Header ─────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
@@ -441,22 +488,19 @@ class _VoiceBasketScreenState extends State<VoiceBasketScreen> with SingleTicker
                 children: [
                   Text(
                     'أصناف السلة الصوتية (${_sessionItems.length})',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textDark,
-                    ),
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textDark),
                   ),
                   if (_sessionItems.isNotEmpty)
-                    TextButton(
+                    TextButton.icon(
                       onPressed: () => _executeVoiceQuery('شيل الكل'),
-                      child: const Text('تفريغ السلة', style: TextStyle(color: Colors.red)),
+                      icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppTheme.danger),
+                      label: const Text('تفريغ السلة', style: TextStyle(color: AppTheme.danger, fontSize: 12)),
                     ),
                 ],
               ),
             ),
 
-            // Items List
+            // ── Items List ─────────────────────────────────────
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
@@ -465,11 +509,11 @@ class _VoiceBasketScreenState extends State<VoiceBasketScreen> with SingleTicker
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.shopping_basket_outlined, size: 64, color: Colors.grey.shade400),
-                              const SizedBox(height: 12),
+                              EmptyIllustration(icon: Icons.mic_none_rounded, size: 110),
+                              const SizedBox(height: 14),
                               const Text(
-                                'السلة الصوتية فارغة',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textMuted),
+                                'السلة الصوتية فارغة حالياً',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textDark),
                               ),
                               const SizedBox(height: 6),
                               const Text(
@@ -480,135 +524,106 @@ class _VoiceBasketScreenState extends State<VoiceBasketScreen> with SingleTicker
                           ),
                         )
                       : ListView.separated(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                           itemCount: _sessionItems.length,
                           separatorBuilder: (_, __) => const SizedBox(height: 10),
                           itemBuilder: (ctx, idx) {
                             final item = _sessionItems[idx];
-                            return Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.04),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 2),
-                                  )
-                                ],
-                              ),
-                              child: Row(
-                                children: [
-                                  // Product Image / Icon
-                                  Container(
-                                    width: 50,
-                                    height: 50,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
-                                      borderRadius: BorderRadius.circular(10),
+                            return FadeSlideIn(
+                              index: idx,
+                              child: SoftCard(
+                                padding: const EdgeInsets.all(12),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.primaryContainer,
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      child: const Icon(Icons.inventory_2_rounded, color: AppTheme.primary, size: 24),
                                     ),
-                                    child: const Icon(Icons.inventory_2, color: AppTheme.primary, size: 28),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  // Details
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          item.nameAr,
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppTheme.textDark,
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item.nameAr,
+                                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.textDark),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
+                                          const SizedBox(height: 4),
+                                          Wrap(
+                                            spacing: 6,
+                                            children: [
+                                              if (item.brandAr != null)
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: AppTheme.surfaceAlt,
+                                                    borderRadius: BorderRadius.circular(6),
+                                                  ),
+                                                  child: Text(item.brandAr!, style: const TextStyle(fontSize: 10.5, color: AppTheme.textDark)),
+                                                ),
+                                              if (item.notes != null)
+                                                SavingsBadge(item.notes!),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Row(
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.remove_circle_outline_rounded, size: 22),
+                                          color: AppTheme.textMuted,
+                                          onPressed: () => _executeVoiceQuery('نقص حبة من ${item.nameAr}'),
                                         ),
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            if (item.brandAr != null)
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.grey.shade200,
-                                                  borderRadius: BorderRadius.circular(6),
-                                                ),
-                                                child: Text(
-                                                  item.brandAr!,
-                                                  style: const TextStyle(fontSize: 11, color: AppTheme.textDark),
-                                                ),
-                                              ),
-                                            const SizedBox(width: 6),
-                                            if (item.notes != null)
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.green.shade50,
-                                                  borderRadius: BorderRadius.circular(6),
-                                                ),
-                                                child: Text(
-                                                  item.notes!,
-                                                  style: TextStyle(fontSize: 11, color: Colors.green.shade800),
-                                                ),
-                                              ),
-                                          ],
+                                        Text(
+                                          '${item.quantity}',
+                                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.add_circle_rounded, size: 22),
+                                          color: AppTheme.primary,
+                                          onPressed: () => _executeVoiceQuery('زيد حبة على ${item.nameAr}'),
                                         ),
                                       ],
                                     ),
-                                  ),
-                                  // Quantity Controls
-                                  Row(
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.remove_circle_outline, size: 22),
-                                        color: Colors.grey.shade600,
-                                        onPressed: () => _executeVoiceQuery('نقص حبة من ${item.nameAr}'),
-                                      ),
-                                      Text(
-                                        '${item.quantity}',
-                                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.add_circle_outline, size: 22),
-                                        color: AppTheme.primary,
-                                        onPressed: () => _executeVoiceQuery('زيد حبة على ${item.nameAr}'),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             );
                           },
                         ),
             ),
 
-            // Bottom Typing Input & Compare Basket Action
+            // ── Bottom Typing Input & Compare Basket Action ────
             Container(
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
                 boxShadow: [
-                  BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2)),
+                  BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 16, offset: const Offset(0, -4)),
                 ],
               ),
               child: Column(
                 children: [
-                  // Text Correction Input (Section 5 & 7)
                   Row(
                     children: [
                       Expanded(
                         child: TextField(
                           controller: _textController,
                           decoration: InputDecoration(
-                            hintText: 'أو اكتب هنا للتصحيح: مثلاً «خله اثنين»...',
+                            hintText: 'أو اكتب للتصحيح: مثلاً «خله اثنين»...',
                             hintStyle: const TextStyle(fontSize: 13, color: AppTheme.textMuted),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(color: AppTheme.border),
                             ),
                           ),
                           onSubmitted: (val) {
@@ -622,8 +637,10 @@ class _VoiceBasketScreenState extends State<VoiceBasketScreen> with SingleTicker
                         style: IconButton.styleFrom(
                           backgroundColor: AppTheme.primary,
                           foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          padding: const EdgeInsets.all(12),
                         ),
-                        icon: const Icon(Icons.send, size: 20),
+                        icon: const Icon(Icons.send_rounded, size: 20),
                         onPressed: () {
                           if (_textController.text.trim().isNotEmpty) {
                             _executeVoiceQuery(_textController.text);
@@ -634,23 +651,13 @@ class _VoiceBasketScreenState extends State<VoiceBasketScreen> with SingleTicker
                     ],
                   ),
                   const SizedBox(height: 12),
-                  // Compare Basket Button
                   SizedBox(
                     width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      ),
-                      icon: const Icon(Icons.compare_arrows),
-                      label: Text(
-                        _sessionItems.isEmpty
-                            ? 'قارن السلة بين المتاجر'
-                            : 'قارن سلة المشتريات (${_sessionItems.length} أصناف)',
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                      ),
+                    child: GradientButton(
+                      label: _sessionItems.isEmpty
+                          ? 'قارن السلة بين المتاجر'
+                          : 'قارن سلة المشتريات (${_sessionItems.length} أصناف)',
+                      icon: Icons.compare_arrows_rounded,
                       onPressed: _sessionItems.isEmpty ? null : _pushAllToComparisonBasket,
                     ),
                   ),

@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
@@ -97,3 +97,62 @@ async def send_test_notification(device_uuid: str = Query(...), db: Session = De
         }, payload)
 
     return {"status": "success", "message": "تم إرسال الإشعار التجريبي بنجاح"}
+
+@router.get("/preferences")
+def get_alert_preferences(device_uuid: str = Query(...), db: Session = Depends(get_db)):
+    """Fetch user's alert, quiet hours, and daily digest preferences."""
+    sub = db.query(PushSubscription).filter(PushSubscription.device_uuid == device_uuid).first()
+    if not sub:
+        return {
+            "device_uuid": device_uuid,
+            "enable_quiet_hours": True,
+            "quiet_hours_start": "23:00",
+            "quiet_hours_end": "07:00",
+            "daily_digest_enabled": False,
+        }
+    return {
+        "device_uuid": device_uuid,
+        "enable_quiet_hours": sub.enable_quiet_hours,
+        "quiet_hours_start": sub.quiet_hours_start,
+        "quiet_hours_end": sub.quiet_hours_end,
+        "daily_digest_enabled": sub.daily_digest_enabled,
+    }
+
+@router.put("/preferences")
+def update_alert_preferences(
+    data: AlertPreferencesUpdate,
+    device_uuid: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Update user's alert, quiet hours, and daily digest preferences."""
+    sub = db.query(PushSubscription).filter(PushSubscription.device_uuid == device_uuid).first()
+    if not sub:
+        sub = PushSubscription(
+            device_uuid=device_uuid,
+            enable_quiet_hours=data.enable_quiet_hours if data.enable_quiet_hours is not None else True,
+            quiet_hours_start=data.quiet_hours_start or "23:00",
+            quiet_hours_end=data.quiet_hours_end or "07:00",
+            daily_digest_enabled=data.daily_digest_enabled if data.daily_digest_enabled is not None else False,
+            is_active=True
+        )
+        db.add(sub)
+    else:
+        if data.enable_quiet_hours is not None:
+            sub.enable_quiet_hours = data.enable_quiet_hours
+        if data.quiet_hours_start:
+            sub.quiet_hours_start = data.quiet_hours_start
+        if data.quiet_hours_end:
+            sub.quiet_hours_end = data.quiet_hours_end
+        if data.daily_digest_enabled is not None:
+            sub.daily_digest_enabled = data.daily_digest_enabled
+        sub.updated_at = datetime.utcnow()
+    db.commit()
+    return {"status": "success", "message": "تم تحديث تفضيلات التنبيهات وساعات الهدوء بنجاح"}
+
+@router.delete("/history")
+def clear_notification_history(device_uuid: str = Query(...), db: Session = Depends(get_db)):
+    """Clear in-app notification history logs for this device."""
+    deleted_count = db.query(NotificationLog).filter(NotificationLog.device_uuid == device_uuid).delete()
+    db.commit()
+    return {"status": "success", "deleted_count": deleted_count, "message": "تم مسح سجل التنبيهات بنجاح"}
+

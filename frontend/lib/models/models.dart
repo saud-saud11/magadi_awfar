@@ -144,6 +144,17 @@ class ProductItem {
     return 'بالحبّة (مفرد)';
   }
 
+  StoreOffer? get lowestOffer {
+    if (offers.isEmpty) return null;
+    StoreOffer best = offers.first;
+    for (final o in offers) {
+      if (o.priceSar < best.priceSar) {
+        best = o;
+      }
+    }
+    return best;
+  }
+
   factory ProductItem.fromJson(Map<String, dynamic> json) {
     var rawOffers = json['offers'] as List<dynamic>? ?? [];
     return ProductItem(
@@ -509,18 +520,32 @@ class PantrySummaryModel {
 
 class NotificationLogItem {
   final int id;
+  final int? pantryItemId;
   final String titleAr;
   final String bodyAr;
   final String eventType;
+  final String? storeCode;
+  final String? storeNameAr;
+  final double? oldPriceSar;
+  final double? newPriceSar;
+  final double? savingsSar;
+  final String? deepLink;
   final Map<String, dynamic>? payload;
   final bool isRead;
   final DateTime? createdAt;
 
   NotificationLogItem({
     required this.id,
+    this.pantryItemId,
     required this.titleAr,
     required this.bodyAr,
     required this.eventType,
+    this.storeCode,
+    this.storeNameAr,
+    this.oldPriceSar,
+    this.newPriceSar,
+    this.savingsSar,
+    this.deepLink,
     this.payload,
     required this.isRead,
     this.createdAt,
@@ -529,9 +554,16 @@ class NotificationLogItem {
   factory NotificationLogItem.fromJson(Map<String, dynamic> json) {
     return NotificationLogItem(
       id: json['id'] as int? ?? 0,
+      pantryItemId: json['pantry_item_id'] as int?,
       titleAr: (json['title_ar'] as String?) ?? (json['title'] as String?) ?? '',
       bodyAr: (json['body_ar'] as String?) ?? (json['body'] as String?) ?? '',
       eventType: json['event_type'] as String? ?? 'info',
+      storeCode: json['store_code'] as String?,
+      storeNameAr: json['store_name_ar'] as String?,
+      oldPriceSar: (json['old_price_sar'] as num?)?.toDouble(),
+      newPriceSar: (json['new_price_sar'] as num?)?.toDouble(),
+      savingsSar: (json['savings_sar'] as num?)?.toDouble(),
+      deepLink: json['deep_link'] as String?,
       payload: json['payload'] as Map<String, dynamic>?,
       isRead: json['is_read'] as bool? ?? false,
       createdAt: json['sent_at'] != null
@@ -539,5 +571,52 @@ class NotificationLogItem {
           : (json['created_at'] != null ? DateTime.tryParse(json['created_at'].toString()) : null),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'pantry_item_id': pantryItemId,
+    'title_ar': titleAr,
+    'body_ar': bodyAr,
+    'event_type': eventType,
+    'store_code': storeCode,
+    'store_name_ar': storeNameAr,
+    'old_price_sar': oldPriceSar,
+    'new_price_sar': newPriceSar,
+    'savings_sar': savingsSar,
+    'deep_link': deepLink,
+    'payload': payload,
+    'is_read': isRead,
+    'sent_at': createdAt?.toIso8601String(),
+  };
+}
+
+class AlertPreferencesModel {
+  final bool enableQuietHours;
+  final String quietHoursStart;
+  final String quietHoursEnd;
+  final bool dailyDigestEnabled;
+
+  const AlertPreferencesModel({
+    this.enableQuietHours = true,
+    this.quietHoursStart = '23:00',
+    this.quietHoursEnd = '07:00',
+    this.dailyDigestEnabled = false,
+  });
+
+  factory AlertPreferencesModel.fromJson(Map<String, dynamic> json) {
+    return AlertPreferencesModel(
+      enableQuietHours: json['enable_quiet_hours'] as bool? ?? true,
+      quietHoursStart: json['quiet_hours_start'] as String? ?? '23:00',
+      quietHoursEnd: json['quiet_hours_end'] as String? ?? '07:00',
+      dailyDigestEnabled: json['daily_digest_enabled'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'enable_quiet_hours': enableQuietHours,
+    'quiet_hours_start': quietHoursStart,
+    'quiet_hours_end': quietHoursEnd,
+    'daily_digest_enabled': dailyDigestEnabled,
+  };
 }
 

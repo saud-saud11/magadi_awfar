@@ -4,6 +4,7 @@ import '../models/models.dart';
 import '../services/url_launcher_helper.dart';
 import '../services/pantry_service.dart';
 import '../widgets/pantry_alert_dialog.dart';
+import '../widgets/ui/ui_kit.dart';
 
 class ProductDetailScreen extends StatelessWidget {
   final ProductItem product;
@@ -26,71 +27,68 @@ class ProductDetailScreen extends StatelessWidget {
         appBar: AppBar(
           title: const Text('تفاصيل المنتج والعروض'),
           actions: [
-            ValueListenableBuilder<List<PantryItemModel>>(
-              valueListenable: PantryService().trackedItemsNotifier,
-              builder: (context, trackedItems, _) {
-                final isTracked = trackedItems.any((i) => i.productId == product.id);
-                final trackedItem = isTracked ? trackedItems.firstWhere((i) => i.productId == product.id) : null;
-                final isAlertActive = trackedItem?.isAlertEnabled ?? false;
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: ValueListenableBuilder<List<PantryItemModel>>(
+                valueListenable: PantryService().trackedItemsNotifier,
+                builder: (context, trackedItems, _) {
+                  final isTracked = trackedItems.any((i) => i.productId == product.id);
+                  final trackedItem = isTracked ? trackedItems.firstWhere((i) => i.productId == product.id) : null;
+                  final isAlertActive = trackedItem?.isAlertEnabled ?? false;
 
-                return IconButton(
-                  icon: Icon(
-                    isTracked
-                        ? (isAlertActive ? Icons.notifications_active : Icons.notifications_off_outlined)
-                        : Icons.notifications_none_outlined,
-                    color: isTracked
-                        ? (isAlertActive ? Colors.amber.shade800 : Colors.grey)
-                        : AppTheme.textDark,
-                  ),
-                  tooltip: isTracked
-                      ? (isAlertActive ? 'التنبيه مفعل (انقر للتعطيل)' : 'التنبيه معطل (انقر للتفعيل)')
-                      : 'تابع السعر في مقاضي البيت',
-                  onPressed: () async {
-                    if (!isTracked) {
-                      await PantryService().addToPantry(product);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('تمت إضافة «${product.nameAr}» إلى مقاضي البيت ومتابعة الأسعار بنجاح 🔔'),
-                            backgroundColor: AppTheme.primary,
-                            behavior: SnackBarBehavior.floating,
-                            action: SnackBarAction(
-                              label: 'تخصيص',
-                              textColor: Colors.white,
-                              onPressed: () {
-                                final item = PantryService().getTrackedItemByProductId(product.id);
-                                if (item != null) {
-                                  PantryAlertDialog.show(context, item);
-                                }
-                              },
+                  return AnimatedBell(
+                    active: isTracked && isAlertActive,
+                    size: 24,
+                    tooltip: isTracked
+                        ? (isAlertActive ? 'التنبيه مفعل (انقر للتعطيل)' : 'التنبيه معطل (انقر للتفعيل)')
+                        : 'تابع السعر في مقاضي البيت',
+                    onTap: () async {
+                      if (!isTracked) {
+                        await PantryService().addToPantry(product);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('تمت إضافة «${product.nameAr}» إلى مقاضي البيت ومتابعة الأسعار بنجاح 🔔'),
+                              backgroundColor: AppTheme.primary,
+                              behavior: SnackBarBehavior.floating,
+                              action: SnackBarAction(
+                                label: 'تخصيص',
+                                textColor: Colors.white,
+                                onPressed: () {
+                                  final item = PantryService().getTrackedItemByProductId(product.id);
+                                  if (item != null) {
+                                    PantryAlertDialog.show(context, item);
+                                  }
+                                },
+                              ),
                             ),
-                          ),
-                        );
+                          );
+                        }
+                      } else if (trackedItem != null) {
+                        await PantryService().toggleAlert(trackedItem.id);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                !isAlertActive
+                                    ? 'تم تفعيل التنبيه لـ «${product.nameAr}» 🔔'
+                                    : 'تم إيقاف التنبيه مؤقتاً لـ «${product.nameAr}»',
+                              ),
+                              duration: const Duration(seconds: 3),
+                              behavior: SnackBarBehavior.floating,
+                              action: SnackBarAction(
+                                label: 'تخصيص',
+                                textColor: Colors.amberAccent,
+                                onPressed: () => PantryAlertDialog.show(context, trackedItem),
+                              ),
+                            ),
+                          );
+                        }
                       }
-                    } else if (trackedItem != null) {
-                      await PantryService().toggleAlert(trackedItem.id);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              !isAlertActive
-                                  ? 'تم تفعيل التنبيه لـ «${product.nameAr}» 🔔'
-                                  : 'تم إيقاف التنبيه مؤقتاً لـ «${product.nameAr}»',
-                            ),
-                            duration: const Duration(seconds: 3),
-                            behavior: SnackBarBehavior.floating,
-                            action: SnackBarAction(
-                              label: 'تخصيص',
-                              textColor: Colors.amberAccent,
-                              onPressed: () => PantryAlertDialog.show(context, trackedItem),
-                            ),
-                          ),
-                        );
-                      }
-                    }
-                  },
-                );
-              },
+                    },
+                  );
+                },
+              ),
             ),
           ],
         ),
@@ -100,59 +98,79 @@ class ProductDetailScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Product Header Card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [
-                    BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 3)),
-                  ],
-                ),
+              SoftCard(
+                padding: const EdgeInsets.all(22),
                 child: Column(
                   children: [
                     Container(
-                      width: 100,
-                      height: 100,
+                      width: 120,
+                      height: 120,
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(16),
+                        color: AppTheme.background,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppTheme.border.withOpacity(0.8)),
                       ),
-                      child: product.imageUrl != null
-                          ? Image.network(
-                              product.imageUrl!,
-                              fit: BoxFit.contain,
-                              errorBuilder: (_, __, ___) => const Icon(Icons.inventory_2, size: 50, color: AppTheme.primary),
-                            )
-                          : const Icon(Icons.inventory_2, size: 50, color: AppTheme.primary),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+                            ? Image.network(
+                                product.imageUrl!,
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) => const Icon(Icons.shopping_bag_outlined, size: 54, color: AppTheme.primary),
+                              )
+                            : const Icon(Icons.shopping_bag_outlined, size: 54, color: AppTheme.primary),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Text(
                       product.nameAr,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textDark),
+                      style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: AppTheme.textDark),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     Wrap(
                       spacing: 8,
+                      runSpacing: 6,
+                      alignment: WrapAlignment.center,
                       children: [
                         if (product.brandAr != null)
-                          Chip(
-                            label: Text(product.brandAr!),
-                            backgroundColor: Colors.grey.shade100,
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceAlt,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppTheme.border),
+                            ),
+                            child: Text(product.brandAr!, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
                           ),
                         if (product.normalizedSizeAmount != null)
-                          Chip(
-                            label: Text('${product.normalizedSizeAmount} ${product.normalizedSizeUnit ?? ''}'),
-                            backgroundColor: AppTheme.primaryContainer,
-                            labelStyle: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${product.normalizedSizeAmount} ${product.normalizedSizeUnit ?? ''}',
+                              style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w800, fontSize: 12),
+                            ),
                           ),
                         if (product.gtinBarcode != null)
-                          Chip(
-                            avatar: const Icon(Icons.qr_code, size: 16),
-                            label: Text(product.gtinBarcode!),
-                            backgroundColor: Colors.grey.shade100,
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceAlt,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppTheme.border),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.qr_code_rounded, size: 14, color: AppTheme.textMuted),
+                                const SizedBox(width: 4),
+                                Text(product.gtinBarcode!, style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                              ],
+                            ),
                           ),
                       ],
                     ),
@@ -160,56 +178,44 @@ class ProductDetailScreen extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 22),
 
               // Specifications
-              const Text(
-                'المواصفات والبيانات الموحدة',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textDark),
-              ),
-              const SizedBox(height: 8),
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      _buildSpecRow('المدينة ونطاق التغطية', 'المدينة المنورة • $district'),
-                      const Divider(),
-                      _buildSpecRow('الماركة التجارية', product.brandAr ?? 'غير محددة'),
-                      const Divider(),
-                      _buildSpecRow('الوزن / الحجم الصافي', '${product.normalizedSizeAmount ?? '-'} ${product.normalizedSizeUnit ?? ''}'),
-                      const Divider(),
-                      _buildSpecRow('الباركود الدولي (GTIN)', product.gtinBarcode ?? 'غير متوفر'),
-                      const Divider(),
-                      _buildSpecRow('سياسة الأسعار في السعودية', 'سعر موحد لكافة فروع السوبرماركت'),
-                    ],
-                  ),
+              const SectionTitle('المواصفات والبيانات الموحدة', emoji: '📋'),
+              SoftCard(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  children: [
+                    _buildSpecRow('المدينة ونطاق التغطية', 'المدينة المنورة • $district'),
+                    Divider(color: AppTheme.border.withOpacity(0.6), height: 18),
+                    _buildSpecRow('الماركة التجارية', product.brandAr ?? 'غير محددة'),
+                    Divider(color: AppTheme.border.withOpacity(0.6), height: 18),
+                    _buildSpecRow('الوزن / الحجم الصافي', '${product.normalizedSizeAmount ?? '-'} ${product.normalizedSizeUnit ?? ''}'),
+                    Divider(color: AppTheme.border.withOpacity(0.6), height: 18),
+                    _buildSpecRow('الباركود الدولي (GTIN)', product.gtinBarcode ?? 'غير متوفر'),
+                    Divider(color: AppTheme.border.withOpacity(0.6), height: 18),
+                    _buildSpecRow('سياسة الأسعار في السعودية', 'سعر موحد لكافة فروع السوبرماركت'),
+                  ],
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 22),
 
               // Store Offers Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'عروض المتاجر المفحوصة (${product.offers.length})',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textDark),
-                  ),
-                  const Text('مرتبة من الأرخص', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
-                ],
+              SectionTitle(
+                'عروض المتاجر المفحوصة (${product.offers.length})',
+                emoji: '🏪',
+                actionLabel: 'مرتبة من الأرخص',
               ),
-              const SizedBox(height: 8),
 
               // Offers List
               if (product.offers.isEmpty)
-                const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text('لا توجد عروض متصلة لهذا الصنف حالياً'),
+                const SoftCard(
+                  child: Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text('لا توجد عروض متصلة لهذا الصنف حالياً', style: TextStyle(color: AppTheme.textMuted)),
+                    ),
                   ),
                 )
               else
@@ -220,17 +226,19 @@ class ProductDetailScreen extends StatelessWidget {
                   separatorBuilder: (_, __) => const SizedBox(height: 10),
                   itemBuilder: (ctx, i) {
                     final offer = product.offers[i];
+                    final isCheapest = offer.isCheapestProduct || i == 0;
+                    final podiumMedal = i == 0 ? '🥇' : (i == 1 ? '🥈' : (i == 2 ? '🥉' : ''));
+
                     return Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: offer.isCheapestProduct
-                            ? Border.all(color: AppTheme.primary, width: 1.5)
-                            : Border.all(color: Colors.grey.shade200),
-                        boxShadow: const [
-                          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
-                        ],
+                        color: isCheapest ? const Color(0xFFFFFDF5) : AppTheme.surface,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: isCheapest ? AppTheme.accentGold : AppTheme.border,
+                          width: isCheapest ? 1.5 : 1,
+                        ),
+                        boxShadow: isCheapest ? AppTheme.glowShadow(AppTheme.accentGold.withOpacity(0.25)) : AppTheme.softShadow,
                       ),
                       child: Row(
                         children: [
@@ -240,27 +248,38 @@ class ProductDetailScreen extends StatelessWidget {
                               children: [
                                 Row(
                                   children: [
+                                    if (podiumMedal.isNotEmpty) ...[
+                                      Text(podiumMedal, style: const TextStyle(fontSize: 16)),
+                                      const SizedBox(width: 6),
+                                    ],
                                     Text(
                                       offer.storeNameAr,
-                                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textDark),
+                                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppTheme.textDark),
                                     ),
-                                    if (offer.isCheapestProduct) ...[
+                                    if (isCheapest) ...[
                                       const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: AppTheme.primary,
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: const Text('أرخص سعر', style: TextStyle(color: Colors.white, fontSize: 10)),
-                                      ),
+                                      const SavingsBadge('الأرخص 👑', gold: true),
                                     ],
                                   ],
                                 ),
                                 const SizedBox(height: 4),
-                                Text(
-                                  'آخر تحقق: اليوم • ${offer.isInStock ? 'متوفر بالمخزون' : 'غير متوفر'}',
-                                  style: TextStyle(fontSize: 11, color: offer.isInStock ? Colors.green.shade700 : Colors.red),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      offer.isInStock ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                                      size: 13,
+                                      color: offer.isInStock ? AppTheme.success : AppTheme.danger,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'آخر تحقق: اليوم • ${offer.isInStock ? 'متوفر بالمخزون' : 'غير متوفر'}',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: offer.isInStock ? AppTheme.success : AppTheme.danger,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -272,17 +291,17 @@ class ProductDetailScreen extends StatelessWidget {
                                 '${offer.priceSar.toStringAsFixed(2)} ر.س',
                                 style: TextStyle(
                                   fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: offer.isCheapestProduct ? AppTheme.primary : AppTheme.textDark,
+                                  fontWeight: FontWeight.w900,
+                                  color: isCheapest ? const Color(0xFFB47D1E) : AppTheme.primary,
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.primary,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              const SizedBox(height: 6),
+                              OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppTheme.primary,
+                                  side: const BorderSide(color: AppTheme.primary, width: 1.2),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 ),
                                 onPressed: () async {
                                   final launched = await UrlLauncherHelper.openStoreUrl(
@@ -299,7 +318,7 @@ class ProductDetailScreen extends StatelessWidget {
                                     );
                                   }
                                 },
-                                child: const Text('افتح بالمتجر', style: TextStyle(fontSize: 11)),
+                                child: const Text('افتح بالمتجر', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
                               ),
                             ],
                           ),
@@ -312,29 +331,21 @@ class ProductDetailScreen extends StatelessWidget {
               const SizedBox(height: 24),
 
               // Add to Comparison Basket Button
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                  icon: const Icon(Icons.add_shopping_cart),
-                  label: const Text('إضافة إلى سلة المقارنة', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                  onPressed: () {
-                    onAddToBasket(product);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('تمت إضافة «${product.nameAr}» إلى السلة'),
-                        backgroundColor: AppTheme.primary,
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                ),
+              GradientButton(
+                label: 'إضافة إلى سلة المقارنة',
+                icon: Icons.add_shopping_cart_rounded,
+                onPressed: () {
+                  onAddToBasket(product);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('تمت إضافة «${product.nameAr}» إلى السلة ✨'),
+                      backgroundColor: AppTheme.primary,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                },
               ),
+              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -346,8 +357,8 @@ class ProductDetailScreen extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, color: AppTheme.textMuted)),
-        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+        Text(label, style: const TextStyle(fontSize: 13, color: AppTheme.textMuted, fontWeight: FontWeight.w600)),
+        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppTheme.textDark)),
       ],
     );
   }

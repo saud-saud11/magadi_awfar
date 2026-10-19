@@ -5,6 +5,7 @@ import '../services/pantry_service.dart';
 import '../services/push_service.dart';
 import '../widgets/pantry_alert_dialog.dart';
 import '../widgets/ios_pwa_install_dialog.dart';
+import '../widgets/ui/ui_kit.dart';
 
 class PantryScreen extends StatefulWidget {
   final Function(List<PantryItemModel>) onAddPantryToBasket;
@@ -219,7 +220,7 @@ class _PantryScreenState extends State<PantryScreen> {
                     if (totalItems > 0)
                       Container(
                         margin: const EdgeInsets.only(bottom: 16),
-                        child: ElevatedButton.icon(
+                        child: GradientButton(
                           onPressed: () {
                             widget.onAddPantryToBasket(items);
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -234,18 +235,8 @@ class _PantryScreenState extends State<PantryScreen> {
                               ),
                             );
                           },
-                          icon: const Icon(Icons.shopping_basket, color: Colors.white),
-                          label: Text(
-                            'أضف مقاضي البيت للسلة (${items.length} أصناف)',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            elevation: 2,
-                          ),
+                          icon: Icons.shopping_basket_rounded,
+                          label: 'أضف مقاضي البيت للسلة (${items.length} أصناف)',
                         ),
                       ),
                     Row(
@@ -346,17 +337,17 @@ class _PantryScreenState extends State<PantryScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              child: const Text('تفعيل', style: TextStyle(fontSize: 12)),
+              child: const Text('تفعيل', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
             ),
           ],
         ),
       );
     }
 
-    return const SizedBox();
+    return const SizedBox.shrink();
   }
 
   Widget _buildSummaryCard({
@@ -367,117 +358,130 @@ class _PantryScreenState extends State<PantryScreen> {
     required bool allAlertsActive,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            AppTheme.primary,
-            AppTheme.primaryDark,
-          ],
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-        ),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primary.withOpacity(0.25),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        gradient: AppTheme.heroGradient,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: AppTheme.softShadow,
       ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Row(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: CustomPaint(
+                painter: IslamicPatternPainter(
+                  color: Colors.white.withOpacity(0.04),
+                  cell: 42,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
                 children: [
-                  Icon(Icons.kitchen, color: Colors.white, size: 22),
-                  SizedBox(width: 8),
-                  Text('مراقبة أسعار مقاضي البيت', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              gradient: AppTheme.goldGradient,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.kitchen_rounded, color: Colors.white, size: 20),
+                          ),
+                          const SizedBox(width: 10),
+                          const Text(
+                            'مراقبة أسعار مقاضي البيت',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white.withOpacity(0.25)),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.cloud_sync_rounded, color: AppTheme.accentGold, size: 14),
+                            SizedBox(width: 5),
+                            Text(
+                              'مراقبة آلية 24/7',
+                              style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      _buildStatItem('المقاضي المتابعة', '$totalItems', Icons.playlist_add_check_rounded),
+                      _buildStatItem('تنبيهات نشطة', '$activeAlerts', Icons.notifications_active_rounded),
+                      _buildStatItem('عروض وتخفيضات', '$itemsWithDrops', Icons.trending_down_rounded),
+                      _buildStatItem('وفر محتمل', '${totalSavings.toStringAsFixed(1)} ر.س', Icons.savings_rounded),
+                    ],
+                  ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.cloud_sync, color: Colors.white, size: 14),
-                    const SizedBox(width: 4),
-                    Text(
-                      'مراقبة آلية 24/7',
-                      style: TextStyle(color: Colors.white.withOpacity(0.95), fontSize: 11, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              _buildStatItem('المقاضي المتابعة', '$totalItems', Icons.playlist_add_check),
-              _buildStatItem('تنبيهات نشطة', '$activeAlerts', Icons.notifications_active),
-              _buildStatItem('عروض وتخفيضات', '$itemsWithDrops', Icons.trending_down),
-              _buildStatItem('وفر محتمل', '${totalSavings.toStringAsFixed(1)} ر.س', Icons.savings),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildStatItem(String label, String value, IconData icon) {
     return Expanded(
-      child: Column(
-        children: [
-          Icon(icon, color: Colors.white70, size: 18),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-          ),
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white70, fontSize: 10),
-            textAlign: TextAlign.center,
-          ),
-        ],
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 3),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withOpacity(0.15)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: AppTheme.accentGold, size: 18),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 9.5, fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildEmptyState() {
-    return Container(
-      margin: const EdgeInsets.only(top: 20),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
+    return SoftCard(
+      margin: const EdgeInsets.only(top: 14),
+      padding: const EdgeInsets.all(26),
       child: Column(
         children: [
-          InkWell(
-            onTap: widget.onNavigateToSearch,
-            borderRadius: BorderRadius.circular(50),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryContainer.withOpacity(0.5),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.notifications_active_outlined, size: 48, color: AppTheme.primary),
-            ),
-          ),
-          const SizedBox(height: 16),
+          const EmptyIllustration(icon: Icons.notifications_active_rounded, size: 90),
+          const SizedBox(height: 18),
           const Text(
             'قائمة مقاضي البيت فارغة حالياً',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textDark),
+            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: AppTheme.textDark),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -485,33 +489,35 @@ class _PantryScreenState extends State<PantryScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: AppTheme.textMuted, height: 1.5),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           if (widget.onNavigateToSearch != null)
-            ElevatedButton.icon(
+            GradientButton(
+              label: 'ابحث عن مقاضيك وأضفها للمتابعة',
+              icon: Icons.search_rounded,
               onPressed: widget.onNavigateToSearch,
-              icon: const Icon(Icons.search, size: 18),
-              label: const Text('ابحث عن مقاضيك وأضفها للمتابعة'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
             ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(12),
+              color: AppTheme.surfaceAlt,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppTheme.border),
             ),
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('💡 طرق سهلة لإضافة الأصناف:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.primary)),
-                SizedBox(height: 4),
-                Text('1. انقر على أيقونة الجرس 🔔 بجانب أي منتج في نتائج البحث.', style: TextStyle(fontSize: 11, color: AppTheme.textDark)),
-                Text('2. أو استخدم الأمر الصوتي: «حط حليب السعودية في قائمة المتابعة».', style: TextStyle(fontSize: 11, color: AppTheme.textDark)),
+                Row(
+                  children: [
+                    Icon(Icons.lightbulb_rounded, color: AppTheme.accentGold, size: 18),
+                    SizedBox(width: 6),
+                    Text('طرق سهلة لإضافة الأصناف:', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppTheme.primary)),
+                  ],
+                ),
+                SizedBox(height: 6),
+                Text('1. انقر على أيقونة الجرس 🔔 بجانب أي منتج في نتائج البحث.', style: TextStyle(fontSize: 12, color: AppTheme.textDark, height: 1.4)),
+                SizedBox(height: 3),
+                Text('2. أو استخدم الأمر الصوتي: «حط حليب السعودية في قائمة المتابعة».', style: TextStyle(fontSize: 12, color: AppTheme.textDark, height: 1.4)),
               ],
             ),
           ),
@@ -521,30 +527,32 @@ class _PantryScreenState extends State<PantryScreen> {
   }
 
   Widget _buildPantryItemCard(PantryItemModel item) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: SoftCard(
         padding: const EdgeInsets.all(14),
         child: Column(
           children: [
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    width: 65,
-                    height: 65,
-                    color: Colors.grey.shade100,
+                Container(
+                  width: 68,
+                  height: 68,
+                  decoration: BoxDecoration(
+                    color: AppTheme.background,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppTheme.border.withOpacity(0.6)),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
                     child: item.imageUrl != null && item.imageUrl!.isNotEmpty
                         ? Image.network(
                             item.imageUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const Icon(Icons.inventory_2, color: Colors.grey),
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => const Icon(Icons.shopping_bag_outlined, color: AppTheme.textMuted),
                           )
-                        : const Icon(Icons.inventory_2, color: Colors.grey),
+                        : const Icon(Icons.shopping_bag_outlined, color: AppTheme.textMuted),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -554,34 +562,35 @@ class _PantryScreenState extends State<PantryScreen> {
                     children: [
                       Text(
                         item.productNameAr,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.textDark),
+                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppTheme.textDark),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 5),
                       Wrap(
                         spacing: 6,
                         runSpacing: 4,
                         children: [
                           if (item.brandAr != null)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(4),
+                                color: AppTheme.surfaceAlt,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppTheme.border),
                               ),
-                              child: Text(item.brandAr!, style: const TextStyle(fontSize: 10, color: AppTheme.textDark)),
+                              child: Text(item.brandAr!, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppTheme.textDark)),
                             ),
                           if (item.packLabelAr != null)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                               decoration: BoxDecoration(
                                 color: AppTheme.primaryContainer,
-                                borderRadius: BorderRadius.circular(4),
+                                borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 item.packLabelAr!,
-                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.primary),
+                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.primary),
                               ),
                             ),
                         ],
@@ -591,18 +600,19 @@ class _PantryScreenState extends State<PantryScreen> {
                         children: [
                           Text(
                             '${item.lastLowestPriceSar.toStringAsFixed(2)} ر.س',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.primary),
+                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppTheme.primary),
                           ),
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              borderRadius: BorderRadius.circular(6),
+                              color: AppTheme.surfaceAlt,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppTheme.border),
                             ),
                             child: Text(
                               item.lastLowestStoreName ?? 'المتجر',
-                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.textDark),
+                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.textDark),
                             ),
                           ),
                         ],
@@ -610,15 +620,13 @@ class _PantryScreenState extends State<PantryScreen> {
                     ],
                   ),
                 ),
-                Column(
+                Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    IconButton(
-                      icon: Icon(
-                        item.isAlertEnabled ? Icons.notifications_active : Icons.notifications_off_outlined,
-                        color: item.isAlertEnabled ? Colors.amber.shade800 : Colors.grey,
-                      ),
+                    AnimatedBell(
+                      active: item.isAlertEnabled,
                       tooltip: item.isAlertEnabled ? 'التنبيه مفعل (انقر للتعطيل)' : 'التنبيه معطل (انقر للتفعيل)',
-                      onPressed: () async {
+                      onTap: () async {
                         await _pantryService.toggleAlert(item.id);
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -636,7 +644,7 @@ class _PantryScreenState extends State<PantryScreen> {
                       },
                     ),
                     IconButton(
-                      icon: const Icon(Icons.tune, color: AppTheme.textMuted, size: 20),
+                      icon: const Icon(Icons.tune_rounded, color: AppTheme.textMuted, size: 20),
                       tooltip: 'تخصيص شروط التنبيه والكمية',
                       onPressed: () async {
                         final changed = await PantryAlertDialog.show(context, item);
@@ -652,18 +660,18 @@ class _PantryScreenState extends State<PantryScreen> {
                 margin: const EdgeInsets.only(top: 10),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.shade200),
+                  color: const Color(0xFFECFDF5),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFA7F3D0)),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.trending_down, color: Colors.green.shade800, size: 16),
+                    const Icon(Icons.trending_down_rounded, color: Color(0xFF047857), size: 16),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         'وفر ${item.priceDropSar.toStringAsFixed(2)} ر.س (${item.priceDropPercentage.toStringAsFixed(0)}%) مقارنة بسعر الأساس (${item.baselinePriceSar.toStringAsFixed(2)} ر.س)',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.green.shade900),
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF065F46)),
                       ),
                     ),
                   ],
@@ -672,32 +680,32 @@ class _PantryScreenState extends State<PantryScreen> {
             if (item.isTargetMet)
               Container(
                 margin: const EdgeInsets.only(top: 6),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: Colors.amber.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.amber.shade300),
+                  color: const Color(0xFFFFFBEB),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.check_circle, color: Colors.amber.shade900, size: 16),
+                    const Icon(Icons.check_circle_rounded, color: Color(0xFFB45309), size: 16),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         'وصل السعر إلى المستهدف المطلوب (${item.targetPriceSar?.toStringAsFixed(2)} ر.س أو أقل)!',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.amber.shade900),
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF92400E)),
                       ),
                     ),
                   ],
                 ),
               ),
-            const Divider(height: 16),
+            Divider(height: 18, color: AppTheme.border.withOpacity(0.6)),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
-                    const Text('الكمية المعتادة: ', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                    const Text('الكمية المعتادة: ', style: TextStyle(fontSize: 12, color: AppTheme.textMuted, fontWeight: FontWeight.w600)),
                     InkWell(
                       onTap: item.usualQuantity > 1
                           ? () async {
@@ -707,19 +715,19 @@ class _PantryScreenState extends State<PantryScreen> {
                           : null,
                       borderRadius: BorderRadius.circular(15),
                       child: Container(
-                        padding: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.all(5),
                         decoration: BoxDecoration(
-                          color: item.usualQuantity > 1 ? Colors.grey.shade200 : Colors.grey.shade100,
+                          color: item.usualQuantity > 1 ? AppTheme.surfaceAlt : AppTheme.border.withOpacity(0.3),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.remove, size: 14, color: item.usualQuantity > 1 ? AppTheme.textDark : Colors.grey),
+                        child: Icon(Icons.remove_rounded, size: 14, color: item.usualQuantity > 1 ? AppTheme.textDark : Colors.grey),
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: Text(
                         '${item.usualQuantity}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
                       ),
                     ),
                     InkWell(
@@ -729,12 +737,12 @@ class _PantryScreenState extends State<PantryScreen> {
                       },
                       borderRadius: BorderRadius.circular(15),
                       child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade200,
+                        padding: const EdgeInsets.all(5),
+                        decoration: const BoxDecoration(
+                          gradient: AppTheme.emeraldButton,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.add, size: 14, color: AppTheme.textDark),
+                        child: const Icon(Icons.add_rounded, size: 14, color: Colors.white),
                       ),
                     ),
                   ],
@@ -749,8 +757,9 @@ class _PantryScreenState extends State<PantryScreen> {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.add_shopping_cart, size: 16),
-                  label: const Text('أضف للسلة', style: TextStyle(fontSize: 12)),
+                  icon: const Icon(Icons.add_shopping_cart_rounded, size: 16),
+                  label: const Text('أضف للسلة', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                  style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
                 ),
               ],
             ),
@@ -772,6 +781,7 @@ class _NotificationHistorySheetState extends State<NotificationHistorySheet> {
   final PantryService _pantryService = PantryService();
   bool _isLoading = false;
   bool _isSendingTest = false;
+  bool _isClearing = false;
   List<NotificationLogItem> _notifications = [];
 
   @override
@@ -793,6 +803,24 @@ class _NotificationHistorySheetState extends State<NotificationHistorySheet> {
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _clearHistory() async {
+    setState(() => _isClearing = true);
+    await _pantryService.clearNotificationHistory();
+    if (mounted) {
+      setState(() {
+        _isClearing = false;
+        _notifications = [];
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تم مسح سجل الإشعارات بنجاح'),
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -864,15 +892,34 @@ class _NotificationHistorySheetState extends State<NotificationHistorySheet> {
                               height: 14,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Icon(Icons.send, size: 16),
+                          : const Icon(Icons.send_rounded, size: 16),
                       label: const Text('تجربة تنبيه فوري 🔔', style: TextStyle(fontSize: 12)),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppTheme.primary,
                         side: const BorderSide(color: AppTheme.primary),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                     ),
                   ),
+                  if (_notifications.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: _isClearing ? null : _clearHistory,
+                      icon: _isClearing
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.delete_sweep_outlined, size: 16),
+                      label: const Text('مسح السجل', style: TextStyle(fontSize: 12)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red.shade700,
+                        side: BorderSide(color: Colors.red.shade300),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
