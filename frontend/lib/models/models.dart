@@ -407,19 +407,31 @@ class PantryItemModel {
       baselinePriceSar: (json['baseline_price_sar'] as num?)?.toDouble() ?? 0.0,
       baselineStoreCode: json['baseline_store_code'] as String?,
       baselineStoreName: json['baseline_store_name'] as String?,
-      lastLowestPriceSar: (json['last_lowest_price_sar'] as num?)?.toDouble() ?? 0.0,
-      lastLowestStoreCode: json['last_lowest_store_code'] as String?,
-      lastLowestStoreName: json['last_lowest_store_name'] as String?,
+      lastLowestPriceSar: (json['current_lowest_price_sar'] as num?)?.toDouble() ??
+          (json['last_lowest_price_sar'] as num?)?.toDouble() ??
+          0.0,
+      lastLowestStoreCode: (json['current_lowest_store_code'] as String?) ??
+          (json['last_lowest_store_code'] as String?),
+      lastLowestStoreName: (json['current_lowest_store_name_ar'] as String?) ??
+          (json['last_lowest_store_name'] as String?),
       targetPriceSar: (json['target_price_sar'] as num?)?.toDouble(),
-      dropPercentageThreshold: (json['drop_percentage_threshold'] as num?)?.toDouble(),
-      storeCodes: (json['store_codes'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
+      dropPercentageThreshold: (json['target_discount_percent'] as num?)?.toDouble() ??
+          (json['drop_percentage_threshold'] as num?)?.toDouble(),
+      storeCodes: (json['specific_store_codes'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
+          (json['store_codes'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
       isAlertEnabled: json['is_alert_enabled'] as bool? ?? true,
       lastCheckedAt: json['last_checked_at'] != null ? DateTime.tryParse(json['last_checked_at'].toString()) : null,
       lastAlertSentAt: json['last_alert_sent_at'] != null ? DateTime.tryParse(json['last_alert_sent_at'].toString()) : null,
       createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at'].toString()) : null,
-      priceDropSar: (json['price_drop_sar'] as num?)?.toDouble() ?? 0.0,
-      priceDropPercentage: (json['price_drop_percentage'] as num?)?.toDouble() ?? 0.0,
-      hasPriceDrop: json['has_price_drop'] as bool? ?? false,
+      priceDropSar: (json['savings_amount_sar'] as num?)?.toDouble() ??
+          (json['price_drop_sar'] as num?)?.toDouble() ??
+          0.0,
+      priceDropPercentage: (json['savings_percent'] as num?)?.toDouble() ??
+          (json['price_drop_percentage'] as num?)?.toDouble() ??
+          0.0,
+      hasPriceDrop: json['is_price_dropped'] as bool? ??
+          json['has_price_drop'] as bool? ??
+          false,
       isTargetMet: json['is_target_met'] as bool? ?? false,
     );
   }
@@ -486,7 +498,7 @@ class PantrySummaryModel {
   factory PantrySummaryModel.fromJson(Map<String, dynamic> json) {
     var rawItems = json['items'] as List<dynamic>? ?? [];
     return PantrySummaryModel(
-      totalItems: json['total_items'] as int? ?? 0,
+      totalItems: json['total_items'] as int? ?? json['items_count'] as int? ?? rawItems.length,
       activeAlertsCount: json['active_alerts_count'] as int? ?? 0,
       itemsWithDropsCount: json['items_with_drops_count'] as int? ?? 0,
       totalPotentialSavingsSar: (json['total_potential_savings_sar'] as num?)?.toDouble() ?? 0.0,
