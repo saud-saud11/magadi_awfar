@@ -664,7 +664,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
                             : AppTheme.textMuted,
                         size: 22,
                       ),
-                      tooltip: isTracked ? 'متابع في مقاضي البيت (انقر للتعديل)' : 'تابع السعر في مقاضي البيت',
+                      tooltip: isTracked
+                          ? (isAlertActive ? 'التنبيه مفعل (انقر للتعطيل)' : 'التنبيه معطل (انقر للتفعيل)')
+                          : 'تابع السعر في مقاضي البيت',
                       onPressed: () async {
                         if (!isTracked) {
                           await PantryService().addToPantry(product);
@@ -674,11 +676,39 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                 content: Text('تمت إضافة «${product.nameAr}» إلى مقاضي البيت ومتابعة الأسعار بنجاح 🔔'),
                                 backgroundColor: AppTheme.primary,
                                 behavior: SnackBarBehavior.floating,
+                                action: SnackBarAction(
+                                  label: 'تخصيص',
+                                  textColor: Colors.white,
+                                  onPressed: () {
+                                    final item = PantryService().getTrackedItemByProductId(product.id);
+                                    if (item != null) {
+                                      PantryAlertDialog.show(context, item);
+                                    }
+                                  },
+                                ),
                               ),
                             );
                           }
                         } else if (trackedItem != null) {
-                          PantryAlertDialog.show(context, trackedItem);
+                          await PantryService().toggleAlert(trackedItem.id);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  !isAlertActive
+                                      ? 'تم تفعيل التنبيه لـ «${product.nameAr}» 🔔'
+                                      : 'تم إيقاف التنبيه مؤقتاً لـ «${product.nameAr}»',
+                                ),
+                                duration: const Duration(seconds: 3),
+                                behavior: SnackBarBehavior.floating,
+                                action: SnackBarAction(
+                                  label: 'تخصيص',
+                                  textColor: Colors.amberAccent,
+                                  onPressed: () => PantryAlertDialog.show(context, trackedItem),
+                                ),
+                              ),
+                            );
+                          }
                         }
                       },
                     );

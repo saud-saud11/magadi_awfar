@@ -134,10 +134,7 @@ class _PantryScreenState extends State<PantryScreen> {
     setState(() {});
   }
 
-  void _showNotificationHistorySheet() async {
-    final history = await _pantryService.fetchNotificationHistory();
-    if (!mounted) return;
-
+  void _showNotificationHistorySheet() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -145,82 +142,110 @@ class _PantryScreenState extends State<PantryScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: Container(
-            height: MediaQuery.of(context).size.height * 0.75,
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            List<NotificationLogItem> history = List.from(_pantryService.cachedNotifications);
+            bool isFetchingFresh = false;
+
+            // Trigger background refresh if empty or on open
+            if (history.isEmpty) {
+              isFetchingFresh = true;
+              _pantryService.fetchNotificationHistory().then((fresh) {
+                if (ctx.mounted) {
+                  setSheetState(() {
+                    history = fresh;
+                    isFetchingFresh = false;
+                  });
+                }
+              });
+            }
+
+            return Directionality(
+              textDirection: TextDirection.rtl,
+              child: Container(
+                height: MediaQuery.of(context).size.height * 0.75,
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Icon(Icons.history, color: AppTheme.primary),
-                        SizedBox(width: 8),
-                        Text('سجل تنبيهات الأسعار', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const Row(
+                          children: [
+                            Icon(Icons.history, color: AppTheme.primary),
+                            SizedBox(width: 8),
+                            Text('سجل تنبيهات الأسعار', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
                       ],
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(ctx),
+                    const Divider(),
+                    if (isFetchingFresh)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: LinearProgressIndicator(minHeight: 2),
+                      ),
+                    Expanded(
+                      child: history.isEmpty && !isFetchingFresh
+                          ? const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.notifications_none, size: 50, color: Colors.grey),
+                                  SizedBox(height: 12),
+                                  Text('لا توجد تنبيهات مسجلة حتى الآن', style: TextStyle(color: Colors.grey)),
+                                ],
+                              ),
+                            )
+                          : ListView.separated(
+                              itemCount: history.length,
+                              separatorBuilder: (_, __) => const Divider(height: 1),
+                              itemBuilder: (c, idx) {
+                                final notif = history[idx];
+                                final timeStr = notif.createdAt != null
+                                    ? '${notif.createdAt!.hour.toString().padLeft(2, '0')}:${notif.createdAt!.minute.toString().padLeft(2, '0')} - ${notif.createdAt!.day}/${notif.createdAt!.month}'
+                                    : '';
+                                return ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                                  leading: CircleAvatar(
+                                    backgroundColor: notif.eventType == 'price_drop'
+                                        ? Colors.green.shade100
+                                        : AppTheme.primaryContainer,
+                                    child: Icon(
+                                      notif.eventType == 'price_drop' ? Icons.trending_down : Icons.notifications,
+                                      color: notif.eventType == 'price_drop' ? Colors.green.shade800 : AppTheme.primary,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  title: Text(notif.titleAr, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const SizedBox(height: 4),
+                                      Text(notif.bodyAr, style: const TextStyle(fontSize: 12, color: AppTheme.textDark)),
+                                      if (timeStr.isNotEmpty) ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          timeStr,
+                                          style: const TextStyle(fontSize: 10, color: Colors.grey),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
                     ),
                   ],
                 ),
-                const Divider(),
-                Expanded(
-                  child: history.isEmpty
-                      ? const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.notifications_none, size: 50, color: Colors.grey),
-                              SizedBox(height: 12),
-                              Text('لا توجد تنبيهات مسجلة حتى الآن', style: TextStyle(color: Colors.grey)),
-                            ],
-                          ),
-                        )
-                      : ListView.separated(
-                          itemCount: history.length,
-                          separatorBuilder: (_, __) => const Divider(height: 1),
-                          itemBuilder: (c, idx) {
-                            final notif = history[idx];
-                            return ListTile(
-                              contentPadding: const EdgeInsets.symmetric(vertical: 4),
-                              leading: CircleAvatar(
-                                backgroundColor: notif.eventType == 'price_drop'
-                                    ? Colors.green.shade100
-                                    : AppTheme.primaryContainer,
-                                child: Icon(
-                                  notif.eventType == 'price_drop' ? Icons.trending_down : Icons.notifications,
-                                  color: notif.eventType == 'price_drop' ? Colors.green.shade800 : AppTheme.primary,
-                                  size: 20,
-                                ),
-                              ),
-                              title: Text(notif.titleAr, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 4),
-                                  Text(notif.bodyAr, style: const TextStyle(fontSize: 12, color: AppTheme.textDark)),
-                                  if (notif.createdAt != null) ...[
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      ': - /',
-                                      style: const TextStyle(fontSize: 10, color: Colors.grey),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -303,7 +328,7 @@ class _PantryScreenState extends State<PantryScreen> {
                             widget.onAddPantryToBasket(items);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('تمت إضافة  أصناف من مقاضي البيت إلى سلة المقاضي بنجاح!'),
+                                content: Text('تمت إضافة ${items.length} أصناف من مقاضي البيت إلى سلة المقاضي بنجاح!'),
                                 backgroundColor: AppTheme.primary,
                                 action: SnackBarAction(
                                   label: 'عرض السلة',
@@ -315,7 +340,7 @@ class _PantryScreenState extends State<PantryScreen> {
                           },
                           icon: const Icon(Icons.shopping_basket, color: Colors.white),
                           label: Text(
-                            'أضف مقاضي البيت للسلة ( أصناف)',
+                            'أضف مقاضي البيت للسلة (${items.length} أصناف)',
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                           ),
                           style: ElevatedButton.styleFrom(
@@ -499,10 +524,10 @@ class _PantryScreenState extends State<PantryScreen> {
           const SizedBox(height: 16),
           Row(
             children: [
-              _buildStatItem('المقاضي المتابعة', '', Icons.playlist_add_check),
-              _buildStatItem('تنبيهات نشطة', '', Icons.notifications_active),
-              _buildStatItem('عروض وتخفيضات', '', Icons.trending_down),
-              _buildStatItem('وفر محتمل', ' ر.س', Icons.savings),
+              _buildStatItem('المقاضي المتابعة', '$totalItems', Icons.playlist_add_check),
+              _buildStatItem('تنبيهات نشطة', '$activeAlerts', Icons.notifications_active),
+              _buildStatItem('عروض وتخفيضات', '$itemsWithDrops', Icons.trending_down),
+              _buildStatItem('وفر محتمل', '${totalSavings.toStringAsFixed(1)} ر.س', Icons.savings),
             ],
           ),
         ],
@@ -652,7 +677,7 @@ class _PantryScreenState extends State<PantryScreen> {
                       Row(
                         children: [
                           Text(
-                            ' ر.س',
+                            '${item.lastLowestPriceSar.toStringAsFixed(2)} ر.س',
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.primary),
                           ),
                           const SizedBox(width: 8),
@@ -682,7 +707,19 @@ class _PantryScreenState extends State<PantryScreen> {
                       tooltip: item.isAlertEnabled ? 'التنبيه مفعل (انقر للتعطيل)' : 'التنبيه معطل (انقر للتفعيل)',
                       onPressed: () async {
                         await _pantryService.toggleAlert(item.id);
-                        _loadData();
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                !item.isAlertEnabled
+                                    ? 'تم تفعيل التنبيه لـ «${item.productNameAr}» 🔔'
+                                    : 'تم إيقاف التنبيه مؤقتاً لـ «${item.productNameAr}»',
+                              ),
+                              duration: const Duration(seconds: 2),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
                       },
                     ),
                     IconButton(
@@ -712,7 +749,7 @@ class _PantryScreenState extends State<PantryScreen> {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'وفر  ر.س (%) مقارنة بسعر الأساس ( ر.س)',
+                        'وفر ${item.priceDropSar.toStringAsFixed(2)} ر.س (${item.priceDropPercentage.toStringAsFixed(0)}%) مقارنة بسعر الأساس (${item.baselinePriceSar.toStringAsFixed(2)} ر.س)',
                         style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.green.shade900),
                       ),
                     ),
@@ -734,7 +771,7 @@ class _PantryScreenState extends State<PantryScreen> {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'وصل السعر إلى المستهدف المطلوب ( ر.س أو أقل)!',
+                        'وصل السعر إلى المستهدف المطلوب (${item.targetPriceSar?.toStringAsFixed(2)} ر.س أو أقل)!',
                         style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.amber.shade900),
                       ),
                     ),
@@ -768,7 +805,7 @@ class _PantryScreenState extends State<PantryScreen> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Text(
-                        '',
+                        '${item.usualQuantity}',
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                     ),
@@ -794,7 +831,7 @@ class _PantryScreenState extends State<PantryScreen> {
                     widget.onAddSingleToBasket(item.toProductItem());
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('تمت إضافة  لسلة المشتريات'),
+                        content: Text('تمت إضافة «${item.productNameAr}» لسلة المشتريات'),
                         duration: const Duration(seconds: 2),
                       ),
                     );

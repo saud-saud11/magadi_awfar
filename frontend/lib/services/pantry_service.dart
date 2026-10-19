@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -18,6 +18,9 @@ class PantryService {
   String? _cachedDeviceUuid;
   final ValueNotifier<List<PantryItemModel>> trackedItemsNotifier = ValueNotifier<List<PantryItemModel>>([]);
   final ValueNotifier<int> unreadNotificationsCountNotifier = ValueNotifier<int>(0);
+  List<NotificationLogItem> _cachedNotifications = [];
+
+  List<NotificationLogItem> get cachedNotifications => _cachedNotifications;
 
   /// Returns device/guest persistent UUID
   Future<String> getDeviceUuid() async {
@@ -49,6 +52,13 @@ class PantryService {
       if (raw != null && raw.isNotEmpty) {
         final List<dynamic> list = jsonDecode(raw);
         trackedItemsNotifier.value = list.map((i) => PantryItemModel.fromJson(i as Map<String, dynamic>)).toList();
+      }
+
+      final notifRaw = prefs.getString(_prefKeyCachedNotifications);
+      if (notifRaw != null && notifRaw.isNotEmpty) {
+        final List<dynamic> notifList = jsonDecode(notifRaw);
+        _cachedNotifications = notifList.map((i) => NotificationLogItem.fromJson(i as Map<String, dynamic>)).toList();
+        unreadNotificationsCountNotifier.value = _cachedNotifications.where((n) => !n.isRead).length;
       }
     } catch (e) {
       debugPrint('Error loading pantry local cache: $e');
@@ -107,7 +117,7 @@ class PantryService {
     );
   }
 
-  /// Add product to pantry watchlist
+  /// Add product to pantry watchlist (Instant 0ms Optimistic UI + Background Sync)
   Future<bool> addToPantry(ProductItem product, {int usualQuantity = 1, double? targetPriceSar}) async {
     final uuid = await getDeviceUuid();
     final baseUrl = ApiService.baseUrl;
@@ -122,39 +132,49 @@ class PantryService {
       }
     }
 
-    final int baselineHalalas = lowestOffer != null ? (lowestOffer.priceSar * 100).round() : 0;
+    final double baselinePriceSar = lowestOffer?.priceSar ?? 0.0;
     final String baselineStore = lowestOffer?.storeCode ?? 'othaim';
+    final String baselineStoreName = lowestOffer?.storeNameAr ?? 'المتجر';
 
-    try {
-      final uri = Uri.parse('$baseUrl/pantry');
-      final body = {
-        'device_uuid': uuid,
-        'product_id': product.id,
-        'usual_quantity': usualQuantity,
-        'baseline_price_halalas': baselineHalalas > 0 ? baselineHalalas : null,
-        'baseline_store_code': baselineStore,
-        'target_price_halalas': targetPriceSar != null ? (targetPriceSar * 100).round() : null,
-        'is_alert_enabled': true,
-      };
-
-      final res = await http.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      ).timeout(const Duration(seconds: 6));
-
-      if (res.statusCode == 200) {
-        await fetchPantrySummary();
-        return true;
-      }
-    } catch (e) {
-      debugPrint('Error adding to pantry: $e');
-    }
-
-    // Local optimistic update if offline
+    // 1. Instant optimistic local update (0 ms latency)
     final currentList = List<PantryItemModel>.from(trackedItemsNotifier.value);
-    if (!currentList.any((it) => it.productId == product.id)) {
-      final newItem = PantryItemModel(
+    final existingIdx = currentList.indexWhere((it) => it.productId == product.id);
+
+    PantryItemModel itemToTrack;
+    if (existingIdx >= 0) {
+      final existing = currentList[existingIdx];
+      itemToTrack = PantryItemModel(
+        id: existing.id,
+        deviceUuid: existing.deviceUuid,
+        productId: existing.productId,
+        productNameAr: existing.productNameAr,
+        productNameEn: existing.productNameEn,
+        brandAr: existing.brandAr,
+        packLabelAr: existing.packLabelAr,
+        packCount: existing.packCount,
+        imageUrl: existing.imageUrl,
+        usualQuantity: usualQuantity,
+        baselinePriceSar: existing.baselinePriceSar,
+        baselineStoreCode: existing.baselineStoreCode,
+        baselineStoreName: existing.baselineStoreName,
+        lastLowestPriceSar: existing.lastLowestPriceSar,
+        lastLowestStoreCode: existing.lastLowestStoreCode,
+        lastLowestStoreName: existing.lastLowestStoreName,
+        targetPriceSar: targetPriceSar ?? existing.targetPriceSar,
+        dropPercentageThreshold: existing.dropPercentageThreshold,
+        storeCodes: existing.storeCodes,
+        isAlertEnabled: true,
+        lastCheckedAt: existing.lastCheckedAt,
+        lastAlertSentAt: existing.lastAlertSentAt,
+        createdAt: existing.createdAt,
+        priceDropSar: existing.priceDropSar,
+        priceDropPercentage: existing.priceDropPercentage,
+        hasPriceDrop: existing.hasPriceDrop,
+        isTargetMet: existing.isTargetMet,
+      );
+      currentList[existingIdx] = itemToTrack;
+    } else {
+      itemToTrack = PantryItemModel(
         id: DateTime.now().millisecondsSinceEpoch,
         deviceUuid: uuid,
         productId: product.id,
@@ -165,12 +185,12 @@ class PantryService {
         packCount: product.packCount,
         imageUrl: product.imageUrl,
         usualQuantity: usualQuantity,
-        baselinePriceSar: lowestOffer?.priceSar ?? 0.0,
+        baselinePriceSar: baselinePriceSar,
         baselineStoreCode: baselineStore,
-        baselineStoreName: lowestOffer?.storeNameAr ?? 'المتجر',
-        lastLowestPriceSar: lowestOffer?.priceSar ?? 0.0,
+        baselineStoreName: baselineStoreName,
+        lastLowestPriceSar: baselinePriceSar,
         lastLowestStoreCode: baselineStore,
-        lastLowestStoreName: lowestOffer?.storeNameAr ?? 'المتجر',
+        lastLowestStoreName: baselineStoreName,
         targetPriceSar: targetPriceSar,
         isAlertEnabled: true,
         lastCheckedAt: DateTime.now(),
@@ -180,14 +200,46 @@ class PantryService {
         hasPriceDrop: false,
         isTargetMet: false,
       );
-      currentList.add(newItem);
-      await _saveToLocalCache(currentList);
-      return true;
+      currentList.add(itemToTrack);
     }
-    return false;
+    await _saveToLocalCache(currentList);
+
+    // 2. Background HTTP sync
+    () async {
+      try {
+        final uri = Uri.parse('$baseUrl/pantry');
+        final body = {
+          'device_uuid': uuid,
+          'product_id': product.id,
+          'usual_quantity': usualQuantity,
+          if (targetPriceSar != null) 'target_price_sar': targetPriceSar,
+          'is_alert_enabled': true,
+        };
+
+        final res = await http.post(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(body),
+        ).timeout(const Duration(seconds: 8));
+
+        if (res.statusCode == 200) {
+          final serverItem = PantryItemModel.fromJson(jsonDecode(utf8.decode(res.bodyBytes)));
+          final updated = List<PantryItemModel>.from(trackedItemsNotifier.value);
+          final idx = updated.indexWhere((it) => it.productId == product.id);
+          if (idx >= 0) {
+            updated[idx] = serverItem;
+            await _saveToLocalCache(updated);
+          }
+        }
+      } catch (e) {
+        debugPrint('Background sync error adding to pantry: $e');
+      }
+    }();
+
+    return true;
   }
 
-  /// Update tracked item quantity, target price, or stores
+  /// Update tracked item quantity, target price, or stores (Instant 0ms + Background Sync)
   Future<bool> updateItem(
     int itemId, {
     int? usualQuantity,
@@ -196,31 +248,7 @@ class PantryService {
     List<String>? storeCodes,
     bool? isAlertEnabled,
   }) async {
-    final baseUrl = ApiService.baseUrl;
-    try {
-      final uri = Uri.parse('$baseUrl/pantry/$itemId');
-      final body = <String, dynamic>{};
-      if (usualQuantity != null) body['usual_quantity'] = usualQuantity;
-      if (targetPriceSar != null) body['target_price_halalas'] = (targetPriceSar * 100).round();
-      if (dropPercentageThreshold != null) body['drop_percentage_threshold'] = dropPercentageThreshold;
-      if (storeCodes != null) body['store_codes'] = storeCodes;
-      if (isAlertEnabled != null) body['is_alert_enabled'] = isAlertEnabled;
-
-      final res = await http.put(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      ).timeout(const Duration(seconds: 6));
-
-      if (res.statusCode == 200) {
-        await fetchPantrySummary();
-        return true;
-      }
-    } catch (e) {
-      debugPrint('Error updating pantry item: $e');
-    }
-
-    // Local update fallback
+    // 1. Instant local update (0 ms latency)
     final currentList = List<PantryItemModel>.from(trackedItemsNotifier.value);
     final idx = currentList.indexWhere((it) => it.id == itemId);
     if (idx >= 0) {
@@ -247,6 +275,7 @@ class PantryService {
         storeCodes: storeCodes ?? existing.storeCodes,
         isAlertEnabled: isAlertEnabled ?? existing.isAlertEnabled,
         lastCheckedAt: existing.lastCheckedAt,
+        lastAlertSentAt: existing.lastAlertSentAt,
         createdAt: existing.createdAt,
         priceDropSar: existing.priceDropSar,
         priceDropPercentage: existing.priceDropPercentage,
@@ -254,76 +283,120 @@ class PantryService {
         isTargetMet: existing.isTargetMet,
       );
       await _saveToLocalCache(currentList);
-      return true;
     }
-    return false;
-  }
 
-  /// Remove item from watchlist
-  Future<bool> removeItem(int itemId) async {
-    final baseUrl = ApiService.baseUrl;
-    try {
-      final uri = Uri.parse('$baseUrl/pantry/$itemId');
-      final res = await http.delete(uri).timeout(const Duration(seconds: 6));
-      if (res.statusCode == 200) {
-        await fetchPantrySummary();
-        return true;
+    // 2. Background HTTP sync
+    () async {
+      try {
+        final baseUrl = ApiService.baseUrl;
+        final uri = Uri.parse('$baseUrl/pantry/$itemId');
+        final body = <String, dynamic>{};
+        if (usualQuantity != null) body['usual_quantity'] = usualQuantity;
+        if (targetPriceSar != null) body['target_price_sar'] = targetPriceSar;
+        if (dropPercentageThreshold != null) body['target_discount_percent'] = dropPercentageThreshold;
+        if (storeCodes != null) body['specific_store_codes'] = storeCodes;
+        if (isAlertEnabled != null) body['is_alert_enabled'] = isAlertEnabled;
+
+        final res = await http.put(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(body),
+        ).timeout(const Duration(seconds: 6));
+
+        if (res.statusCode == 200) {
+          final serverItem = PantryItemModel.fromJson(jsonDecode(utf8.decode(res.bodyBytes)));
+          final updated = List<PantryItemModel>.from(trackedItemsNotifier.value);
+          final i = updated.indexWhere((it) => it.id == itemId);
+          if (i >= 0) {
+            updated[i] = serverItem;
+            await _saveToLocalCache(updated);
+          }
+        }
+      } catch (e) {
+        debugPrint('Background sync error updating pantry item: $e');
       }
-    } catch (e) {
-      debugPrint('Error removing pantry item: $e');
-    }
+    }();
 
-    // Local fallback
-    final currentList = List<PantryItemModel>.from(trackedItemsNotifier.value);
-    currentList.removeWhere((it) => it.id == itemId);
-    await _saveToLocalCache(currentList);
     return true;
   }
 
-  /// Toggle single alert
-  Future<bool> toggleAlert(int itemId) async {
-    final baseUrl = ApiService.baseUrl;
-    try {
-      final uri = Uri.parse('$baseUrl/pantry/$itemId/toggle-alert');
-      final res = await http.post(uri).timeout(const Duration(seconds: 6));
-      if (res.statusCode == 200) {
-        await fetchPantrySummary();
-        return true;
-      }
-    } catch (e) {
-      debugPrint('Error toggling alert: $e');
-    }
+  /// Remove item from watchlist (Instant 0ms + Background Sync)
+  Future<bool> removeItem(int itemId) async {
+    // 1. Instant local removal (0 ms latency)
+    final currentList = List<PantryItemModel>.from(trackedItemsNotifier.value);
+    currentList.removeWhere((it) => it.id == itemId);
+    await _saveToLocalCache(currentList);
 
-    // Local fallback
+    // 2. Background HTTP sync
+    () async {
+      try {
+        final baseUrl = ApiService.baseUrl;
+        final uri = Uri.parse('$baseUrl/pantry/$itemId');
+        await http.delete(uri).timeout(const Duration(seconds: 6));
+      } catch (e) {
+        debugPrint('Background sync removing pantry item: $e');
+      }
+    }();
+
+    return true;
+  }
+
+  /// Toggle single alert (Instant 0ms + Background Sync)
+  Future<bool> toggleAlert(int itemId) async {
+    // 1. Instant optimistic local update (0 ms latency)
     final currentList = List<PantryItemModel>.from(trackedItemsNotifier.value);
     final idx = currentList.indexWhere((it) => it.id == itemId);
     if (idx >= 0) {
       final it = currentList[idx];
-      return updateItem(itemId, isAlertEnabled: !it.isAlertEnabled);
+      currentList[idx] = PantryItemModel(
+        id: it.id,
+        deviceUuid: it.deviceUuid,
+        productId: it.productId,
+        productNameAr: it.productNameAr,
+        productNameEn: it.productNameEn,
+        brandAr: it.brandAr,
+        packLabelAr: it.packLabelAr,
+        packCount: it.packCount,
+        imageUrl: it.imageUrl,
+        usualQuantity: it.usualQuantity,
+        baselinePriceSar: it.baselinePriceSar,
+        baselineStoreCode: it.baselineStoreCode,
+        baselineStoreName: it.baselineStoreName,
+        lastLowestPriceSar: it.lastLowestPriceSar,
+        lastLowestStoreCode: it.lastLowestStoreCode,
+        lastLowestStoreName: it.lastLowestStoreName,
+        targetPriceSar: it.targetPriceSar,
+        dropPercentageThreshold: it.dropPercentageThreshold,
+        storeCodes: it.storeCodes,
+        isAlertEnabled: !it.isAlertEnabled,
+        lastCheckedAt: it.lastCheckedAt,
+        lastAlertSentAt: it.lastAlertSentAt,
+        createdAt: it.createdAt,
+        priceDropSar: it.priceDropSar,
+        priceDropPercentage: it.priceDropPercentage,
+        hasPriceDrop: it.hasPriceDrop,
+        isTargetMet: it.isTargetMet,
+      );
+      await _saveToLocalCache(currentList);
     }
-    return false;
+
+    // 2. Background HTTP sync
+    () async {
+      try {
+        final baseUrl = ApiService.baseUrl;
+        final uri = Uri.parse('$baseUrl/pantry/$itemId/toggle-alert');
+        await http.post(uri).timeout(const Duration(seconds: 6));
+      } catch (e) {
+        debugPrint('Background sync toggling alert: $e');
+      }
+    }();
+
+    return true;
   }
 
-  /// Toggle all alerts
+  /// Toggle all alerts (Instant 0ms + Background Sync)
   Future<bool> toggleAllAlerts(bool enable) async {
     final uuid = await getDeviceUuid();
-    final baseUrl = ApiService.baseUrl;
-    try {
-      final uri = Uri.parse('$baseUrl/pantry/toggle-all').replace(
-        queryParameters: {
-          'device_uuid': uuid,
-          'enable': enable.toString(),
-        },
-      );
-      final res = await http.post(uri).timeout(const Duration(seconds: 6));
-      if (res.statusCode == 200) {
-        await fetchPantrySummary();
-        return true;
-      }
-    } catch (e) {
-      debugPrint('Error toggling all alerts: $e');
-    }
-
     final currentList = List<PantryItemModel>.from(trackedItemsNotifier.value);
     for (int i = 0; i < currentList.length; i++) {
       final ex = currentList[i];
@@ -349,6 +422,7 @@ class PantryService {
         storeCodes: ex.storeCodes,
         isAlertEnabled: enable,
         lastCheckedAt: ex.lastCheckedAt,
+        lastAlertSentAt: ex.lastAlertSentAt,
         createdAt: ex.createdAt,
         priceDropSar: ex.priceDropSar,
         priceDropPercentage: ex.priceDropPercentage,
@@ -357,6 +431,23 @@ class PantryService {
       );
     }
     await _saveToLocalCache(currentList);
+
+    // 2. Background HTTP sync
+    () async {
+      try {
+        final baseUrl = ApiService.baseUrl;
+        final uri = Uri.parse('$baseUrl/pantry/toggle-all').replace(
+          queryParameters: {
+            'device_uuid': uuid,
+            'enabled': enable.toString(),
+          },
+        );
+        await http.post(uri).timeout(const Duration(seconds: 6));
+      } catch (e) {
+        debugPrint('Background sync toggling all alerts: $e');
+      }
+    }();
+
     return true;
   }
 
@@ -389,6 +480,7 @@ class PantryService {
       if (res.statusCode == 200) {
         final List<dynamic> data = jsonDecode(utf8.decode(res.bodyBytes));
         final items = data.map((d) => NotificationLogItem.fromJson(d as Map<String, dynamic>)).toList();
+        _cachedNotifications = items;
         unreadNotificationsCountNotifier.value = items.where((n) => !n.isRead).length;
 
         final prefs = await SharedPreferences.getInstance();
@@ -399,6 +491,10 @@ class PantryService {
       debugPrint('Error fetching notification history: $e');
     }
 
+    if (_cachedNotifications.isNotEmpty) {
+      return _cachedNotifications;
+    }
+
     // Offline cached fallback
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -406,6 +502,7 @@ class PantryService {
       if (raw != null && raw.isNotEmpty) {
         final List<dynamic> data = jsonDecode(raw);
         final items = data.map((d) => NotificationLogItem.fromJson(d as Map<String, dynamic>)).toList();
+        _cachedNotifications = items;
         unreadNotificationsCountNotifier.value = items.where((n) => !n.isRead).length;
         return items;
       }

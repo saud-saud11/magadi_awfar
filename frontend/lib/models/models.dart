@@ -529,12 +529,14 @@ class NotificationLogItem {
   factory NotificationLogItem.fromJson(Map<String, dynamic> json) {
     return NotificationLogItem(
       id: json['id'] as int? ?? 0,
-      titleAr: json['title_ar'] as String? ?? '',
-      bodyAr: json['body_ar'] as String? ?? '',
+      titleAr: (json['title_ar'] as String?) ?? (json['title'] as String?) ?? '',
+      bodyAr: (json['body_ar'] as String?) ?? (json['body'] as String?) ?? '',
       eventType: json['event_type'] as String? ?? 'info',
       payload: json['payload'] as Map<String, dynamic>?,
       isRead: json['is_read'] as bool? ?? false,
-      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at'].toString()) : null,
+      createdAt: json['sent_at'] != null
+          ? DateTime.tryParse(json['sent_at'].toString())
+          : (json['created_at'] != null ? DateTime.tryParse(json['created_at'].toString()) : null),
     );
   }
 }
