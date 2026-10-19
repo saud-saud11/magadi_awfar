@@ -27,6 +27,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
   late String _currentSortBy;
   String _selectedStoreFilter = 'all'; // all, danube, panda, othaim, carrefour
   String _selectedCategoryFilter = 'all'; // all, or specific subCategory
+  String _selectedPackagingFilter = 'all'; // all, single, bundle
   bool _onlyInStock = true;
 
   SearchResult? _result;
@@ -155,6 +156,19 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     ),
                   ),
 
+                  // Packaging Format Quick Filter (بالحبة vs بالحزمة / الكرتون)
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildPackagingChip('كافة الأشكال', 'all'),
+                        _buildPackagingChip('🥫 عبوات فردية (بالحبّة)', 'single'),
+                        _buildPackagingChip('📦 حزم وكراتين (شدّات)', 'bundle'),
+                      ],
+                    ),
+                  ),
+
                   // Sub-category Filter Chips (e.g. حليب طازج، حليب طويل الأجل، حليب مبخر...)
                   if (_result != null && _result!.subCategories.length > 1) ...[
                     const SizedBox(height: 8),
@@ -253,6 +267,40 @@ class _ResultsScreenState extends State<ResultsScreen> {
     );
   }
 
+  Widget _buildPackagingChip(String label, String code) {
+    final isSelected = _selectedPackagingFilter == code;
+    return Padding(
+      padding: const EdgeInsets.only(left: 6),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: isSelected,
+        selectedColor: code == 'single'
+            ? Colors.green.shade100
+            : (code == 'bundle' ? Colors.purple.shade100 : AppTheme.primaryContainer),
+        backgroundColor: AppTheme.surface,
+        labelStyle: TextStyle(
+          color: isSelected
+              ? (code == 'single'
+                  ? Colors.green.shade900
+                  : (code == 'bundle' ? Colors.purple.shade900 : AppTheme.primary))
+              : AppTheme.textDark,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          fontSize: 12,
+        ),
+        side: BorderSide(
+          color: isSelected
+              ? (code == 'single'
+                  ? Colors.green.shade700
+                  : (code == 'bundle' ? Colors.purple.shade700 : AppTheme.primary))
+              : AppTheme.border,
+        ),
+        onSelected: (_) {
+          setState(() => _selectedPackagingFilter = code);
+        },
+      ),
+    );
+  }
+
   IconData _getCategoryIcon(String cat) {
     if (cat.contains('طازج')) return Icons.local_drink;
     if (cat.contains('طويل الأجل') || cat.contains('طويل الاجل')) return Icons.inventory_2_outlined;
@@ -264,6 +312,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
     if (cat.contains('أرز') || cat.contains('ارز')) return Icons.rice_bowl;
     if (cat.contains('زيت')) return Icons.opacity;
     if (cat.contains('أطفال')) return Icons.child_care;
+    if (cat.contains('حزم') || cat.contains('كراتين')) return Icons.inventory_2;
+    if (cat.contains('فردية') || cat.contains('بالحبّة')) return Icons.sports_bar_outlined;
     return Icons.category_outlined;
   }
 
@@ -274,9 +324,15 @@ class _ResultsScreenState extends State<ResultsScreen> {
     final alternatives = _result!.alternativeSizes;
     final exactMatched = _result!.exactSizeMatched;
 
-    final matched = _selectedCategoryFilter == 'all'
+    var matched = _selectedCategoryFilter == 'all'
         ? allMatched
         : allMatched.where((p) => (p.subCategory ?? 'عروض مطابقة') == _selectedCategoryFilter).toList();
+
+    if (_selectedPackagingFilter == 'single') {
+      matched = matched.where((p) => !p.isBundle).toList();
+    } else if (_selectedPackagingFilter == 'bundle') {
+      matched = matched.where((p) => p.isBundle).toList();
+    }
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -525,28 +581,61 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 4),
-                              Row(
+                              const SizedBox(height: 6),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 4,
+                                crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
+                                  // Packaging Badge (بالحبة vs حزمة/كرتون)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                                    decoration: BoxDecoration(
+                                      color: product.isBundle ? const Color(0xFFF3E8FF) : const Color(0xFFECFDF5),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: product.isBundle ? const Color(0xFFD8B4FE) : const Color(0xFFA7F3D0),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          product.isBundle ? Icons.inventory_2 : Icons.sports_bar_outlined,
+                                          size: 12,
+                                          color: product.isBundle ? const Color(0xFF7E22CE) : const Color(0xFF047857),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          product.displayPackBadge,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: product.isBundle ? const Color(0xFF6B21A8) : const Color(0xFF065F46),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                   if (product.normalizedSizeAmount != null)
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                                       decoration: BoxDecoration(
                                         color: AppTheme.primaryContainer,
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(
-                                        '${product.normalizedSizeAmount!.toInt()} ${product.normalizedSizeUnit == 'g' ? 'جرام' : product.normalizedSizeUnit}',
+                                        product.normalizedSizeAmount! >= 1000 && product.normalizedSizeUnit == 'ml'
+                                            ? '${(product.normalizedSizeAmount! / 1000).toStringAsFixed(product.normalizedSizeAmount! % 1000 == 0 ? 0 : 2)} لتر'
+                                            : '${product.normalizedSizeAmount!.toInt()} ${product.normalizedSizeUnit == 'g' ? 'جرام' : (product.normalizedSizeUnit ?? '')}',
                                         style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primary),
                                       ),
                                     ),
-                                  if (product.gtinBarcode != null) ...[
-                                    const SizedBox(width: 8),
+                                  if (product.gtinBarcode != null)
                                     Text(
                                       'باركود: ${product.gtinBarcode}',
                                       style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
                                     ),
-                                  ],
                                 ],
                               ),
                             ],

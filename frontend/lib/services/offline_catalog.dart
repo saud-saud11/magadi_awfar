@@ -743,10 +743,13 @@ class OfflineCatalog {
       'name_ar': 'مشروب غازي بيبسي علبة ٣٢٥ مل',
       'brand_ar': 'بيبسي',
       'barcode': '6281004000012',
-      'category': 'المشروبات الغازية والعصائر',
+      'category': 'عبوات فردية (بالحبّة)',
       'amount': 325.0,
       'unit': 'ml',
-      'keywords': ['بيبسي', 'pepsi', 'مشروب غازي', 'علبة بيبسي'],
+      'pack_count': 1,
+      'pack_type': 'single',
+      'pack_label_ar': 'بالحبّة (مفرد)',
+      'keywords': ['بيبسي', 'pepsi', 'مشروب غازي', 'علبة بيبسي', 'حبة بيبسي'],
       'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281004000012.jpg',
       'prices': {
         'othaim': 250,
@@ -754,6 +757,69 @@ class OfflineCatalog {
         'panda': 250,
         'tamimi': 250,
         'danube': 250,
+      }
+    },
+    {
+      'id': 1704,
+      'name_ar': 'بيبسي مشروب غازي حزمة ٦ × ٣٢٥ مل',
+      'brand_ar': 'بيبسي',
+      'barcode': '6281004000067',
+      'category': 'حزم وكراتين (عروض شدّات)',
+      'amount': 325.0,
+      'unit': 'ml',
+      'pack_count': 6,
+      'pack_type': 'bundle',
+      'pack_label_ar': 'حزمة (6 علب)',
+      'keywords': ['بيبسي', 'pepsi', 'حزمة بيبسي', 'شدة بيبسي', 'شدة', 'حزمة', '6 علب'],
+      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281004000012.jpg',
+      'prices': {
+        'othaim': 1250,
+        'carrefour': 1295,
+        'panda': 1295,
+        'tamimi': 1250,
+        'danube': 1350,
+      }
+    },
+    {
+      'id': 1705,
+      'name_ar': 'بيبسي مشروب غازي كرتون ٢٤ × ٣٢٥ مل',
+      'brand_ar': 'بيبسي',
+      'barcode': '6281004000241',
+      'category': 'حزم وكراتين (عروض شدّات)',
+      'amount': 325.0,
+      'unit': 'ml',
+      'pack_count': 24,
+      'pack_type': 'bundle',
+      'pack_label_ar': 'كرتون (24 علبة)',
+      'keywords': ['بيبسي', 'pepsi', 'كرتون بيبسي', 'كرتون', '24 علبة', '24 حبة'],
+      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281004000012.jpg',
+      'prices': {
+        'othaim': 5395,
+        'carrefour': 5450,
+        'panda': 5495,
+        'tamimi': 5395,
+        'danube': 5500,
+      }
+    },
+    {
+      'id': 1706,
+      'name_ar': 'مشروب غازي بيبسي قارورة عائلية ٢.٢٥ لتر',
+      'brand_ar': 'بيبسي',
+      'barcode': '6281004002252',
+      'category': 'عبوات فردية (بالحبّة)',
+      'amount': 2250.0,
+      'unit': 'ml',
+      'pack_count': 1,
+      'pack_type': 'single',
+      'pack_label_ar': 'قارورة عائلية (بالحبّة)',
+      'keywords': ['بيبسي', 'pepsi', 'قارورة', 'عائلي', '2.25 لتر'],
+      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281004000012.jpg',
+      'prices': {
+        'othaim': 900,
+        'carrefour': 925,
+        'panda': 900,
+        'tamimi': 900,
+        'danube': 950,
       }
     },
     {
@@ -854,15 +920,16 @@ class OfflineCatalog {
       matched = _staples.take(4).toList();
     }
 
-    // Separate main match from alternate sizes if same brand
-    if (matched.length > 1) {
-      final firstBrand = matched.first['brand_ar'];
-      alternatives = matched.where((m) => m['brand_ar'] == firstBrand && m['id'] != matched.first['id']).toList();
-      matched = matched.where((m) => !alternatives.contains(m)).toList();
-    }
-
+    // If user specified an exact target amount, separate alternatives; otherwise show all matching variants
     final matchedProducts = matched.map((m) => _buildProductItem(m, district, sortBy)).toList();
     final altProducts = alternatives.map((m) => _buildProductItem(m, district, sortBy)).toList();
+
+    final List<String> cats = [];
+    for (var p in matchedProducts) {
+      if (p.subCategory != null && p.subCategory!.isNotEmpty && !cats.contains(p.subCategory!)) {
+        cats.add(p.subCategory!);
+      }
+    }
 
     return SearchResult(
       query: query,
@@ -872,7 +939,7 @@ class OfflineCatalog {
       disclaimer: 'الأسعار موحدة لكافة الفروع بالمملكة ومحدثة وفق عروض المدينة المنورة الرسمية.',
       matchedProducts: matchedProducts,
       alternativeSizes: altProducts,
-      subCategories: ['الكل', 'الألبان', 'الأرز', 'الزيوت', 'الحلويات'],
+      subCategories: cats.isNotEmpty ? cats : ['الكل', 'الألبان', 'الأرز', 'الزيوت', 'الحلويات'],
       sourcesSummary: [
         {'store_name_ar': 'الدانوب', 'status': 'connected'},
         {'store_name_ar': 'بنده', 'status': 'connected'},
@@ -888,6 +955,9 @@ class OfflineCatalog {
     final Map<String, int> prices = raw['prices'] as Map<String, int>;
     final double amount = (raw['amount'] as num).toDouble();
     final String unit = raw['unit'] as String;
+    final int packCount = raw['pack_count'] as int? ?? 1;
+    final String packType = raw['pack_type'] as String? ?? (packCount > 1 ? 'bundle' : 'single');
+    final String? packLabel = raw['pack_label_ar'] as String?;
 
     final List<StoreOffer> offers = [];
     int minPriceHalalas = 9999999;
@@ -937,7 +1007,9 @@ class OfflineCatalog {
       subCategoryRank: 1,
       normalizedSizeAmount: amount,
       normalizedSizeUnit: unit,
-      packCount: 1,
+      packCount: packCount,
+      packType: packType,
+      packLabelAr: packLabel,
       imageUrl: raw['image'] as String?,
       offers: offers,
     );

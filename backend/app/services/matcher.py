@@ -35,16 +35,65 @@ class StrictMatcher:
         """Extracts normalized amount (in grams or ml) and pack count."""
         normalized = self.normalize_text(text)
         
-        # Check pack count (e.g. "2 حبه", "2x", "عبوتين", "عرض حبتين")
+        # Check pack keywords default
         pack_count = 1
-        pack_match = re.search(r'(?:عرض\s*)?(\d+)\s*(?:عبوات|عبوه|حبه|حبات|قطع|قطعه|x|×)', normalized)
-        if pack_match:
-            try:
-                pack_count = int(pack_match.group(1))
-            except ValueError:
-                pass
-        elif "عبوتين" in normalized or "حبتين" in normalized:
+        if "كرتون" in normalized:
+            pack_count = 24  # standard carton default
+        elif "درزن" in normalized:
+            pack_count = 12
+        elif "نصف درزن" in normalized or "نص درزن" in normalized:
+            pack_count = 6
+        elif any(k in normalized for k in ["شدة", "شده", "حزمة", "حزمه", "ربطة", "ربطه"]):
+            pack_count = 6
+        elif any(k in normalized for k in ["عبوتين", "حبتين", "قارورتين"]):
             pack_count = 2
+
+        # Pattern A: (num1) [*x×] (num2) (unit)
+        # e.g., 24*330ml, 6x325ml, 325x24ml, 150x30ml, 6*2l
+        m_cross_unit = re.search(r'(\d+(?:\.\d+)?)\s*[*x×xX]\s*(\d+(?:\.\d+)?)\s*(كيلو|كغم|كجم|كغ|جرام|غرام|جم|لتر|مل|kg|gm|ml|g|l)\b', normalized)
+        if m_cross_unit:
+            n1 = float(m_cross_unit.group(1))
+            n2 = float(m_cross_unit.group(2))
+            u = m_cross_unit.group(3)
+
+            # Determine which number is size vs pack count
+            if n1 in [2, 3, 4, 6, 8, 10, 12, 18, 20, 24, 30, 36, 48] and n2 >= 50:
+                pack_count = int(n1)
+                raw_amount = n2
+            elif n2 in [2, 3, 4, 6, 8, 10, 12, 18, 20, 24, 30, 36, 48] and n1 >= 50:
+                pack_count = int(n2)
+                raw_amount = n1
+            elif n1 in [2, 3, 4, 6, 8, 10, 12, 24] and n2 in [1, 1.5, 2, 2.25, 2.5, 3, 5] and u in ['لتر', 'l', 'كيلو', 'كجم', 'kg']:
+                pack_count = int(n1)
+                raw_amount = n2
+            else:
+                pack_count = int(n1) if n1.is_integer() and n1 < 100 else 1
+                raw_amount = n2
+
+            if u in ['كجم', 'كغم', 'كيلو', 'كغ', 'kg']:
+                return raw_amount * 1000.0, 'g', pack_count
+            elif u in ['جرام', 'غرام', 'جم', 'g', 'gm']:
+                return raw_amount, 'g', pack_count
+            elif u in ['لتر', 'l']:
+                return raw_amount * 1000.0, 'ml', pack_count
+            elif u in ['مل', 'ml']:
+                return raw_amount, 'ml', pack_count
+
+        # Pattern B: (amount) (unit) [*x×] (pack)
+        # e.g., 250 مل × 6 عبوات, 330 مل * 24
+        m_unit_cross = re.search(r'(\d+(?:\.\d+)?)\s*(كيلو|كغم|كجم|كغ|جرام|غرام|جم|لتر|مل|kg|gm|ml|g|l)\s*[*x×xX]\s*(\d+)', normalized)
+        if m_unit_cross:
+            raw_amount = float(m_unit_cross.group(1))
+            u = m_unit_cross.group(2)
+            pack_count = int(m_unit_cross.group(3))
+            if u in ['كجم', 'كغم', 'كيلو', 'كغ', 'kg']:
+                return raw_amount * 1000.0, 'g', pack_count
+            elif u in ['جرام', 'غرام', 'جم', 'g', 'gm']:
+                return raw_amount, 'g', pack_count
+            elif u in ['لتر', 'l']:
+                return raw_amount * 1000.0, 'ml', pack_count
+            elif u in ['مل', 'ml']:
+                return raw_amount, 'ml', pack_count
 
         # Check special textual fractions
         if "نصف كيلو" in normalized or "نص كيلو" in normalized or "نصف كجم" in normalized:
@@ -57,18 +106,24 @@ class StrictMatcher:
         # Check if product is diaper (body weight range like "14-25 كيلو" and size like "مقاس 5" must NOT be treated as package weight or pack count!)
         is_diaper = any(w in normalized for w in ['حفاض', 'حفايض', 'بامبرز', 'بيبي جوي', 'بيبيجوي', 'هجيز', 'فاين بيبي'])
         if is_diaper:
-            pack_count = 1
             diaper_count_m = re.search(r'(\d+)\s*(?:حفاض|حفايض|حفاضه|قطعه|قطعة|حبه|حبة)', normalized)
             if diaper_count_m:
-                return float(diaper_count_m.group(1)), "حبة", pack_count
+                return float(diaper_count_m.group(1)), "حبة", 1
 
         # Check OTC medicines / vitamins count (e.g. 24 قرص, 15 قرص فوار, 60 كبسولة)
         count_match = re.search(r'(\d+)\s*(?:قرص|اقراص|كبسوله|كبسولات|كيس|حبة|حبات)(?![a-zA-Z\u0600-\u06FF])', normalized)
         if count_match and not any(u in normalized for u in ['كجم', 'كغم', 'كيلو', 'جرام', 'غرام', 'لتر', 'مل']):
             return float(count_match.group(1)), "حبة", pack_count
 
+        # Pattern C: Check explicit pack counts like "6 عبوات", "24 حبة", "12 علبة"
+        pack_match = re.search(r'(?:عرض\s*)?(\d+)\s*(?:عبوات|عبوه|علب|علبه|حبه|حبات|قطع|قطعه|قاروره|قوارير|كيس|اكياس)(?![a-zA-Z\u0600-\u06FF])', normalized)
+        if pack_match:
+            try:
+                pack_count = int(pack_match.group(1))
+            except ValueError:
+                pass
+
         # Regular regex for numbers + units
-        # e.g., 500g, 500 جرام, 500 غرام, 500 جم, 1 كجم, 1كغم, 1.5 l, 1 لتر
         unit_match = re.search(
             r'(\d+(?:\.\d+)?)\s*(كيلو|كغم|كجم|كغ|جرام|غرام|جم|لتر|مل|kg|gm|ml|g|l)(?![a-zA-Z\u0600-\u06FF])',
             normalized
@@ -357,7 +412,16 @@ class StrictMatcher:
         if 'تونه' in words or 'تونة' in words:
             return ('تونة ومعلبات', 1)
 
-        # 6. Infant Nutrition / Pharmacies
+        # 6. Beverages & Sodas (Pepsi, 7up, Coca-cola, Mirinda, Juices, Waters)
+        is_bev = any(w in norm for w in ['بيبسي', 'pepsi', 'سفن', '7up', 'كولا', 'حمضيات', 'ميرندا', 'مشروب غازي', 'صودا', 'مياه', 'عصير'])
+        if is_bev:
+            is_bundle = any(w in norm for w in ['كرتون', 'شدة', 'شدّة', 'حزمة', 'حزمه', 'ربطة', 'ربطه', 'درزن']) or bool(re.search(r'[*x×xX]\s*\d+|\d+\s*[*x×xX]|\b[2-9]\s*(?:علب|حبات|عبوات|قوارير)|\b\d{2,}\s*(?:علب|حبات|عبوات|قوارير)', norm))
+            if is_bundle:
+                return ('حزم وكراتين (عروض شدّات)', 1)
+            else:
+                return ('عبوات فردية (بالحبّة)', 2)
+
+        # 7. Infant Nutrition / Pharmacies
         if any(w in norm for w in ['سيميلاك', 'نان', 'اطفال', 'أطفال', 'رضع']):
             if '1' in norm or '١' in norm:
                 return ('حليب أطفال - مرحلة 1', 1)
@@ -366,6 +430,9 @@ class StrictMatcher:
             elif '3' in norm or '٣' in norm:
                 return ('حليب أطفال - مرحلة 3', 3)
             return ('تغذية ورعاية الأطفال', 1)
+
+        if any(w in norm for w in ['كرتون', 'شدة', 'شدّة', 'حزمة', 'حزمه', 'درزن']):
+            return ('عروض حزم وكراتين', 8)
 
         return ('عروض مطابقة', 10)
 

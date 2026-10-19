@@ -100,6 +100,8 @@ class ProductItem {
   final double? normalizedSizeAmount;
   final String? normalizedSizeUnit;
   final int packCount;
+  final String? packType;
+  final String? packLabelAr;
   final String? imageUrl;
   final List<StoreOffer> offers;
 
@@ -114,9 +116,33 @@ class ProductItem {
     this.normalizedSizeAmount,
     this.normalizedSizeUnit,
     required this.packCount,
+    this.packType,
+    this.packLabelAr,
     this.imageUrl,
     required this.offers,
   });
+
+  bool get isBundle =>
+      packCount > 1 ||
+      (packType == 'bundle') ||
+      nameAr.contains('كرتون') ||
+      nameAr.contains('شدة') ||
+      nameAr.contains('شدّة') ||
+      nameAr.contains('حزمة') ||
+      nameAr.contains('ربطة');
+
+  String get displayPackBadge {
+    if (packLabelAr != null && packLabelAr!.isNotEmpty && packLabelAr != 'بالحبّة') {
+      return packLabelAr!;
+    }
+    if (isBundle) {
+      if (nameAr.contains('كرتون')) return packCount > 1 ? 'كرتون ($packCount علبة)' : 'كرتون عائلي';
+      if (nameAr.contains('شدة') || nameAr.contains('شدّة')) return packCount > 1 ? 'شدّة ($packCount علب)' : 'شدّة توفير';
+      if (packCount > 1) return 'حزمة ($packCount حبات)';
+      return 'حزمة توفير';
+    }
+    return 'بالحبّة (مفرد)';
+  }
 
   factory ProductItem.fromJson(Map<String, dynamic> json) {
     var rawOffers = json['offers'] as List<dynamic>? ?? [];
@@ -131,6 +157,8 @@ class ProductItem {
       normalizedSizeAmount: (json['normalized_size_amount'] as num?)?.toDouble(),
       normalizedSizeUnit: json['normalized_size_unit'] as String?,
       packCount: json['pack_count'] as int? ?? 1,
+      packType: json['pack_type'] as String?,
+      packLabelAr: json['pack_label_ar'] as String?,
       imageUrl: json['image_url'] as String?,
       offers: rawOffers.map((o) => StoreOffer.fromJson(o as Map<String, dynamic>)).toList(),
     );

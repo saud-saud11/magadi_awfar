@@ -77,6 +77,8 @@ class ProductOut(BaseModel):
     normalized_size_amount: Optional[float] = None
     normalized_size_unit: Optional[str] = None
     pack_count: int = 1
+    pack_type: Optional[str] = "single"
+    pack_label_ar: Optional[str] = "بالحبّة"
     image_url: Optional[str] = None
     offers: List[StoreOfferOut] = []
 

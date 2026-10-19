@@ -44,17 +44,41 @@ class LiveDanubeClient {
           final String slug = hit['url_ar'] as String? ?? hit['url_en'] as String? ?? '';
           final String prodUrl = slug.isNotEmpty ? 'https://danube.sa$slug' : 'https://danube.sa';
 
+          int packCount = 1;
+          String packType = 'single';
+          String packLabel = 'بالحبّة (مفرد)';
+          
+          if (nameAr.contains('٢٤*') || nameAr.contains('24*') || nameAr.contains('24x') || nameAr.contains('24×') || nameAr.contains('كرتون')) {
+            packCount = 24;
+            packType = 'bundle';
+            packLabel = 'كرتون (24 علبة)';
+          } else if (nameAr.contains('٦*') || nameAr.contains('6*') || nameAr.contains('6x') || nameAr.contains('6×') || nameAr.contains('شدة') || nameAr.contains('شدّة') || nameAr.contains('حزمة')) {
+            packCount = 6;
+            packType = 'bundle';
+            packLabel = 'حزمة (6 علب)';
+          } else if (nameAr.contains('١٢*') || nameAr.contains('12*') || nameAr.contains('12x') || nameAr.contains('12×') || nameAr.contains('درزن')) {
+            packCount = 12;
+            packType = 'bundle';
+            packLabel = 'شدّة (12 علبة)';
+          } else if (nameAr.contains('٣٠*') || nameAr.contains('30*') || nameAr.contains('30x') || nameAr.contains('30×')) {
+            packCount = 30;
+            packType = 'bundle';
+            packLabel = 'كرتون (30 علبة)';
+          }
+
           items.add(ProductItem(
             id: ++idCounter,
             gtinBarcode: hit['objectID']?.toString(),
             nameAr: nameAr,
             nameEn: nameEn,
             brandAr: brandAr,
-            subCategory: 'الدانوب مباشر',
-            subCategoryRank: 1,
+            subCategory: packType == 'bundle' ? 'حزم وكراتين (عروض شدّات)' : 'عبوات فردية (بالحبّة)',
+            subCategoryRank: packType == 'bundle' ? 2 : 1,
             normalizedSizeAmount: null,
             normalizedSizeUnit: null,
-            packCount: 1,
+            packCount: packCount,
+            packType: packType,
+            packLabelAr: packLabel,
             imageUrl: image,
             offers: [
               StoreOffer(

@@ -49,6 +49,18 @@ async def search_and_compare(
 
         if key not in grouped_products:
             sub_cat, sub_cat_rank = strict_matcher.get_product_sub_category(item.title_ar)
+            is_bundle = (pack > 1) or any(w in item.title_ar for w in ['كرتون', 'شدة', 'شدّة', 'حزمة', 'ربطة'])
+            pack_type = "bundle" if is_bundle else "single"
+            if is_bundle:
+                if "كرتون" in item.title_ar:
+                    pack_label = f"كرتون ({pack} علبة)" if pack > 1 else "كرتون"
+                elif "شدة" in item.title_ar or "شدّة" in item.title_ar:
+                    pack_label = f"شدّة ({pack} علب)" if pack > 1 else "شدّة"
+                else:
+                    pack_label = f"حزمة ({pack} حبات)"
+            else:
+                pack_label = "بالحبّة (مفرد)"
+
             grouped_products[key] = {
                 "name_ar": item.title_ar,
                 "name_en": item.title_en,
@@ -60,6 +72,8 @@ async def search_and_compare(
                 "normalized_size_amount": amount,
                 "normalized_size_unit": unit,
                 "pack_count": pack,
+                "pack_type": pack_type,
+                "pack_label_ar": pack_label,
                 "image_url": item.image_url,
                 "barcode": item.barcode,
                 "offers": []
@@ -153,6 +167,8 @@ async def search_and_compare(
             normalized_size_amount=pdata["normalized_size_amount"],
             normalized_size_unit=pdata["normalized_size_unit"],
             pack_count=pdata["pack_count"],
+            pack_type=pdata.get("pack_type", "single"),
+            pack_label_ar=pdata.get("pack_label_ar", "بالحبّة"),
             image_url=pdata["image_url"],
             offers=offers_out
         )
