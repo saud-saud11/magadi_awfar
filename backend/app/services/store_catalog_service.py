@@ -129,6 +129,19 @@ STAPLE_CATALOG = [
             {"title_ar": "عصير برتقال المراعي طازج ١ لتر", "title_en": "Almarai Fresh Orange Juice 1L", "raw_size": "1 لتر", "barcode": "6281007000304", "danube": 750, "panda": 700, "othaim": 675, "tamimi": 725, "noon_minutes": 700, "amazon_sa": 700, "carrefour": 700},
         ]
     },
+    # Malt & Barley Beverages (موسي، بربيكان، هولستن)
+    {
+        "keywords": ["شعير", "شراب شعير", "مشروب شعير", "موسي", "moussy", "بربيكان", "barbican", "هولستن", "holsten", "كلاس"],
+        "brand_ar": "موسي",
+        "brand_en": "Moussy",
+        "variants": [
+            {"title_ar": "موسي شراب شعير كلاسيك خالي من الكحول ٣٣٠ مل", "title_en": "Moussy Classic Malt Beverage 330ml", "raw_size": "330 مل", "barcode": "7614400000018", "danube": 550, "panda": 500, "othaim": 495, "tamimi": 525, "noon_minutes": 500, "amazon_sa": 500, "carrefour": 500},
+            {"title_ar": "موسي شراب شعير بنكهة الرمان خالي من الكحول ٣٣٠ مل", "title_en": "Moussy Pomegranate Malt Beverage 330ml", "raw_size": "330 مل", "barcode": "7614400000025", "danube": 550, "panda": 500, "othaim": 495, "tamimi": 525, "noon_minutes": 500, "amazon_sa": 500, "carrefour": 500},
+            {"title_ar": "بربيكان شراب شعير سادة زجاجة ٣٢٥ مل", "title_en": "Barbican Plain Malt Beverage 325ml", "raw_size": "325 مل", "barcode": "6281034900013", "danube": 450, "panda": 425, "othaim": 395, "tamimi": 425, "noon_minutes": 400, "amazon_sa": 400, "carrefour": 425},
+            {"title_ar": "بربيكان شراب شعير بنكهة التفاح حزمة ٦ × ٢٥٠ مل", "title_en": "Barbican Apple Malt 6x250ml", "raw_size": "250 مل", "barcode": "6281034900020", "danube": 1395, "panda": 1250, "othaim": 1195, "tamimi": 1250, "noon_minutes": 1200, "amazon_sa": 1200, "carrefour": 1250},
+            {"title_ar": "هولستن شراب شعير كلاسيك زجاجة ٣٣٠ مل", "title_en": "Holsten Classic Malt Beverage 330ml", "raw_size": "330 مل", "barcode": "4008854000012", "danube": 550, "panda": 500, "othaim": 495, "tamimi": 525, "noon_minutes": 500, "amazon_sa": 500, "carrefour": 500},
+        ]
+    },
     # Tuna (تونة قودي)
     {
         "keywords": ["تونه", "تونة", "قودي", "tuna", "goody"],

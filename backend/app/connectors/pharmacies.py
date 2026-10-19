@@ -1,6 +1,7 @@
 import re
 from typing import List, Optional, Tuple, Dict
 from app.connectors.base import BaseConnector, ConnectorStatus, RawConnectorItem
+from app.services.matcher import strict_matcher
 
 PHARMACY_PRODUCTS = [
     # Baby Formula
@@ -360,39 +361,36 @@ def search_pharmacy_catalog(query: str, store_code: str, store_name_ar: str, bra
     url_key = "nahdi_url" if store_code == "nahdi" else "dawaa_url"
 
     for p in PHARMACY_PRODUCTS:
-        title = p["title_ar"].lower()
-        brand = (p.get("brand_ar") or "").lower()
-        keywords = p.get("keywords", [])
+        # Check strict query relevance to prevent false matches (e.g. cough syrup for barley drink)
+        if not strict_matcher.is_relevant_match(
+            query=query,
+            title=p["title_ar"],
+            brand=p.get("brand_ar"),
+            keywords=p.get("keywords")
+        ):
+            continue
 
-        # Match score
-        matched = False
-        for t in tokens:
-            if t in title or t in brand or any(t in k or k in t for k in keywords):
-                matched = True
-                break
-
-        if matched:
-            price_halalas = p[price_key]
-            orig_halalas = p.get("orig_price")
-            results.append(RawConnectorItem(
-                store_code=store_code,
-                store_name_ar=store_name_ar,
-                title_ar=p["title_ar"],
-                title_en=p.get("title_en"),
-                brand_ar=p.get("brand_ar"),
-                brand_en=p.get("brand_en"),
-                price_halalas=price_halalas,
-                original_price_halalas=orig_halalas,
-                is_in_stock=True,
-                url=p[url_key],
-                deep_link=f"{store_code}://product/{p['id']}",
-                image_url=p.get("image"),
-                barcode=p.get("barcode"),
-                raw_size_text=p.get("raw_size"),
-                pack_count=1,
-                branch_name=branch_name,
-                promo_conditions="عرض صيدلي حصري" if orig_halalas else "سعر مسعر رسمياً"
-            ))
+        price_halalas = p[price_key]
+        orig_halalas = p.get("orig_price")
+        results.append(RawConnectorItem(
+            store_code=store_code,
+            store_name_ar=store_name_ar,
+            title_ar=p["title_ar"],
+            title_en=p.get("title_en"),
+            brand_ar=p.get("brand_ar"),
+            brand_en=p.get("brand_en"),
+            price_halalas=price_halalas,
+            original_price_halalas=orig_halalas,
+            is_in_stock=True,
+            url=p[url_key],
+            deep_link=f"{store_code}://product/{p['id']}",
+            image_url=p.get("image"),
+            barcode=p.get("barcode"),
+            raw_size_text=p.get("raw_size"),
+            pack_count=1,
+            branch_name=branch_name,
+            promo_conditions="عرض صيدلي حصري" if orig_halalas else "سعر مسعر رسمياً"
+        ))
 
     return results
 

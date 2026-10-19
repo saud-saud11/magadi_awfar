@@ -17,9 +17,11 @@ class LiveDanubeClient {
           'Content-Type': 'application/json; charset=UTF-8',
         },
         body: jsonEncode({
-          'params': 'query=$query&hitsPerPage=15&filters=tenant_id = 1',
+          'query': query,
+          'hitsPerPage': 25,
+          'filters': 'tenant_id = 1',
         }),
-      ).timeout(const Duration(seconds: 4));
+      ).timeout(const Duration(seconds: 6));
 
       if (res.statusCode == 200) {
         final data = jsonDecode(utf8.decode(res.bodyBytes));

@@ -31,6 +31,60 @@ class StrictMatcher:
         text = re.sub(r'\s+', ' ', text).strip().lower()
         return text
 
+    GENERIC_STOPWORDS = {
+        "شراب", "مشروب", "عصير", "علبة", "علبه", "كرتون", "حبة", "حبه", 
+        "طازج", "كبير", "صغير", "وسط", "اصلي", "كيلو", "كجم", "جرام", 
+        "غرام", "جم", "مل", "لتر", "سادة", "ساده", "فاخر", "سعر", "عرض"
+    }
+
+    def strip_al(self, word: str) -> str:
+        """Strip Arabic definite article 'ال' if word length allows."""
+        if word.startswith("ال") and len(word) > 3:
+            return word[2:]
+        return word
+
+    def is_relevant_match(
+        self,
+        query: str,
+        title: str,
+        brand: Optional[str] = None,
+        keywords: Optional[List[str]] = None
+    ) -> bool:
+        """
+        Determines whether a candidate product is actually relevant to the search query,
+        preventing false single-stopword matches (like matching cough syrup for barley drink).
+        """
+        q_norm = self.normalize_text(query)
+        if not q_norm:
+            return True
+
+        title_norm = self.normalize_text(title)
+        brand_norm = self.normalize_text(brand or "")
+        kws_norm = [self.normalize_text(k) for k in (keywords or [])]
+        haystack = f"{title_norm} {brand_norm} {' '.join(kws_norm)}"
+
+        # 1. Exact phrase or substring match
+        if q_norm in haystack:
+            return True
+
+        tokens = [t for t in re.split(r'[\s\-_,.]+', q_norm) if len(t) >= 2]
+        if not tokens:
+            return False
+
+        # Identify non-stopword tokens (the core discriminators, e.g. "شعير" in "شراب شعير")
+        non_stop = [t for t in tokens if self.strip_al(t) not in self.GENERIC_STOPWORDS and t not in self.GENERIC_STOPWORDS]
+
+        def token_in_haystack(t: str) -> bool:
+            stem = self.strip_al(t)
+            return (t in haystack) or (stem in haystack)
+
+        if non_stop:
+            # All primary non-stopword tokens MUST be present in the candidate haystack
+            return all(token_in_haystack(t) for t in non_stop)
+        else:
+            # If the user only searched for generic words (e.g. "شراب" or "عصير"), match any token
+            return any(token_in_haystack(t) for t in tokens)
+
     def parse_size_and_unit(self, text: str) -> Tuple[Optional[float], Optional[str], int]:
         """Extracts normalized amount (in grams or ml) and pack count."""
         normalized = self.normalize_text(text)

@@ -858,6 +858,112 @@ class OfflineCatalog {
         'danube': 1995,
       }
     },
+    // Malt & Barley Beverages (موسي، بربيكان، هولستن)
+    {
+      'id': 1801,
+      'name_ar': 'موسي شراب شعير كلاسيك خالي من الكحول ٣٣٠ مل',
+      'brand_ar': 'موسي',
+      'barcode': '7614400000018',
+      'category': 'المشروبات الغازية والعصائر',
+      'amount': 330.0,
+      'unit': 'ml',
+      'pack_count': 1,
+      'pack_type': 'single',
+      'pack_label_ar': 'بالحبّة (مفرد)',
+      'keywords': ['موسي', 'moussy', 'شعير', 'شراب شعير', 'مشروب شعير', 'موسي كلاسيك', 'سادة'],
+      'image': 'https://images.deliveryhero.io/image/hungerstation/products/7614400000018.jpg',
+      'prices': {
+        'othaim': 495,
+        'carrefour': 500,
+        'panda': 500,
+        'tamimi': 525,
+        'danube': 550,
+      }
+    },
+    {
+      'id': 1802,
+      'name_ar': 'موسي شراب شعير بنكهة الرمان خالي من الكحول ٣٣٠ مل',
+      'brand_ar': 'موسي',
+      'barcode': '7614400000025',
+      'category': 'المشروبات الغازية والعصائر',
+      'amount': 330.0,
+      'unit': 'ml',
+      'pack_count': 1,
+      'pack_type': 'single',
+      'pack_label_ar': 'بالحبّة (مفرد)',
+      'keywords': ['موسي', 'moussy', 'شعير', 'شراب شعير', 'رمان', 'موسي رمان'],
+      'image': 'https://images.deliveryhero.io/image/hungerstation/products/7614400000025.jpg',
+      'prices': {
+        'othaim': 495,
+        'carrefour': 500,
+        'panda': 500,
+        'tamimi': 525,
+        'danube': 550,
+      }
+    },
+    {
+      'id': 1803,
+      'name_ar': 'بربيكان شراب شعير سادة زجاجة ٣٢٥ مل',
+      'brand_ar': 'بربيكان',
+      'barcode': '6281034900013',
+      'category': 'المشروبات الغازية والعصائر',
+      'amount': 325.0,
+      'unit': 'ml',
+      'pack_count': 1,
+      'pack_type': 'single',
+      'pack_label_ar': 'بالحبّة (مفرد)',
+      'keywords': ['بربيكان', 'barbican', 'شعير', 'شراب شعير', 'سادة', 'مشروب شعير'],
+      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281034900013.jpg',
+      'prices': {
+        'othaim': 395,
+        'carrefour': 425,
+        'panda': 425,
+        'tamimi': 425,
+        'danube': 450,
+      }
+    },
+    {
+      'id': 1804,
+      'name_ar': 'بربيكان شراب شعير بنكهة التفاح حزمة ٦ × ٢٥٠ مل',
+      'brand_ar': 'بربيكان',
+      'barcode': '6281034900020',
+      'category': 'المشروبات الغازية والعصائر',
+      'amount': 250.0,
+      'unit': 'ml',
+      'pack_count': 6,
+      'pack_type': 'bundle',
+      'pack_label_ar': 'حزمة (6 علب)',
+      'keywords': ['بربيكان', 'barbican', 'شعير', 'شراب شعير', 'تفاح', 'شدة بربيكان', 'حزمة'],
+      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281034900020.jpg',
+      'prices': {
+        'othaim': 1195,
+        'carrefour': 1250,
+        'panda': 1250,
+        'tamimi': 1250,
+        'danube': 1395,
+      }
+    },
+    {
+      'id': 1805,
+      'name_ar': 'هولستن شراب شعير كلاسيك زجاجة ٣٣٠ مل',
+      'brand_ar': 'هولستن',
+      'barcode': '4008854000012',
+      'category': 'المشروبات الغازية والعصائر',
+      'amount': 330.0,
+      'unit': 'ml',
+      'pack_count': 1,
+      'pack_type': 'single',
+      'pack_label_ar': 'بالحبّة (مفرد)',
+      'keywords': ['هولستن', 'holsten', 'شعير', 'شراب شعير', 'مشروب شعير', 'كلاسيك'],
+      'image': 'https://images.deliveryhero.io/image/hungerstation/products/4008854000012.jpg',
+      'prices': {
+        'othaim': 495,
+        'carrefour': 500,
+        'panda': 500,
+        'tamimi': 525,
+        'danube': 550,
+      }
+    },
   ];
 
   static final Map<String, String> _storeNames = {
@@ -884,25 +990,74 @@ class OfflineCatalog {
     'carrefour': 'https://carrefourksa.com',
   };
 
+  static String _normalize(String s) {
+    var text = s.toLowerCase();
+    text = text.replaceAll(RegExp(r'[\u064B-\u0652]'), ''); // tashkeel
+    text = text.replaceAll(RegExp(r'[إأآا]'), 'ا');
+    text = text.replaceAll('ة', 'ه');
+    text = text.replaceAll(RegExp(r'[يى]'), 'ي');
+    return text.trim();
+  }
+
+  static String _stripAl(String w) {
+    if (w.startsWith('ال') && w.length > 3) {
+      return w.substring(2);
+    }
+    return w;
+  }
+
+  static const Set<String> _genericStopwords = {
+    'شراب', 'مشروب', 'عصير', 'علبة', 'علبه', 'كرتون', 'حبة', 'حبه',
+    'طازج', 'كبير', 'صغير', 'وسط', 'اصلي', 'كيلو', 'كجم', 'جرام', 'غرام', 'جم', 'مل', 'لتر', 'سادة', 'ساده', 'فاخر', 'سعر', 'عرض'
+  };
+
   static SearchResult search({
     required String query,
     String district = 'سلطانة',
     String sortBy = 'cheapest_product',
   }) {
-    final cleanQ = query.trim().toLowerCase();
-    final tokens = cleanQ.split(RegExp(r'\s+')).where((t) => t.isNotEmpty).toList();
+    final normQuery = _normalize(query);
+    final tokens = normQuery
+        .split(RegExp(r'[\s\-_,.]+'))
+        .where((t) => t.length >= 2)
+        .toList();
 
     List<Map<String, dynamic>> matched = [];
     List<Map<String, dynamic>> alternatives = [];
 
+    final nonStopTokens = tokens
+        .where((t) => !_genericStopwords.contains(t) && !_genericStopwords.contains(_stripAl(t)))
+        .toList();
+
     for (var item in _staples) {
-      final name = (item['name_ar'] as String).toLowerCase();
-      final keywords = (item['keywords'] as List<String>);
-      
+      final nameNorm = _normalize(item['name_ar'] as String);
+      final brandNorm = _normalize(item['brand_ar'] as String? ?? '');
+      final keywordsNorm = (item['keywords'] as List<String>).map(_normalize).toList();
+      final haystack = '$nameNorm $brandNorm ${keywordsNorm.join(' ')}';
+
       bool isMatch = false;
-      for (var token in tokens) {
-        if (token.length >= 2) {
-          if (name.contains(token) || keywords.any((k) => k.contains(token) || token.contains(k))) {
+
+      // 1. Exact phrase or substring match
+      if (haystack.contains(normQuery) || keywordsNorm.any((k) => k == normQuery || normQuery.contains(k))) {
+        isMatch = true;
+      } else if (nonStopTokens.isNotEmpty) {
+        // Multi-word query: ALL core non-stopword tokens must match (e.g. "شعير" for "شراب شعير")
+        bool allNonStopMatched = true;
+        for (var t in nonStopTokens) {
+          final stem = _stripAl(t);
+          if (!haystack.contains(t) && !haystack.contains(stem)) {
+            allNonStopMatched = false;
+            break;
+          }
+        }
+        if (allNonStopMatched) {
+          isMatch = true;
+        }
+      } else if (tokens.isNotEmpty) {
+        // If query was only generic words (e.g. "شراب" or "عصير"), match any token
+        for (var t in tokens) {
+          final stem = _stripAl(t);
+          if (haystack.contains(t) || haystack.contains(stem)) {
             isMatch = true;
             break;
           }
@@ -914,10 +1069,19 @@ class OfflineCatalog {
       }
     }
 
-    // If query has exact target but multiple sizes, put primary size first
     if (matched.isEmpty) {
-      // Return top staple items as recommendations
-      matched = _staples.take(4).toList();
+      // Do NOT inject staples or unrelated products!
+      return SearchResult(
+        query: query,
+        districtName: district,
+        exactSizeMatched: false,
+        statusMessage: 'لم نجد نتائج مطابقة لبحث «$query» في الكتالوج الحالي.',
+        disclaimer: 'تأكد من كتابة اسم الصنف بدقة أو جرب البحث بكلمات عامة مثل: حليب، أرز، زيت، عصير، بيبسي.',
+        matchedProducts: const [],
+        alternativeSizes: const [],
+        subCategories: const ['الكل'],
+        sourcesSummary: const [],
+      );
     }
 
     // If user specified an exact target amount, separate alternatives; otherwise show all matching variants

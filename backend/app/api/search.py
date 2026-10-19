@@ -32,10 +32,16 @@ async def search_and_compare(
     # 1. Fetch live items from all active store connectors
     raw_items = await connector_manager.search_all(q, district)
 
+    # Filter raw items to eliminate noisy or false matches from any source
+    relevant_items = [
+        item for item in raw_items
+        if strict_matcher.is_relevant_match(query=q, title=item.title_ar, brand=item.brand_ar)
+    ]
+
     # 2. Group raw items into distinct normalized products (by Brand + Sub-type + Size)
     grouped_products: Dict[str, Dict[str, Any]] = {}
 
-    for item in raw_items:
+    for item in relevant_items:
         amount, unit, pack = strict_matcher.parse_size_and_unit(f"{item.title_ar} {item.raw_size_text or ''}")
         brand = item.brand_ar or strict_matcher.detect_brand(item.title_ar) or parsed.brand or "عام"
         key = strict_matcher.generate_product_key(

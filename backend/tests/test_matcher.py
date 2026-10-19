@@ -53,3 +53,24 @@ def test_unit_price_calculation():
     # 34.99 SAR for 750g -> (34.99 / 750) * 100 = 4.67 SAR / 100g
     unit_price_750 = strict_matcher.calculate_unit_price_per_100g_or_ml(3499, 750.0, "g")
     assert unit_price_750 == 4.67
+
+def test_search_relevance_barley_drink_never_matches_rice_or_cough_syrup():
+    """Verify that searching for 'شراب شعير' NEVER matches rice or cough syrup."""
+    # Rice -> MUST NOT match
+    assert strict_matcher.is_relevant_match("شراب شعير", "أرز الشعلان مزة بسمتي هندي ١٠ كجم", "الشعلان") is False
+    assert strict_matcher.is_relevant_match("شراب شعير", "أرز أبو كاس مزة بسمتي ٥ كجم", "أبو كاس") is False
+    
+    # Cough syrup -> MUST NOT match
+    assert strict_matcher.is_relevant_match("شراب شعير", "أدول شراب خافض للحرارة ومسكن للأطفال ١٠٠ مل", "أدول") is False
+
+    # Authentic barley drinks -> MUST match
+    assert strict_matcher.is_relevant_match("شراب شعير", "موسي شراب شعير كلاسيك خالي من الكحول ٣٣٠ مل", "موسي") is True
+    assert strict_matcher.is_relevant_match("شراب شعير", "بربيكان شراب شعير سادة زجاجة ٣٢٥ مل", "بربيكان") is True
+    assert strict_matcher.is_relevant_match("شراب شعير", "هولستن شراب الشعير - 330 مل", "هولستن") is True
+    assert strict_matcher.is_relevant_match("شراب شعير", "كلاس شراب شعير فاخر ٦*٢٥٠مل", "كلاس") is True
+
+def test_search_relevance_rice_and_specific_items():
+    """Verify that specific queries match their target items accurately."""
+    assert strict_matcher.is_relevant_match("رز الشعلان", "أرز الشعلان مزة بسمتي هندي ١٠ كجم", "الشعلان") is True
+    assert strict_matcher.is_relevant_match("رز الشعلان", "موسي شراب شعير كلاسيك", "موسي") is False
+
