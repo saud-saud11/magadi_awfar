@@ -333,3 +333,197 @@ class VoiceBasketResult {
   }
 }
 
+class PantryItemModel {
+  final int id;
+  final String deviceUuid;
+  final int productId;
+  final String productNameAr;
+  final String? productNameEn;
+  final String? brandAr;
+  final String? packLabelAr;
+  final int packCount;
+  final String? imageUrl;
+  final int usualQuantity;
+  final double baselinePriceSar;
+  final String? baselineStoreCode;
+  final String? baselineStoreName;
+  final double lastLowestPriceSar;
+  final String? lastLowestStoreCode;
+  final String? lastLowestStoreName;
+  final double? targetPriceSar;
+  final double? dropPercentageThreshold;
+  final List<String>? storeCodes;
+  final bool isAlertEnabled;
+  final DateTime? lastCheckedAt;
+  final DateTime? lastAlertSentAt;
+  final DateTime? createdAt;
+  final double priceDropSar;
+  final double priceDropPercentage;
+  final bool hasPriceDrop;
+  final bool isTargetMet;
+
+  PantryItemModel({
+    required this.id,
+    required this.deviceUuid,
+    required this.productId,
+    required this.productNameAr,
+    this.productNameEn,
+    this.brandAr,
+    this.packLabelAr,
+    required this.packCount,
+    this.imageUrl,
+    required this.usualQuantity,
+    required this.baselinePriceSar,
+    this.baselineStoreCode,
+    this.baselineStoreName,
+    required this.lastLowestPriceSar,
+    this.lastLowestStoreCode,
+    this.lastLowestStoreName,
+    this.targetPriceSar,
+    this.dropPercentageThreshold,
+    this.storeCodes,
+    required this.isAlertEnabled,
+    this.lastCheckedAt,
+    this.lastAlertSentAt,
+    this.createdAt,
+    required this.priceDropSar,
+    required this.priceDropPercentage,
+    required this.hasPriceDrop,
+    required this.isTargetMet,
+  });
+
+  factory PantryItemModel.fromJson(Map<String, dynamic> json) {
+    return PantryItemModel(
+      id: json['id'] as int? ?? 0,
+      deviceUuid: json['device_uuid'] as String? ?? '',
+      productId: json['product_id'] as int? ?? 0,
+      productNameAr: json['product_name_ar'] as String? ?? '',
+      productNameEn: json['product_name_en'] as String?,
+      brandAr: json['brand_ar'] as String?,
+      packLabelAr: json['pack_label_ar'] as String?,
+      packCount: json['pack_count'] as int? ?? 1,
+      imageUrl: json['image_url'] as String?,
+      usualQuantity: json['usual_quantity'] as int? ?? 1,
+      baselinePriceSar: (json['baseline_price_sar'] as num?)?.toDouble() ?? 0.0,
+      baselineStoreCode: json['baseline_store_code'] as String?,
+      baselineStoreName: json['baseline_store_name'] as String?,
+      lastLowestPriceSar: (json['last_lowest_price_sar'] as num?)?.toDouble() ?? 0.0,
+      lastLowestStoreCode: json['last_lowest_store_code'] as String?,
+      lastLowestStoreName: json['last_lowest_store_name'] as String?,
+      targetPriceSar: (json['target_price_sar'] as num?)?.toDouble(),
+      dropPercentageThreshold: (json['drop_percentage_threshold'] as num?)?.toDouble(),
+      storeCodes: (json['store_codes'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
+      isAlertEnabled: json['is_alert_enabled'] as bool? ?? true,
+      lastCheckedAt: json['last_checked_at'] != null ? DateTime.tryParse(json['last_checked_at'].toString()) : null,
+      lastAlertSentAt: json['last_alert_sent_at'] != null ? DateTime.tryParse(json['last_alert_sent_at'].toString()) : null,
+      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at'].toString()) : null,
+      priceDropSar: (json['price_drop_sar'] as num?)?.toDouble() ?? 0.0,
+      priceDropPercentage: (json['price_drop_percentage'] as num?)?.toDouble() ?? 0.0,
+      hasPriceDrop: json['has_price_drop'] as bool? ?? false,
+      isTargetMet: json['is_target_met'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'device_uuid': deviceUuid,
+    'product_id': productId,
+    'product_name_ar': productNameAr,
+    'product_name_en': productNameEn,
+    'brandAr': brandAr,
+    'pack_label_ar': packLabelAr,
+    'pack_count': packCount,
+    'image_url': imageUrl,
+    'usual_quantity': usualQuantity,
+    'baseline_price_sar': baselinePriceSar,
+    'baseline_store_code': baselineStoreCode,
+    'baseline_store_name': baselineStoreName,
+    'last_lowest_price_sar': lastLowestPriceSar,
+    'last_lowest_store_code': lastLowestStoreCode,
+    'last_lowest_store_name': lastLowestStoreName,
+    'target_price_sar': targetPriceSar,
+    'drop_percentage_threshold': dropPercentageThreshold,
+    'store_codes': storeCodes,
+    'is_alert_enabled': isAlertEnabled,
+    'last_checked_at': lastCheckedAt?.toIso8601String(),
+    'last_alert_sent_at': lastAlertSentAt?.toIso8601String(),
+    'created_at': createdAt?.toIso8601String(),
+    'price_drop_sar': priceDropSar,
+    'price_drop_percentage': priceDropPercentage,
+    'has_price_drop': hasPriceDrop,
+    'is_target_met': isTargetMet,
+  };
+
+  ProductItem toProductItem() {
+    return ProductItem(
+      id: productId,
+      nameAr: productNameAr,
+      nameEn: productNameEn,
+      brandAr: brandAr,
+      packCount: packCount,
+      packLabelAr: packLabelAr,
+      imageUrl: imageUrl,
+      offers: [],
+    );
+  }
+}
+
+class PantrySummaryModel {
+  final int totalItems;
+  final int activeAlertsCount;
+  final int itemsWithDropsCount;
+  final double totalPotentialSavingsSar;
+  final List<PantryItemModel> items;
+
+  PantrySummaryModel({
+    required this.totalItems,
+    required this.activeAlertsCount,
+    required this.itemsWithDropsCount,
+    required this.totalPotentialSavingsSar,
+    required this.items,
+  });
+
+  factory PantrySummaryModel.fromJson(Map<String, dynamic> json) {
+    var rawItems = json['items'] as List<dynamic>? ?? [];
+    return PantrySummaryModel(
+      totalItems: json['total_items'] as int? ?? 0,
+      activeAlertsCount: json['active_alerts_count'] as int? ?? 0,
+      itemsWithDropsCount: json['items_with_drops_count'] as int? ?? 0,
+      totalPotentialSavingsSar: (json['total_potential_savings_sar'] as num?)?.toDouble() ?? 0.0,
+      items: rawItems.map((i) => PantryItemModel.fromJson(i as Map<String, dynamic>)).toList(),
+    );
+  }
+}
+
+class NotificationLogItem {
+  final int id;
+  final String titleAr;
+  final String bodyAr;
+  final String eventType;
+  final Map<String, dynamic>? payload;
+  final bool isRead;
+  final DateTime? createdAt;
+
+  NotificationLogItem({
+    required this.id,
+    required this.titleAr,
+    required this.bodyAr,
+    required this.eventType,
+    this.payload,
+    required this.isRead,
+    this.createdAt,
+  });
+
+  factory NotificationLogItem.fromJson(Map<String, dynamic> json) {
+    return NotificationLogItem(
+      id: json['id'] as int? ?? 0,
+      titleAr: json['title_ar'] as String? ?? '',
+      bodyAr: json['body_ar'] as String? ?? '',
+      eventType: json['event_type'] as String? ?? 'info',
+      payload: json['payload'] as Map<String, dynamic>?,
+      isRead: json['is_read'] as bool? ?? false,
+      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at'].toString()) : null,
+    );
+  }
+}
+

@@ -81,6 +81,7 @@ class Product(Base):
 
     offers = relationship("StoreOffer", back_populates="product")
     alerts = relationship("PriceAlert", back_populates="product")
+    pantry_items = relationship("PantryItem", back_populates="product")
 
 class StoreOffer(Base):
     __tablename__ = "store_offers"
@@ -130,3 +131,89 @@ class SearchLog(Base):
     district_name = Column(String(100), nullable=True)
     matched_products_count = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class PantryItem(Base):
+    __tablename__ = "pantry_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    device_uuid = Column(String(100), nullable=False, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    district_id = Column(Integer, ForeignKey("districts.id"), nullable=True)
+    
+    # Usual home replenishment quantity
+    usual_quantity = Column(Integer, default=1, nullable=False)
+    
+    # Baseline price (first valid reading when item is added; never considered a drop)
+    baseline_price_halalas = Column(Integer, nullable=False)
+    baseline_store_code = Column(String(50), nullable=False)
+    
+    # Custom alert settings
+    target_price_halalas = Column(Integer, nullable=True)
+    target_discount_percent = Column(Float, nullable=True)  # e.g. 10.0 for 10%
+    specific_store_codes = Column(Text, nullable=True)  # JSON list of store codes, or NULL for all
+    is_alert_enabled = Column(Boolean, default=True, nullable=False)
+    track_landed_total = Column(Boolean, default=False, nullable=False)
+    
+    # Latest checked snapshot
+    last_lowest_price_halalas = Column(Integer, nullable=False)
+    last_lowest_store_code = Column(String(50), nullable=False)
+    last_checked_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    product = relationship("Product", back_populates="pantry_items")
+    district = relationship("District")
+    notifications = relationship("NotificationLog", back_populates="pantry_item", cascade="all, delete-orphan")
+
+class PushSubscription(Base):
+    __tablename__ = "push_subscriptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    device_uuid = Column(String(100), unique=True, nullable=False, index=True)
+    platform = Column(String(20), default="web", nullable=False)  # web, ios, android
+    
+    # Web Push credentials
+    endpoint = Column(Text, nullable=True)
+    p256dh_key = Column(Text, nullable=True)
+    auth_key = Column(Text, nullable=True)
+    
+    # FCM / APNs token for native apps
+    fcm_token = Column(Text, nullable=True)
+    
+    # Alert Preferences
+    enable_quiet_hours = Column(Boolean, default=True, nullable=False)
+    quiet_hours_start = Column(String(10), default="23:00", nullable=False)  # 24h format
+    quiet_hours_end = Column(String(10), default="07:00", nullable=False)
+    daily_digest_enabled = Column(Boolean, default=False, nullable=False)
+    
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class NotificationLog(Base):
+    __tablename__ = "notification_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    device_uuid = Column(String(100), nullable=False, index=True)
+    pantry_item_id = Column(Integer, ForeignKey("pantry_items.id"), nullable=False)
+    
+    # Idempotency key: prevents duplicate notifications on repeated checks / retries
+    idempotency_key = Column(String(255), unique=True, nullable=False, index=True)
+    
+    # Event type: store_drop, competitor_cheaper, promo_offer
+    event_type = Column(String(50), nullable=False)
+    title = Column(String(255), nullable=False)
+    body = Column(Text, nullable=False)
+    
+    store_code = Column(String(50), nullable=False)
+    store_name_ar = Column(String(100), nullable=False)
+    old_price_halalas = Column(Integer, nullable=True)
+    new_price_halalas = Column(Integer, nullable=False)
+    
+    deep_link = Column(String(500), nullable=True)
+    is_sent = Column(Boolean, default=True, nullable=False)
+    sent_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    pantry_item = relationship("PantryItem", back_populates="notifications")
+

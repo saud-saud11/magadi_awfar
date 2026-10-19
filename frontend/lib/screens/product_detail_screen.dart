@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/models.dart';
 import '../services/url_launcher_helper.dart';
+import '../services/pantry_service.dart';
+import '../widgets/pantry_alert_dialog.dart';
 
 class ProductDetailScreen extends StatelessWidget {
   final ProductItem product;
@@ -24,16 +26,39 @@ class ProductDetailScreen extends StatelessWidget {
         appBar: AppBar(
           title: const Text('تفاصيل المنتج والعروض'),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.notifications_active_outlined),
-              tooltip: 'تفعيل تنبيه انخفاض السعر',
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('تم تفعيل مراقبة سعر «${product.nameAr}» لحي $district'),
-                    backgroundColor: AppTheme.primary,
-                    behavior: SnackBarBehavior.floating,
+            ValueListenableBuilder<List<PantryItemModel>>(
+              valueListenable: PantryService().trackedItemsNotifier,
+              builder: (context, trackedItems, _) {
+                final isTracked = trackedItems.any((i) => i.productId == product.id);
+                final trackedItem = isTracked ? trackedItems.firstWhere((i) => i.productId == product.id) : null;
+                final isAlertActive = trackedItem?.isAlertEnabled ?? false;
+
+                return IconButton(
+                  icon: Icon(
+                    isTracked
+                        ? (isAlertActive ? Icons.notifications_active : Icons.notifications_off_outlined)
+                        : Icons.notifications_none_outlined,
+                    color: isTracked
+                        ? (isAlertActive ? Colors.amber.shade800 : Colors.grey)
+                        : AppTheme.textDark,
                   ),
+                  tooltip: isTracked ? 'متابع في مقاضي البيت (انقر للتعديل)' : 'تابع السعر في مقاضي البيت',
+                  onPressed: () async {
+                    if (!isTracked) {
+                      await PantryService().addToPantry(product);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('تمت إضافة «${product.nameAr}» إلى مقاضي البيت ومتابعة الأسعار بنجاح 🔔'),
+                            backgroundColor: AppTheme.primary,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    } else if (trackedItem != null) {
+                      PantryAlertDialog.show(context, trackedItem);
+                    }
+                  },
                 );
               },
             ),

@@ -1,0 +1,99 @@
+﻿from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+from typing import List, Optional
+from datetime import datetime
+
+from app.database import get_db
+from app.models.models import PushSubscription, NotificationLog, PantryItem, Product
+from app.schemas.pantry import (
+    PushSubscriptionCreate, AlertPreferencesUpdate, NotificationLogOut
+)
+from app.services.web_push_service import web_push_service
+
+router = APIRouter(prefix="/push", tags=["إشعارات Push والتنبيهات"])
+
+@router.post("/subscribe")
+def register_push_subscription(data: PushSubscriptionCreate, db: Session = Depends(get_db)):
+    """Register or update browser/device Web Push or FCM credentials."""
+    sub = db.query(PushSubscription).filter(PushSubscription.device_uuid == data.device_uuid).first()
+    if sub:
+        sub.platform = data.platform
+        sub.endpoint = data.endpoint or sub.endpoint
+        sub.p256dh_key = data.p256dh_key or sub.p256dh_key
+        sub.auth_key = data.auth_key or sub.auth_key
+        sub.fcm_token = data.fcm_token or sub.fcm_token
+        sub.enable_quiet_hours = data.enable_quiet_hours
+        sub.quiet_hours_start = data.quiet_hours_start
+        sub.quiet_hours_end = data.quiet_hours_end
+        sub.daily_digest_enabled = data.daily_digest_enabled
+        sub.is_active = True
+        sub.updated_at = datetime.utcnow()
+    else:
+        sub = PushSubscription(
+            device_uuid=data.device_uuid,
+            platform=data.platform,
+            endpoint=data.endpoint,
+            p256dh_key=data.p256dh_key,
+            auth_key=data.auth_key,
+            fcm_token=data.fcm_token,
+            enable_quiet_hours=data.enable_quiet_hours,
+            quiet_hours_start=data.quiet_hours_start,
+            quiet_hours_end=data.quiet_hours_end,
+            daily_digest_enabled=data.daily_digest_enabled,
+            is_active=True
+        )
+        db.add(sub)
+    db.commit()
+    return {"status": "success", "message": "تم تسجيل اشتراك الإشعارات بنجاح"}
+
+@router.get("/history", response_model=List[NotificationLogOut])
+def get_notification_history(device_uuid: str = Query(...), db: Session = Depends(get_db)):
+    """Retrieve full in-app notification history (accessible even if system Push was denied)."""
+    logs = db.query(NotificationLog).filter(
+        NotificationLog.device_uuid == device_uuid
+    ).order_by(NotificationLog.sent_at.desc()).limit(50).all()
+
+    return [
+        NotificationLogOut(
+            id=log.id,
+            device_uuid=log.device_uuid,
+            pantry_item_id=log.pantry_item_id,
+            event_type=log.event_type,
+            title=log.title,
+            body=log.body,
+            store_code=log.store_code,
+            store_name_ar=log.store_name_ar,
+            old_price_sar=round(log.old_price_halalas / 100.0, 2) if log.old_price_halalas else None,
+            new_price_sar=round(log.new_price_halalas / 100.0, 2),
+            savings_sar=round((log.old_price_halalas - log.new_price_halalas) / 100.0, 2) if (log.old_price_halalas and log.old_price_halalas > log.new_price_halalas) else None,
+            deep_link=log.deep_link,
+            sent_at=log.sent_at
+        )
+        for log in logs
+    ]
+
+@router.post("/test")
+async def send_test_notification(device_uuid: str = Query(...), db: Session = Depends(get_db)):
+    """Dispatches an instant test notification to verify device connectivity."""
+    sub = db.query(PushSubscription).filter(PushSubscription.device_uuid == device_uuid).first()
+    
+    payload = web_push_service.format_notification_payload(
+        title="🔔 تجربة تنبيهات مقاضي البيت",
+        body="تم تفعيل إشعارات مقاضي أوفر بنجاح! ستصلك تنبيهات انخفاض الأسعار فور حدوثها.",
+        product_id=1,
+        store_code="danube",
+        store_name_ar="الدانوب",
+        new_price_sar=18.50,
+        old_price_sar=22.00,
+        deep_link="/pantry"
+    )
+
+    if sub:
+        await web_push_service.send_web_push({
+            "endpoint": sub.endpoint,
+            "p256dh_key": sub.p256dh_key,
+            "auth_key": sub.auth_key,
+            "device_uuid": device_uuid
+        }, payload)
+
+    return {"status": "success", "message": "تم إرسال الإشعار التجريبي بنجاح"}

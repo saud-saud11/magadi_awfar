@@ -4,9 +4,13 @@ import 'models/models.dart';
 import 'screens/home_screen.dart';
 import 'screens/voice_basket_screen.dart';
 import 'screens/basket_screen.dart';
+import 'screens/pantry_screen.dart';
 import 'screens/admin_screen.dart';
+import 'services/pantry_service.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  PantryService().initialize();
   runApp(const MagadiAwfarApp());
 }
 
@@ -51,6 +55,20 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
   }
 
+  void _addPantryToBasket(List<PantryItemModel> pantryItems) {
+    setState(() {
+      for (final item in pantryItems) {
+        final existingIndex = _basket.indexWhere((b) => b.product.id == item.productId);
+        if (existingIndex >= 0) {
+          _basket[existingIndex].quantity += item.usualQuantity;
+        } else {
+          _basket.add(BasketItem(product: item.toProductItem(), quantity: item.usualQuantity));
+        }
+      }
+      _currentIndex = 3; // Switch to BasketScreen
+    });
+  }
+
   void _updateBasketQuantity(int productId, int delta) {
     setState(() {
       final idx = _basket.indexWhere((b) => b.product.id == productId);
@@ -84,7 +102,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ),
       VoiceBasketScreen(
         onAddToBasket: _addToBasket,
-        onNavigateToBasketCompare: () => setState(() => _currentIndex = 2),
+        onNavigateToBasketCompare: () => setState(() => _currentIndex = 3),
+      ),
+      PantryScreen(
+        onAddPantryToBasket: _addPantryToBasket,
+        onAddSingleToBasket: _addToBasket,
+        onNavigateToBasket: () => setState(() => _currentIndex = 3),
       ),
       BasketScreen(
         basketItems: _basket,
@@ -118,8 +141,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             unselectedItemColor: AppTheme.textMuted,
             backgroundColor: AppTheme.surface,
             type: BottomNavigationBarType.fixed,
-            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            unselectedLabelStyle: const TextStyle(fontSize: 12),
+            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+            unselectedLabelStyle: const TextStyle(fontSize: 11),
             onTap: (index) => setState(() => _currentIndex = index),
             items: [
               const BottomNavigationBarItem(
@@ -131,6 +154,31 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 icon: Icon(Icons.mic),
                 activeIcon: Icon(Icons.mic, color: AppTheme.primary),
                 label: 'السلة الصوتية',
+              ),
+              BottomNavigationBarItem(
+                icon: ValueListenableBuilder<List<PantryItemModel>>(
+                  valueListenable: PantryService().trackedItemsNotifier,
+                  builder: (context, items, _) {
+                    return Badge(
+                      isLabelVisible: items.isNotEmpty,
+                      label: Text('${items.length}'),
+                      backgroundColor: Colors.amber.shade800,
+                      child: const Icon(Icons.kitchen_outlined),
+                    );
+                  },
+                ),
+                activeIcon: ValueListenableBuilder<List<PantryItemModel>>(
+                  valueListenable: PantryService().trackedItemsNotifier,
+                  builder: (context, items, _) {
+                    return Badge(
+                      isLabelVisible: items.isNotEmpty,
+                      label: Text('${items.length}'),
+                      backgroundColor: Colors.amber.shade800,
+                      child: const Icon(Icons.kitchen, color: AppTheme.primary),
+                    );
+                  },
+                ),
+                label: 'مقاضي البيت',
               ),
               BottomNavigationBarItem(
                 icon: Badge(

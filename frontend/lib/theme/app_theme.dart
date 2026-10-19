@@ -4,6 +4,7 @@ class AppTheme {
   // Emerald green palette
   static const Color primary = Color(0xFF059669); // Emerald 700
   static const Color primaryLight = Color(0xFF10B981); // Emerald 500
+  static const Color primaryDark = Color(0xFF047857); // Emerald 800
   static const Color primaryContainer = Color(0xFFECFDF5); // Emerald 50
   
   static const Color background = Color(0xFFF8FAFC);

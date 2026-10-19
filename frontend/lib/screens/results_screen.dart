@@ -3,6 +3,8 @@ import '../theme/app_theme.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
 import '../services/url_launcher_helper.dart';
+import '../services/pantry_service.dart';
+import '../widgets/pantry_alert_dialog.dart';
 import 'product_detail_screen.dart';
 
 class ResultsScreen extends StatefulWidget {
@@ -644,6 +646,43 @@ class _ResultsScreenState extends State<ResultsScreen> {
                       ],
                     ),
                   ),
+                ),
+                ValueListenableBuilder<List<PantryItemModel>>(
+                  valueListenable: PantryService().trackedItemsNotifier,
+                  builder: (context, trackedItems, _) {
+                    final isTracked = trackedItems.any((i) => i.productId == product.id);
+                    final trackedItem = isTracked ? trackedItems.firstWhere((i) => i.productId == product.id) : null;
+                    final isAlertActive = trackedItem?.isAlertEnabled ?? false;
+
+                    return IconButton(
+                      icon: Icon(
+                        isTracked
+                            ? (isAlertActive ? Icons.notifications_active : Icons.notifications_off_outlined)
+                            : Icons.notifications_none_outlined,
+                        color: isTracked
+                            ? (isAlertActive ? Colors.amber.shade800 : Colors.grey)
+                            : AppTheme.textMuted,
+                        size: 22,
+                      ),
+                      tooltip: isTracked ? 'متابع في مقاضي البيت (انقر للتعديل)' : 'تابع السعر في مقاضي البيت',
+                      onPressed: () async {
+                        if (!isTracked) {
+                          await PantryService().addToPantry(product);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('تمت إضافة «${product.nameAr}» إلى مقاضي البيت ومتابعة الأسعار بنجاح 🔔'),
+                                backgroundColor: AppTheme.primary,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        } else if (trackedItem != null) {
+                          PantryAlertDialog.show(context, trackedItem);
+                        }
+                      },
+                    );
+                  },
                 ),
                 IconButton(
                   icon: const Icon(Icons.add_shopping_cart, color: AppTheme.primary),

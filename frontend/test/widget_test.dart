@@ -11,6 +11,7 @@ void main() {
     expect(find.text('مقاضي أوفر'), findsOneWidget);
     expect(find.text('مقارنة الأسعار'), findsOneWidget);
     expect(find.text('السلة الصوتية'), findsOneWidget);
+    expect(find.text('مقاضي البيت'), findsOneWidget);
     expect(find.text('سلة المقاضي'), findsOneWidget);
   });
 
@@ -37,4 +38,5 @@ void main() {
     expect(res.matchedProducts.isEmpty, isTrue);
   });
 }
+
 

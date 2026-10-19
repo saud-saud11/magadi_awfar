@@ -1,7 +1,8 @@
 import re
 import copy
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional, Tuple
-from app.models.models import Product, StoreOffer
+from app.models.models import Product, StoreOffer, PantryItem
 from app.services.matcher import strict_matcher
 from app.schemas.schemas import VoiceBasketItemOut, VoiceParseResponse
 
@@ -170,6 +171,18 @@ class VoiceBasketService:
                 can_undo=len(session["history"]) > 0,
                 session_id=session_id
             )
+
+        # 3.1 Check Mute Alert Commands («وقف تنبيهات النوتيلا»، «عطل تنبيه حليب السعودية»، «وقف كل التنبيهات»)
+        if any(w in q_norm for w in ["وقف", "عطل", "الغ", "الغي", "صمت", "كتم"]) and any(w in q_norm for w in ["تنبيه", "تنبيهات", "التنبيهات", "اشعار", "اشعارات", "الاشعارات"]):
+            return self._handle_mute_alerts(db_session, query, q_norm, session, session_id, request_id)
+
+        # 3.2 Check Set Target Price Alert Commands («نبهني إذا صار أرز الشعلان أقل من 75 ريال»)
+        if any(w in q_norm for w in ["نبهني", "علمني", "ارسلي تنبيه", "اعطيني تنبيه"]) and any(w in q_norm for w in ["اقل من", "نزل عن", "صار اقل", "وصل"]):
+            return self._handle_set_price_alert(db_session, query, q_norm, session, session_id, request_id)
+
+        # 3.3 Check Watchlist Addition Commands («حط حليب السعودية في قائمة المتابعة»، «تابع سعر أرز الشعلان»)
+        if any(w in q_norm for w in ["قائمة المتابعة", "قائمه المتابعه", "مقاضي البيت", "تابع سعر", "تابع السعر", "راقب سعر", "راقب السعر"]):
+            return self._handle_add_to_watchlist(db_session, query, q_norm, session, session_id, request_id)
 
         # Snapshot state before modification for Undo
         session["history"].append(copy.deepcopy(session["basket"]))
@@ -639,4 +652,187 @@ class VoiceBasketService:
         # 4. Return standard first matching product
         return query.first()
 
+    def _find_matching_product(self, db_session, term: str) -> Optional[Product]:
+        """Finds closest matching product in DB for a term."""
+        # Strip digits/numbers first so target price doesn't pollute product title
+        term_clean = re.sub(r"\d+(?:\.\d+)?", " ", term)
+        term_clean = re.sub(r"(?:حط|ضيف|تابع|سعر|في|قائمة|المتابعة|مقاضي|البيت|نبهني|إذا|اذا|صار|أقل|اقل|أكثر|اكثر|من|ريال|ر\.س|رس|وقف|تنبيهات|تنبيه|عطل|علمني|لو|سمحت)", " ", term_clean).strip()
+        term_clean = re.sub(r"\s+", " ", term_clean).strip()
+        if not term_clean:
+            return None
+
+        # Search existing DB products
+        prods = db_session.query(Product).all()
+        for p in prods:
+            if strict_matcher.is_relevant_match(term_clean, p.name_ar, p.brand_ar):
+                return p
+        return None
+
+    def _handle_add_to_watchlist(self, db_session, query, q_norm, session, session_id, request_id) -> VoiceParseResponse:
+        current_out = [VoiceBasketItemOut(**i) for i in session["basket"]]
+        product = self._find_matching_product(db_session, q_norm)
+        
+        if not product:
+            return VoiceParseResponse(
+                status="success",
+                recognized_text=query,
+                intent="add_to_watchlist",
+                message_ar="تم فهم طلب المتابعة، يرجى تحديد الصنف بدقة مثل: «حط حليب السعودية في قائمة المتابعة»",
+                current_basket=current_out,
+                session_id=session_id
+            )
+
+        # Add or update in PantryItem
+        device_uuid = session_id
+        existing = db_session.query(PantryItem).filter(
+            PantryItem.device_uuid == device_uuid,
+            PantryItem.product_id == product.id
+        ).first()
+
+        lowest_offer = db_session.query(StoreOffer).filter(
+            StoreOffer.product_id == product.id,
+            StoreOffer.price_halalas > 0
+        ).order_by(StoreOffer.price_halalas.asc()).first()
+        baseline_price = lowest_offer.price_halalas if lowest_offer else 2500
+        baseline_store = lowest_offer.store.code if lowest_offer else "othaim"
+
+        if not existing:
+            item = PantryItem(
+                device_uuid=device_uuid,
+                product_id=product.id,
+                usual_quantity=1,
+                baseline_price_halalas=baseline_price,
+                baseline_store_code=baseline_store,
+                last_lowest_price_halalas=baseline_price,
+                last_lowest_store_code=baseline_store,
+                is_alert_enabled=True,
+                last_checked_at=datetime.utcnow()
+            )
+            db_session.add(item)
+        else:
+            existing.is_alert_enabled = True
+        db_session.commit()
+
+        if request_id:
+            session["processed_request_ids"].add(request_id)
+
+        return VoiceParseResponse(
+            status="success",
+            recognized_text=query,
+            intent="add_to_watchlist",
+            message_ar=f"تمت إضافة «{product.name_ar}» إلى مقاضي البيت ومتابعة الأسعار بنجاح (سعر الأساس: {baseline_price/100:.2f} ر.س)",
+            current_basket=current_out,
+            session_id=session_id
+        )
+
+    def _handle_set_price_alert(self, db_session, query, q_norm, session, session_id, request_id) -> VoiceParseResponse:
+        current_out = [VoiceBasketItemOut(**i) for i in session["basket"]]
+        
+        # Extract target price number
+        price_match = re.search(r"(\d+(?:\.\d+)?)\s*(?:ريال|ر\.س|رس)?", q_norm)
+        target_sar = float(price_match.group(1)) if price_match else None
+        
+        product = self._find_matching_product(db_session, q_norm)
+        if not product or not target_sar:
+            return VoiceParseResponse(
+                status="success",
+                recognized_text=query,
+                intent="set_price_alert",
+                message_ar="يرجى تحديد المنتج والسعر المستهدف، مثل: «نبهني إذا صار أرز الشعلان أقل من 75 ريال»",
+                current_basket=current_out,
+                session_id=session_id
+            )
+
+        device_uuid = session_id
+        target_halalas = int(round(target_sar * 100))
+        
+        item = db_session.query(PantryItem).filter(
+            PantryItem.device_uuid == device_uuid,
+            PantryItem.product_id == product.id
+        ).first()
+
+        if not item:
+            lowest_offer = db_session.query(StoreOffer).filter(
+                StoreOffer.product_id == product.id,
+                StoreOffer.price_halalas > 0
+            ).order_by(StoreOffer.price_halalas.asc()).first()
+            baseline_price = lowest_offer.price_halalas if lowest_offer else int(round(target_sar * 1.15 * 100))
+            baseline_store = lowest_offer.store.code if lowest_offer else "othaim"
+
+            item = PantryItem(
+                device_uuid=device_uuid,
+                product_id=product.id,
+                usual_quantity=1,
+                baseline_price_halalas=baseline_price,
+                baseline_store_code=baseline_store,
+                last_lowest_price_halalas=baseline_price,
+                last_lowest_store_code=baseline_store,
+                target_price_halalas=target_halalas,
+                is_alert_enabled=True,
+                last_checked_at=datetime.utcnow()
+            )
+            db_session.add(item)
+        else:
+            item.target_price_halalas = target_halalas
+            item.is_alert_enabled = True
+        db_session.commit()
+
+        if request_id:
+            session["processed_request_ids"].add(request_id)
+
+        return VoiceParseResponse(
+            status="success",
+            recognized_text=query,
+            intent="set_price_alert",
+            message_ar=f"تم ضبط تنبيه لـ «{product.name_ar}» عند وصول السعر إلى {target_sar:.2f} ر.س أو أقل",
+            current_basket=current_out,
+            session_id=session_id
+        )
+
+    def _handle_mute_alerts(self, db_session, query, q_norm, session, session_id, request_id) -> VoiceParseResponse:
+        current_out = [VoiceBasketItemOut(**i) for i in session["basket"]]
+        device_uuid = session_id
+
+        if "كل" in q_norm or "جميع" in q_norm:
+            items = db_session.query(PantryItem).filter(PantryItem.device_uuid == device_uuid).all()
+            for it in items:
+                it.is_alert_enabled = False
+            db_session.commit()
+            return VoiceParseResponse(
+                status="success",
+                recognized_text=query,
+                intent="mute_alerts",
+                message_ar="تم إيقاف جميع تنبيهات مقاضي البيت مؤقتاً",
+                current_basket=current_out,
+                session_id=session_id
+            )
+
+        product = self._find_matching_product(db_session, q_norm)
+        if product:
+            item = db_session.query(PantryItem).filter(
+                PantryItem.device_uuid == device_uuid,
+                PantryItem.product_id == product.id
+            ).first()
+            if item:
+                item.is_alert_enabled = False
+                db_session.commit()
+                return VoiceParseResponse(
+                    status="success",
+                    recognized_text=query,
+                    intent="mute_alerts",
+                    message_ar=f"تم إيقاف تنبيهات «{product.name_ar}» مؤقتاً",
+                    current_basket=current_out,
+                    session_id=session_id
+                )
+
+        return VoiceParseResponse(
+            status="success",
+            recognized_text=query,
+            intent="mute_alerts",
+            message_ar="تم إيقاف التنبيهات المحددة لمقاضي البيت",
+            current_basket=current_out,
+            session_id=session_id
+        )
+
 voice_basket_service = VoiceBasketService()
+

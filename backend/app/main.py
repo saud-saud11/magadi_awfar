@@ -4,9 +4,11 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base, SessionLocal
-from app.api import districts, search, basket, alerts, admin, voice
+import asyncio
+from app.api import districts, search, basket, alerts, admin, voice, pantry, push
 from app.models.models import Store, District
 from app.services.store_catalog_service import seed_staple_products_to_db
+from app.services.price_monitor_service import price_monitor_service
 
 # Initialize database schema
 Base.metadata.create_all(bind=engine)
@@ -33,10 +35,14 @@ app.include_router(basket.router, prefix=settings.API_V1_STR)
 app.include_router(voice.router, prefix=settings.API_V1_STR)
 app.include_router(alerts.router, prefix=settings.API_V1_STR)
 app.include_router(admin.router, prefix=settings.API_V1_STR)
+app.include_router(pantry.router, prefix=settings.API_V1_STR)
+app.include_router(push.router, prefix=settings.API_V1_STR)
 
 @app.on_event("startup")
 def on_startup():
-    """Seed initial Madinah data, stores, and staple products on startup if missing."""
+    """Seed initial Madinah data, stores, and staple products on startup, and start background monitor."""
+    # Start server price monitoring background task
+    asyncio.create_task(price_monitor_service.start_background_loop())
     db = SessionLocal()
     try:
         # Seed stores
