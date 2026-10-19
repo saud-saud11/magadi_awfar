@@ -1,25 +1,25 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:js_interop';
 
 @JS('magadiIsPushSupported')
-external bool _jsIsPushSupported();
+external JSBoolean? _jsIsPushSupported();
 
 @JS('magadiIsIos')
-external bool _jsIsIos();
+external JSBoolean? _jsIsIos();
 
 @JS('magadiIsStandalone')
-external bool _jsIsStandalone();
+external JSBoolean? _jsIsStandalone();
 
 @JS('magadiGetPermissionState')
-external JSString _jsGetPermissionState();
+external JSString? _jsGetPermissionState();
 
 @JS('magadiRegisterAndSubscribe')
-external JSPromise<JSString> _jsRegisterAndSubscribe(JSString vapidPublicKey);
+external JSPromise<JSString>? _jsRegisterAndSubscribe(JSString vapidPublicKey);
 
 class PushNotificationService {
   static bool get isSupported {
     try {
-      return _jsIsPushSupported();
+      return _jsIsPushSupported()?.toDart ?? false;
     } catch (_) {
       return false;
     }
@@ -27,7 +27,7 @@ class PushNotificationService {
 
   static bool get isIos {
     try {
-      return _jsIsIos();
+      return _jsIsIos()?.toDart ?? false;
     } catch (_) {
       return false;
     }
@@ -35,7 +35,7 @@ class PushNotificationService {
 
   static bool get isStandalone {
     try {
-      return _jsIsStandalone();
+      return _jsIsStandalone()?.toDart ?? false;
     } catch (_) {
       return false;
     }
@@ -43,7 +43,7 @@ class PushNotificationService {
 
   static String getPermissionState() {
     try {
-      return _jsGetPermissionState().toDart;
+      return _jsGetPermissionState()?.toDart ?? 'unsupported';
     } catch (_) {
       return 'unsupported';
     }
@@ -52,6 +52,7 @@ class PushNotificationService {
   static Future<Map<String, dynamic>> registerAndSubscribe(String vapidPublicKey) async {
     try {
       final promise = _jsRegisterAndSubscribe(vapidPublicKey.toJS);
+      if (promise == null) return {'success': false, 'error': 'Push not available'};
       final jsResult = await promise.toDart;
       final jsonStr = jsResult.toDart;
       return jsonDecode(jsonStr) as Map<String, dynamic>;

@@ -31,17 +31,51 @@ class _PantryScreenState extends State<PantryScreen> {
   @override
   void initState() {
     super.initState();
+    _summary = _buildSummaryFromCache();
+    _pantryService.trackedItemsNotifier.addListener(_onTrackedItemsChanged);
     _loadData();
   }
 
-  Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    final summary = await _pantryService.fetchPantrySummary();
+  @override
+  void dispose() {
+    _pantryService.trackedItemsNotifier.removeListener(_onTrackedItemsChanged);
+    super.dispose();
+  }
+
+  void _onTrackedItemsChanged() {
     if (mounted) {
       setState(() {
-        _summary = summary;
-        _isLoading = false;
+        _summary = _buildSummaryFromCache();
       });
+    }
+  }
+
+  PantrySummaryModel _buildSummaryFromCache() {
+    final list = _pantryService.trackedItemsNotifier.value;
+    return PantrySummaryModel(
+      totalItems: list.length,
+      activeAlertsCount: list.where((it) => it.isAlertEnabled).length,
+      itemsWithDropsCount: list.where((it) => it.hasPriceDrop).length,
+      totalPotentialSavingsSar: list.fold(0.0, (acc, it) => acc + (it.priceDropSar * it.usualQuantity)),
+      items: list,
+    );
+  }
+
+  Future<void> _loadData() async {
+    if (mounted) setState(() => _isLoading = true);
+    try {
+      final summary = await _pantryService.fetchPantrySummary();
+      if (mounted && summary != null) {
+        setState(() {
+          _summary = summary;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading pantry data: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -225,7 +259,7 @@ class _PantryScreenState extends State<PantryScreen> {
                 return IconButton(
                   icon: Badge(
                     isLabelVisible: count > 0,
-                    label: Text(''),
+                    label: Text('$count'),
                     backgroundColor: Colors.red,
                     child: const Icon(Icons.notifications_outlined),
                   ),
@@ -236,9 +270,16 @@ class _PantryScreenState extends State<PantryScreen> {
             ),
           ],
         ),
-        body: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
-            : RefreshIndicator(
+        body: Column(
+          children: [
+            if (_isLoading)
+              const LinearProgressIndicator(
+                backgroundColor: AppTheme.primaryContainer,
+                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary),
+                minHeight: 3,
+              ),
+            Expanded(
+              child: RefreshIndicator(
                 onRefresh: _loadData,
                 color: AppTheme.primary,
                 child: ListView(
@@ -316,6 +357,9 @@ class _PantryScreenState extends State<PantryScreen> {
                   ],
                 ),
               ),
+            ),
+          ],
+        ),
       ),
     );
   }
