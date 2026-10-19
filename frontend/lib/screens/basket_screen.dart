@@ -40,56 +40,54 @@ class _BasketScreenState extends State<BasketScreen> {
         'name': 'الدانوب',
         'delivery_fee': 15.0,
         'free_thresh': 150.0,
-        'missing': <String>[],
       },
       {
         'code': 'panda',
         'name': 'بنده',
         'delivery_fee': 12.0,
         'free_thresh': 100.0,
-        'missing': <String>[],
       },
       {
         'code': 'othaim',
         'name': 'أسواق العثيم',
         'delivery_fee': 10.0,
         'free_thresh': 120.0,
-        'missing': <String>[],
       },
       {
         'code': 'tamimi',
         'name': 'أسواق التميمي',
         'delivery_fee': 15.0,
         'free_thresh': 150.0,
-        'missing': <String>[],
-      },
-      {
-        'code': 'noon_minutes',
-        'name': 'نون منتس',
-        'delivery_fee': 5.0,
-        'free_thresh': 50.0,
-        'missing': <String>[],
-      },
-      {
-        'code': 'amazon_sa',
-        'name': 'أمازون السعودية',
-        'delivery_fee': 12.0,
-        'free_thresh': 100.0,
-        'missing': <String>[],
-      },
-      {
-        'code': 'nahdi',
-        'name': 'صيدلية النهدي',
-        'delivery_fee': 12.0,
-        'free_thresh': 100.0,
-        'missing': <String>['نوتيلا كريمة البندق مع الكاكاو ٧٥٠ جرام'],
       },
       {
         'code': 'carrefour',
         'name': 'كارفور',
         'delivery_fee': 15.0,
         'free_thresh': 150.0,
-        'missing': <String>['نوتيلا ٨٢٥ جرام'],
+      },
+      {
+        'code': 'noon_minutes',
+        'name': 'نون منتس',
+        'delivery_fee': 5.0,
+        'free_thresh': 50.0,
+      },
+      {
+        'code': 'amazon_sa',
+        'name': 'أمازون السعودية',
+        'delivery_fee': 12.0,
+        'free_thresh': 100.0,
+      },
+      {
+        'code': 'nahdi',
+        'name': 'صيدلية النهدي',
+        'delivery_fee': 12.0,
+        'free_thresh': 100.0,
+      },
+      {
+        'code': 'dawaa',
+        'name': 'صيدلية الدواء',
+        'delivery_fee': 12.0,
+        'free_thresh': 100.0,
       },
     ];
 
@@ -97,36 +95,25 @@ class _BasketScreenState extends State<BasketScreen> {
 
     for (var s in stores) {
       double subtotal = 0;
-      List<String> missing = List<String>.from(s['missing'] as List);
+      List<String> missing = [];
+      int matchedCount = 0;
 
       for (var item in widget.basketItems) {
         // Find if store has this offer
-        final offer = item.product.offers.firstWhere(
+        final matchingOffers = item.product.offers.where(
           (o) => o.storeCode == s['code'] && o.isInStock,
-          orElse: () => item.product.offers.isNotEmpty
-              ? item.product.offers.first
-              : StoreOffer(
-                  id: 0,
-                  storeCode: s['code'] as String,
-                  storeNameAr: s['name'] as String,
-                  priceHalalas: 2500,
-                  priceSar: 25.0,
-                  isOnSale: false,
-                  isInStock: true,
-                  productUrl: '',
-                  totalStatus: 'CONFIRMED',
-                  totalStatusText: 'مؤكد',
-                  isCheapestProduct: false,
-                  isCheapestTotal: false,
-                ),
         );
 
-        if (missing.contains(item.product.nameAr)) {
-          // item is missing
+        if (matchingOffers.isNotEmpty) {
+          subtotal += (matchingOffers.first.priceSar * item.quantity);
+          matchedCount++;
         } else {
-          subtotal += (offer.priceSar * item.quantity);
+          missing.add(item.product.nameAr);
         }
       }
+
+      // If a store carries NONE of the items in the basket, do not show it
+      if (matchedCount == 0) continue;
 
       final isComplete = (missing.isEmpty && widget.basketItems.isNotEmpty);
       final double delivery = (subtotal >= (s['free_thresh'] as double)) ? 0.0 : (s['delivery_fee'] as double);
@@ -136,6 +123,7 @@ class _BasketScreenState extends State<BasketScreen> {
         'name': s['name'],
         'code': s['code'],
         'is_complete': isComplete,
+        'matched_count': matchedCount,
         'subtotal': subtotal,
         'delivery': delivery,
         'total': total,
