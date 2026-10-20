@@ -97,18 +97,115 @@ class ApiService {
       sortBy: sortBy,
     );
 
-    if (danubeLive.isNotEmpty) {
+    final List<ProductItem> finalMatched = [];
+
+    if (offlineRes.matchedProducts.isNotEmpty) {
+      for (final p in offlineRes.matchedProducts) {
+        ProductItem updatedItem = p;
+        if (danubeLive.isNotEmpty) {
+          // Find matching live Danube hit
+          ProductItem? match;
+          for (final dl in danubeLive) {
+            if (p.normalizedSizeAmount != null && dl.normalizedSizeAmount != null) {
+              final diff = (p.normalizedSizeAmount! - dl.normalizedSizeAmount!).abs();
+              if (diff < 50 && (p.brandAr == dl.brandAr || dl.nameAr.contains(p.brandAr ?? ''))) {
+                match = dl;
+                break;
+              }
+            }
+            if (dl.nameAr.contains(p.nameAr) || p.nameAr.contains(dl.nameAr)) {
+              match = dl;
+              break;
+            }
+          }
+
+          if (match != null) {
+            StoreOffer? liveDanubeOffer;
+            for (final o in match.offers) {
+              if (o.storeCode == 'danube') {
+                liveDanubeOffer = o;
+                break;
+              }
+            }
+
+            if (liveDanubeOffer != null) {
+              final newOffers = p.offers.map((o) {
+                if (o.storeCode == 'danube') {
+                  return liveDanubeOffer!;
+                }
+                return o;
+              }).toList();
+
+              int minHalalas = 9999999;
+              for (var o in newOffers) {
+                if (o.priceHalalas < minHalalas) minHalalas = o.priceHalalas;
+              }
+
+              final sortedOffers = newOffers.map((o) {
+                final isCheap = o.priceHalalas == minHalalas;
+                return o.copyWith(
+                  isCheapestProduct: isCheap,
+                  isCheapestTotal: isCheap,
+                );
+              }).toList();
+              sortedOffers.sort((a, b) => a.priceHalalas.compareTo(b.priceHalalas));
+
+              updatedItem = ProductItem(
+                id: p.id,
+                gtinBarcode: match.gtinBarcode ?? p.gtinBarcode,
+                nameAr: p.nameAr,
+                nameEn: p.nameEn,
+                brandAr: p.brandAr,
+                subCategory: p.subCategory,
+                subCategoryRank: p.subCategoryRank,
+                normalizedSizeAmount: p.normalizedSizeAmount,
+                normalizedSizeUnit: p.normalizedSizeUnit,
+                packCount: p.packCount,
+                packType: p.packType,
+                packLabelAr: p.packLabelAr,
+                imageUrl: (match.imageUrl != null && match.imageUrl!.isNotEmpty) ? match.imageUrl : p.imageUrl,
+                offers: sortedOffers,
+              );
+            }
+          }
+        }
+        finalMatched.add(updatedItem);
+      }
+
+      // Also append any extra distinct items from danubeLive
+      for (final dl in danubeLive) {
+        final alreadyRepresented = finalMatched.any((m) {
+          if (m.normalizedSizeAmount != null && dl.normalizedSizeAmount != null) {
+            return (m.normalizedSizeAmount! - dl.normalizedSizeAmount!).abs() < 50 &&
+                (m.brandAr == dl.brandAr || dl.nameAr.contains(m.brandAr ?? ''));
+          }
+          return dl.nameAr.contains(m.nameAr) || m.nameAr.contains(dl.nameAr);
+        });
+        if (!alreadyRepresented) {
+          finalMatched.add(dl);
+        }
+      }
+    } else if (danubeLive.isNotEmpty) {
+      finalMatched.addAll(danubeLive);
+    }
+
+    if (finalMatched.isNotEmpty) {
       return SearchResult(
         query: query,
         districtName: district,
         exactSizeMatched: true,
-        statusMessage: 'تم جلب ${danubeLive.length} عروض أسعار حية ومؤكدة الآن.',
-        disclaimer: 'الأسعار حية ومحدثة لحظياً من واجهات المتاجر المباشرة بدون أي تقديرات',
-        matchedProducts: danubeLive,
-        alternativeSizes: [],
-        subCategories: ['الكل', ...danubeLive.map((e) => e.subCategory).whereType<String>().where((s) => s.isNotEmpty).toSet()],
+        statusMessage: 'تم العثور على ${finalMatched.length} منتجات ومقارنة أسعارها عبر كافة متاجر المدينة المنورة',
+        disclaimer: 'تحديث أسعار حي ومباشر من المتجر للدانوب 🟢، ومقارنة مع أسعار الرف بأسواق العثيم وبنده والتميمي وكارفور ولولو.',
+        matchedProducts: finalMatched,
+        alternativeSizes: offlineRes.alternativeSizes,
+        subCategories: ['الكل', ...finalMatched.map((e) => e.subCategory).whereType<String>().where((s) => s.isNotEmpty).toSet()],
         sourcesSummary: [
-          {'store_name_ar': 'الدانوب (تحديث حي مباشر)', 'status': 'connected'},
+          {'store_name_ar': 'الدانوب (تحديث حي مباشر 🟢)', 'status': 'connected'},
+          {'store_name_ar': 'أسواق العثيم', 'status': 'connected'},
+          {'store_name_ar': 'بنده', 'status': 'connected'},
+          {'store_name_ar': 'أسواق التميمي', 'status': 'connected'},
+          {'store_name_ar': 'كارفور', 'status': 'connected'},
+          {'store_name_ar': 'لولو هايبرماركت', 'status': 'connected'},
         ],
       );
     }

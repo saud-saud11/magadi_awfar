@@ -87,6 +87,50 @@ class StoreOffer {
       unitPricePer100gSar: (json['unit_price_per_100g_sar'] as num?)?.toDouble(),
     );
   }
+
+  StoreOffer copyWith({
+    int? id,
+    String? storeCode,
+    String? storeNameAr,
+    String? branchNameAr,
+    int? priceHalalas,
+    double? priceSar,
+    double? originalPriceSar,
+    bool? isOnSale,
+    bool? isInStock,
+    String? productUrl,
+    String? deepLink,
+    String? promoConditions,
+    double? deliveryFeeSar,
+    double? totalLandedSar,
+    String? totalStatus,
+    String? totalStatusText,
+    bool? isCheapestProduct,
+    bool? isCheapestTotal,
+    double? unitPricePer100gSar,
+  }) {
+    return StoreOffer(
+      id: id ?? this.id,
+      storeCode: storeCode ?? this.storeCode,
+      storeNameAr: storeNameAr ?? this.storeNameAr,
+      branchNameAr: branchNameAr ?? this.branchNameAr,
+      priceHalalas: priceHalalas ?? this.priceHalalas,
+      priceSar: priceSar ?? this.priceSar,
+      originalPriceSar: originalPriceSar ?? this.originalPriceSar,
+      isOnSale: isOnSale ?? this.isOnSale,
+      isInStock: isInStock ?? this.isInStock,
+      productUrl: productUrl ?? this.productUrl,
+      deepLink: deepLink ?? this.deepLink,
+      promoConditions: promoConditions ?? this.promoConditions,
+      deliveryFeeSar: deliveryFeeSar ?? this.deliveryFeeSar,
+      totalLandedSar: totalLandedSar ?? this.totalLandedSar,
+      totalStatus: totalStatus ?? this.totalStatus,
+      totalStatusText: totalStatusText ?? this.totalStatusText,
+      isCheapestProduct: isCheapestProduct ?? this.isCheapestProduct,
+      isCheapestTotal: isCheapestTotal ?? this.isCheapestTotal,
+      unitPricePer100gSar: unitPricePer100gSar ?? this.unitPricePer100gSar,
+    );
+  }
 }
 
 class ProductItem {
