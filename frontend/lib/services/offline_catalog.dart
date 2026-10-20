@@ -14,13 +14,13 @@ class OfflineCatalog {
       'keywords': ['ارز', 'أرز', 'شعلان', 'rice', 'مزه', 'بسمتي'],
       'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281033000010.jpg',
       'prices': {
-        'othaim': 7895,
-        'panda': 7995,
-        'amazon_sa': 7995,
-        'noon_minutes': 8100,
-        'carrefour': 8195,
-        'tamimi': 8250,
-        'danube': 8495,
+        'danube': 8995,
+        'othaim': 8995,
+        'panda': 8995,
+        'amazon_sa': 8995,
+        'noon_minutes': 8995,
+        'carrefour': 8995,
+        'tamimi': 8995,
       }
     },
     {
@@ -34,13 +34,13 @@ class OfflineCatalog {
       'keywords': ['ارز', 'أرز', 'شعلان', 'rice', 'مزه', 'بسمتي'],
       'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281033000027.jpg',
       'prices': {
-        'othaim': 4095,
-        'panda': 4195,
-        'amazon_sa': 4195,
-        'noon_minutes': 4250,
-        'carrefour': 4295,
-        'tamimi': 4350,
-        'danube': 4495,
+        'danube': 4695,
+        'othaim': 4695,
+        'panda': 4695,
+        'amazon_sa': 4695,
+        'noon_minutes': 4695,
+        'carrefour': 4695,
+        'tamimi': 4695,
       }
     },
     // Nutella

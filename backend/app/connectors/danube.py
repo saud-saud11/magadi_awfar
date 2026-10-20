@@ -54,7 +54,11 @@ class DanubeConnector(BaseConnector):
 
                         title_ar = hit.get("full_name_ar") or hit.get("name_ar") or ""
                         title_en = hit.get("full_name_en") or hit.get("name_en")
-                        brand_ar = hit.get("brand_ar") or "نوتيلا" if "نوتيلا" in title_ar else None
+                        brand_ar = hit.get("brand_ar")
+                        if not brand_ar and "نوتيلا" in title_ar:
+                            brand_ar = "نوتيلا"
+                        if brand_ar and brand_ar not in title_ar:
+                            title_ar = f"{brand_ar} {title_ar}"
                         brand_en = hit.get("brand_en")
 
                         # Product URL

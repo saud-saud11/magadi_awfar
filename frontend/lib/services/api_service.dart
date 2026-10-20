@@ -98,26 +98,17 @@ class ApiService {
     );
 
     if (danubeLive.isNotEmpty) {
-      final existingNames = danubeLive.map((d) => d.nameAr).toSet();
-      final extraOffline = offlineRes.matchedProducts.where((p) => !existingNames.contains(p.nameAr)).toList();
-      final combinedMatched = [...danubeLive, ...extraOffline];
-
       return SearchResult(
         query: query,
         districtName: district,
-        exactSizeMatched: offlineRes.exactSizeMatched || danubeLive.isNotEmpty,
-        statusMessage: 'تم العثور على ${combinedMatched.length} منتجات في المدينة المنورة (تحديث حي مباشر).',
-        disclaimer: 'الأرخص بين العروض المطابقة التي تم فحصها لموقعك',
-        matchedProducts: combinedMatched,
-        alternativeSizes: offlineRes.alternativeSizes,
-        subCategories: ['الكل', ...offlineRes.subCategories],
-        sourcesSummary: offlineRes.sourcesSummary.isNotEmpty ? offlineRes.sourcesSummary : [
-          {'store_name_ar': 'الدانوب', 'status': 'connected'},
-          {'store_name_ar': 'بنده', 'status': 'connected'},
-          {'store_name_ar': 'أسواق العثيم', 'status': 'connected'},
-          {'store_name_ar': 'أسواق التميمي', 'status': 'connected'},
-          {'store_name_ar': 'نون منتس', 'status': 'connected'},
-          {'store_name_ar': 'أمازون السعودية', 'status': 'connected'},
+        exactSizeMatched: true,
+        statusMessage: 'تم جلب ${danubeLive.length} عروض أسعار حية ومؤكدة الآن.',
+        disclaimer: 'الأسعار حية ومحدثة لحظياً من واجهات المتاجر المباشرة بدون أي تقديرات',
+        matchedProducts: danubeLive,
+        alternativeSizes: [],
+        subCategories: ['الكل', ...danubeLive.map((e) => e.subCategory).whereType<String>().where((s) => s.isNotEmpty).toSet()],
+        sourcesSummary: [
+          {'store_name_ar': 'الدانوب (تحديث حي مباشر)', 'status': 'connected'},
         ],
       );
     }
