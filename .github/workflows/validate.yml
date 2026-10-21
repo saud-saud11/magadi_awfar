@@ -1,9 +1,14 @@
 name: Validate app
 on:
   pull_request:
+  push:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: app-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   backend:
     runs-on: ubuntu-latest
@@ -32,9 +37,38 @@ jobs:
         working-directory: frontend
       - run: flutter test
         working-directory: frontend
-      - run: flutter build web --release --base-href /magadi_awfar/
+      - run: flutter build web --release --base-href /magadi_awfar/ --dart-define=API_BASE_URL=https://magadi-awfar-api.alhuwayfi-shop.chatgpt.site/api/v1
         working-directory: frontend
       - uses: actions/upload-artifact@v4
         with:
           name: magadi-web-review
           path: frontend/build/web
+      - name: Prepare Pages artifact
+        if: github.ref == 'refs/heads/main'
+        run: |
+          touch frontend/build/web/.nojekyll
+          cp frontend/build/web/index.html frontend/build/web/404.html
+          python - <<'PYCODE'
+          import json, os
+          from pathlib import Path
+          Path('frontend/build/web/release.json').write_text(json.dumps({'commit': os.environ['GITHUB_SHA'], 'api': 'https://magadi-awfar-api.alhuwayfi-shop.chatgpt.site/api/v1'}))
+          PYCODE
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: frontend/build/web
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Publish Flutter web
+        id: deployment
+        uses: actions/deploy-pages@v4
