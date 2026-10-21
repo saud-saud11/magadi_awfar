@@ -44,17 +44,17 @@ class _AdminScreenState extends State<AdminScreen> {
                 leading: Icon(Icons.cloud_off_outlined),
                 title: Text('تعذر جلب حالة المصادر من الخادم'),
                 subtitle: Text(
-                  'البحث المباشر في مصدر الدانوب يُجرّب عند البحث. بقية المتاجر تحتاج ربطًا.',
+                  'أعد المحاولة. ستظهر حالة كل متجر بعد استجابة خادم المقارنة.',
                 ),
               ),
             for (final source in sources)
               Card(
                 child: ListTile(
                   leading: Icon(
-                    source.status == 'connected'
+                    source.isEnabled
                         ? Icons.check_circle_outline
                         : Icons.link_off,
-                    color: source.status == 'connected'
+                    color: source.isEnabled
                         ? AppTheme.primary
                         : AppTheme.textMuted,
                   ),

@@ -386,7 +386,8 @@ class SourceInfo {
       code: json['code'] as String? ?? '',
       nameAr: json['name_ar'] as String? ?? '',
       status: json['status'] as String? ?? 'requires_setup',
-      statusText: json['status_text'] as String? ?? '',
+      statusText:
+          (json['status_text'] ?? json['status_message']) as String? ?? '',
       isEnabled: json['is_enabled'] as bool? ?? true,
     );
   }

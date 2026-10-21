@@ -19,17 +19,22 @@ class ProductMatching {
   }
 
   static ({double? amount, String? unit, int? pack}) measurement(String value) {
-    final text = normalize(value);
+    final text = normalize(value)
+        .replaceAllMapped(
+          RegExp(r'(\d+(?:\.\d+)?)\s*\+\s*(\d+(?:\.\d+)?)'),
+          (m) => '${num.parse(m[1]!) + num.parse(m[2]!)} ',
+        )
+        .replaceAll(RegExp(r'[()]'), ' ');
     final size = RegExp(
-      r'(\d+(?:\.\d+)?)\s*(كيلوجرام|كيلو|كجم|كغم|kg|جرام|غرام|جم|غم|g|ملليلتر|مليلتر|ml|مل|لتر|liters?|litres?|l)(?![a-z\u0600-\u06ff])',
+      r'(\d+(?:\.\d+)?)\s*(كيلو\s*جرام|كيلوجرام|كيلو|كجم|كغم|كغ|kg|جرام|غرام|جم|غم|grams?|gm|g|ملليلتر|مليلتر|ml|مل|لتر|liters?|litres?|l)(?![a-z\u0600-\u06ff])',
       caseSensitive: false,
     ).firstMatch(text);
     double? amount;
     String? unit;
     if (size != null) {
       amount = double.parse(size[1]!);
-      final rawUnit = size[2]!;
-      if (['كيلوجرام', 'كيلو', 'كجم', 'كغم', 'kg'].contains(rawUnit)) {
+      final rawUnit = size[2]!.replaceAll(RegExp(r'\s'), '');
+      if (['كيلوجرام', 'كيلو', 'كجم', 'كغم', 'كغ', 'kg'].contains(rawUnit)) {
         amount *= 1000;
         unit = 'g';
       } else if ([
@@ -52,9 +57,11 @@ class ProductMatching {
           r'(?:جرام|غرام|جم|kg|g|ml|مل|لتر|l)\s*[x×*]\s*(\d+)',
         ).firstMatch(text) ??
         RegExp(
-          r'(\d+)\s*(?:عبوات|عبوه|علب|علبه|حبات|قطع)(?![a-z\u0600-\u06ff])',
+          r'(\d+)\s*(?:عبوات|عبوه|علب|علبه|حبات|قطع|pieces?|pcs|bottles?|cans?|sachets?)(?![a-z\u0600-\u06ff])',
         ).firstMatch(text) ??
-        RegExp(r'(?:حزمه|كرتون|شده|pack)\s*\(?\s*(\d+)').firstMatch(text);
+        RegExp(
+          r'(?:حزمه|كرتون|شده|pack)\s*(?:of\s*)?\(?\s*(\d+)',
+        ).firstMatch(text);
     return (
       amount: amount,
       unit: unit,
@@ -65,7 +72,7 @@ class ProductMatching {
   static String variantName(String name) => normalize(name)
       .replaceAll(
         RegExp(
-          r'\d+(?:\.\d+)?\s*(?:كيلوجرام|كيلو|كجم|كغم|kg|جرام|غرام|جم|غم|g|ملليلتر|مليلتر|ml|مل|لتر|liters?|litres?|l)(?![a-z\u0600-\u06ff])',
+          r'\d+(?:\.\d+)?\s*(?:كيلو\s*جرام|كيلوجرام|كيلو|كجم|كغم|كغ|kg|جرام|غرام|جم|غم|grams?|gm|g|ملليلتر|مليلتر|ml|مل|لتر|liters?|litres?|l)(?![a-z\u0600-\u06ff])',
         ),
         '',
       )

@@ -71,6 +71,7 @@ class ApiService {
   }) async {
     List<ProductItem> live = [];
     List<dynamic> sources = [];
+    SearchResult? serverResult;
     if (baseUrl.isNotEmpty) {
       try {
         final uri = Uri.parse('$baseUrl/search').replace(
@@ -80,11 +81,12 @@ class ApiService {
             'sort_by': sortBy,
           },
         );
-        final res = await http.get(uri).timeout(const Duration(seconds: 9));
+        final res = await http.get(uri).timeout(const Duration(seconds: 16));
         if (res.statusCode == 200) {
           final result = SearchResult.fromJson(
             jsonDecode(utf8.decode(res.bodyBytes)),
           );
+          serverResult = result;
           sources = result.sourcesSummary;
           live = [
             ...result.matchedProducts,
@@ -95,12 +97,24 @@ class ApiService {
         /* Try the retailer's public search source below. */
       }
     }
-    if (live.isEmpty) {
+    if (live.isEmpty && serverResult == null) {
       try {
         live = await LiveDanubeClient.search(query);
+        sources = [
+          {
+            'code': 'danube',
+            'name_ar': 'الدانوب',
+            'status': live.isEmpty ? 'temporarily_unavailable' : 'connected',
+            'status_text':
+                'تعذر الاتصال بخادم المقارنة؛ هذه نتائج المصدر الاحتياطي فقط',
+            'is_enabled': true,
+            'products_count': live.length,
+          },
+        ];
       } catch (_) {}
     }
     if (live.isEmpty) {
+      if (serverResult != null) return serverResult;
       return OfflineCatalog.search(
         query: query,
         district: district,

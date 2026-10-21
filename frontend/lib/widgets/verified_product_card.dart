@@ -37,6 +37,8 @@ class _VerifiedProductCardState extends State<VerifiedProductCard> {
             ? stockA.compareTo(stockB)
             : a.priceHalalas.compareTo(b.priceHalalas);
       });
+    final comparable = offers.where((o) => o.canCompare).toList();
+    final lowest = comparable.isEmpty ? null : comparable.first;
     final visible = widget.expanded || _showAll
         ? offers
         : offers.take(3).toList();
@@ -79,11 +81,11 @@ class _VerifiedProductCardState extends State<VerifiedProductCard> {
                             fontSize: 12,
                           ),
                         ),
-                        if (p.lowestOffer != null)
+                        if (lowest != null)
                           Padding(
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
-                              'من ${p.lowestOffer!.priceSar.toStringAsFixed(2)} ر.س',
+                              'من ${lowest.priceSar.toStringAsFixed(2)} ر.س',
                               style: const TextStyle(
                                 color: AppTheme.primary,
                                 fontSize: 20,
@@ -161,7 +163,7 @@ class _VerifiedProductCardState extends State<VerifiedProductCard> {
                 margin: const EdgeInsets.only(top: 9),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: offer == offers.first
+                  color: offer == lowest
                       ? AppTheme.primaryContainer
                       : AppTheme.background,
                   borderRadius: BorderRadius.circular(14),
@@ -195,6 +197,17 @@ class _VerifiedProductCardState extends State<VerifiedProductCard> {
                         color: AppTheme.textMuted,
                       ),
                     ),
+                    if (offer.branchNameAr != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          offer.branchNameAr!,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: AppTheme.textMuted,
+                          ),
+                        ),
+                      ),
                     if (offer.originalPriceSar != null && offer.isOnSale)
                       Text(
                         'قبل العرض ${offer.originalPriceSar!.toStringAsFixed(2)} ر.س',

@@ -26,7 +26,7 @@ class ResultsScreen extends StatefulWidget {
 
 class _ResultsScreenState extends State<ResultsScreen> {
   late String _currentSortBy;
-  String _selectedStoreFilter = 'all'; // all, danube, panda, othaim, carrefour
+  String _selectedStoreFilter = 'all';
   String _selectedCategoryFilter = 'all'; // all, or specific subCategory
   String _selectedPackagingFilter = 'all'; // all, single, bundle
   bool _onlyInStock = false;
@@ -58,8 +58,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
       if (mounted) {
         setState(() {
           _result = res;
-          if (res == null ||
-              (res.matchedProducts.isEmpty && res.alternativeSizes.isEmpty)) {
+          if (res == null) {
             _errorMessage =
                 'لم نتمكن من العثور على عروض لبحث «${widget.initialQuery}». يرجى تجربة كلمات أخرى مثل: أرز الشعلان، نوتيلا، حليب السعودية.';
           }
@@ -159,15 +158,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     child: Row(
                       children: [
                         _buildFilterChip('الكل', 'all'),
-                        _buildFilterChip('الدانوب', 'danube'),
-                        _buildFilterChip('بنده', 'panda'),
-                        _buildFilterChip('العثيم', 'othaim'),
-                        _buildFilterChip('التميمي', 'tamimi'),
-                        _buildFilterChip('نون منتس', 'noon_minutes'),
-                        _buildFilterChip('أمازون', 'amazon_sa'),
-                        _buildFilterChip('صيدلية النهدي', 'nahdi'),
-                        _buildFilterChip('صيدلية الدواء', 'dawaa'),
-                        _buildFilterChip('كارفور', 'carrefour'),
+                        ..._filterStores.entries.map(
+                          (s) => _buildFilterChip(s.value, s.key),
+                        ),
                         const SizedBox(width: 8),
                         FilterChip(
                           label: const Text('المتوفر فقط'),
@@ -256,6 +249,83 @@ class _ResultsScreenState extends State<ResultsScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Map<String, String> get _filterStores {
+    final stores = <String, String>{};
+    for (final raw in _result?.sourcesSummary ?? []) {
+      if (raw is Map<String, dynamic> && raw['is_enabled'] == true) {
+        stores[raw['code'] as String] = raw['name_ar'] as String;
+      }
+    }
+    for (final p in [
+      ...?_result?.matchedProducts,
+      ...?_result?.alternativeSizes,
+    ]) {
+      for (final o in p.offers) {
+        stores[o.storeCode] = o.storeNameAr;
+      }
+    }
+    return stores;
+  }
+
+  Widget _buildSourceStatus() {
+    final sources = (_result?.sourcesSummary ?? [])
+        .whereType<Map<String, dynamic>>()
+        .map(SourceInfo.fromJson)
+        .toList();
+    if (sources.isEmpty) return const SizedBox();
+    final responded = sources.where((s) => s.status == 'connected').length;
+    final enabled = sources.where((s) => s.isEnabled).length;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ExpansionTile(
+        leading: const Icon(Icons.storefront_outlined, color: AppTheme.primary),
+        title: Text(
+          'استجاب $responded من $enabled متاجر مرتبطة',
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+        ),
+        subtitle: const Text(
+          'حالة المتاجر ونطاق التغطية',
+          style: TextStyle(fontSize: 11),
+        ),
+        children: [
+          for (final s in sources)
+            ListTile(
+              dense: true,
+              leading: Icon(
+                s.status == 'connected'
+                    ? Icons.check_circle_outline
+                    : s.isEnabled
+                    ? Icons.sync_problem
+                    : Icons.link_off,
+                color: s.status == 'connected'
+                    ? AppTheme.primary
+                    : AppTheme.textMuted,
+                size: 18,
+              ),
+              title: Text(
+                s.nameAr,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              subtitle: Text(
+                s.statusText,
+                style: const TextStyle(fontSize: 11),
+              ),
+            ),
+          const Padding(
+            padding: EdgeInsets.all(12),
+            child: Text(
+              'أسعار الكتالوج قد تخص فرعًا خارج المدينة. التوفر والتوصيل ورسوم الطلب تُؤكد لدى المتجر.',
+              style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -369,8 +439,17 @@ class _ResultsScreenState extends State<ResultsScreen> {
   Widget _buildResultsList() {
     if (_result == null) return const SizedBox();
 
-    final allMatched = _result!.matchedProducts;
-    final alternatives = _result!.alternativeSizes;
+    bool visible(ProductItem p) =>
+        (_selectedStoreFilter == 'all' && !_onlyInStock) ||
+        p.offers.any(
+          (o) =>
+              o.isFresh &&
+              (_selectedStoreFilter == 'all' ||
+                  o.storeCode == _selectedStoreFilter) &&
+              (!_onlyInStock || (o.stockKnown && o.isInStock)),
+        );
+    final allMatched = _result!.matchedProducts.where(visible).toList();
+    final alternatives = _result!.alternativeSizes.where(visible).toList();
     final exactMatched = _result!.exactSizeMatched;
 
     var matched = _selectedCategoryFilter == 'all'
@@ -391,6 +470,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        _buildSourceStatus(),
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: Text(
@@ -503,7 +583,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 ),
                 const SizedBox(height: 18),
                 Text(
-                  _result!.statusMessage.isNotEmpty
+                  _selectedStoreFilter != 'all'
+                      ? 'لا توجد نتائج من هذا المتجر ضمن البحث الحالي. راجع حالة المتاجر أعلاه.'
+                      : _result!.statusMessage.isNotEmpty
                       ? _result!.statusMessage
                       : 'لم يتم العثور على منتجات مطابقة لبحثك.',
                   style: const TextStyle(

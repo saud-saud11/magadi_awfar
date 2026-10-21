@@ -124,6 +124,33 @@ void main() {
       isTrue,
     );
   });
+  test(
+    'bonus weights and store status messages survive multi-store search',
+    () {
+      expect(ProductMatching.measurement('750 + 75 G').amount, 825);
+      expect(ProductMatching.measurement('1 كيلو جرام').amount, 1000);
+      expect(ProductMatching.measurement('500 gm').amount, 500);
+      for (final text in [
+        'حليب 15+3*200مل',
+        'Milk 200ml 18 Pieces',
+        'Milk 200ml × (15 + 3 Free)',
+      ]) {
+        expect(ProductMatching.measurement(text).pack, 18);
+        expect(ProductMatching.measurement(text).amount, 200);
+      }
+      expect(ProductMatching.exactSize('750 g', product(amount: 825)), isFalse);
+      expect(
+        SourceInfo.fromJson({
+          'code': 'panda',
+          'name_ar': 'بنده',
+          'status': 'connected',
+          'status_message': 'تم جلب الأسعار',
+          'is_enabled': true,
+        }).statusText,
+        'تم جلب الأسعار',
+      );
+    },
+  );
   test('legacy and stale prices cannot rank and UTC survives persistence', () {
     expect(
       product(
