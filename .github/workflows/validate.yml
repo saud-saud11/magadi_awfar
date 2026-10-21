@@ -57,18 +57,46 @@ jobs:
         if: github.ref == 'refs/heads/main'
         with:
           path: frontend/build/web
-  deploy:
+  release:
     if: github.ref == 'refs/heads/main'
     needs: [backend, frontend]
     runs-on: ubuntu-latest
     permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      contents: write
+      actions: write
     steps:
-      - uses: actions/configure-pages@v5
-      - name: Publish Flutter web
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - uses: actions/checkout@v4
+        with:
+          path: source
+      - uses: actions/download-artifact@v4
+        with:
+          name: github-pages
+          path: artifact
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: site
+      - name: Commit tested assets to the permitted Pages branch
+        id: release
+        run: |
+          mkdir -p web
+          tar -xf artifact/artifact.tar -C web
+          rsync -a --delete --exclude=.git/ --exclude=.github/ web/ site/
+          mkdir -p site/.github/workflows
+          cp source/.github/workflows/publish-pages.yml site/.github/workflows/publish-pages.yml
+          cd site
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add --all
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish tested Flutter build $GITHUB_SHA"
+            git push origin HEAD:gh-pages
+          fi
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Start deployment on the permitted branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_COMMIT: ${{ steps.release.outputs.commit }}
+        run: |
+          jq -n --arg sha "$RELEASE_COMMIT" '{ref:"gh-pages",inputs:{expected_commit:$sha}}' > "$RUNNER_TEMP/pages-dispatch.json"
+          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/publish-pages.yml/dispatches" --input "$RUNNER_TEMP/pages-dispatch.json"
