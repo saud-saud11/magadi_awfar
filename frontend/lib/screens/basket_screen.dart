@@ -213,20 +213,12 @@ class _BasketScreenState extends State<BasketScreen> {
                         padding: const EdgeInsets.all(12),
                         child: Row(
                           children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                width: 54,
-                                height: 54,
-                                color: AppTheme.surfaceAlt,
-                                child: item.product.imageUrl != null && item.product.imageUrl!.isNotEmpty
-                                    ? Image.network(
-                                        item.product.imageUrl!,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (c, e, s) => const Icon(Icons.inventory_2_outlined, color: AppTheme.textMuted),
-                                      )
-                                    : const Icon(Icons.inventory_2_outlined, color: AppTheme.textMuted),
-                              ),
+                            ProductImage(
+                              imageUrl: item.product.imageUrl,
+                              nameAr: item.product.nameAr,
+                              width: 54,
+                              height: 54,
+                              borderRadius: 12,
                             ),
                             const SizedBox(width: 12),
                             Expanded(

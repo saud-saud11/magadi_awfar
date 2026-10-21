@@ -566,3 +566,105 @@ class EmptyIllustration extends StatelessWidget {
     );
   }
 }
+
+/// Displays product image with smooth loading shimmer, error handling, and smart category fallbacks.
+class ProductImage extends StatelessWidget {
+  final String? imageUrl;
+  final String? nameAr;
+  final double width;
+  final double height;
+  final double borderRadius;
+  final BoxFit fit;
+
+  const ProductImage({
+    super.key,
+    required this.imageUrl,
+    this.nameAr,
+    this.width = 70,
+    this.height = 70,
+    this.borderRadius = 16,
+    this.fit = BoxFit.contain,
+  });
+
+  IconData _getFallbackIcon() {
+    final n = (nameAr ?? '').toLowerCase();
+    if (n.contains('حليب') || n.contains('لبن') || n.contains('عصير') || n.contains('مياه') || n.contains('ماء')) {
+      return Icons.local_drink_rounded;
+    }
+    if (n.contains('أرز') || n.contains('ارز') || n.contains('شعلان') || n.contains('حبوب')) {
+      return Icons.rice_bowl_rounded;
+    }
+    if (n.contains('شوكولاتة') || n.contains('شوكولاته') || n.contains('نوتيلا') || n.contains('سكر')) {
+      return Icons.cake_rounded;
+    }
+    if (n.contains('زيت') || n.contains('عافية') || n.contains('نور') || n.contains('سمن')) {
+      return Icons.opacity_rounded;
+    }
+    if (n.contains('شاي') || n.contains('قهوة') || n.contains('كوفيه')) {
+      return Icons.coffee_rounded;
+    }
+    if (n.contains('جبن') || n.contains('جبنة') || n.contains('كيري') || n.contains('بوك') || n.contains('قشطة')) {
+      return Icons.breakfast_dining_rounded;
+    }
+    if (n.contains('تونة') || n.contains('دجاج') || n.contains('لحم') || n.contains('سمك')) {
+      return Icons.set_meal_rounded;
+    }
+    if (n.contains('خبز') || n.contains('توست') || n.contains('لوزين') || n.contains('كرواسون')) {
+      return Icons.bakery_dining_rounded;
+    }
+    if (n.contains('صابون') || n.contains('تايد') || n.contains('فيري') || n.contains('غسيل') || n.contains('منظف')) {
+      return Icons.cleaning_services_rounded;
+    }
+    if (n.contains('أطفال') || n.contains('حفاض') || n.contains('بيبي')) {
+      return Icons.child_care_rounded;
+    }
+    return Icons.shopping_bag_rounded;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final validUrl = (imageUrl != null && imageUrl!.trim().isNotEmpty && imageUrl!.startsWith('http'));
+
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: AppTheme.background,
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: Border.all(color: AppTheme.border.withOpacity(0.6)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: validUrl
+            ? Image.network(
+                imageUrl!,
+                fit: fit,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return ShimmerBox(width: width, height: height, radius: borderRadius);
+                },
+                errorBuilder: (context, error, stackTrace) => _buildFallback(),
+              )
+            : _buildFallback(),
+      ),
+    );
+  }
+
+  Widget _buildFallback() {
+    return Center(
+      child: Container(
+        width: width * 0.75,
+        height: height * 0.75,
+        decoration: BoxDecoration(
+          color: AppTheme.primaryContainer.withOpacity(0.5),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          _getFallbackIcon(),
+          size: width * 0.42,
+          color: AppTheme.primary,
+        ),
+      ),
+    );
+  }
+}

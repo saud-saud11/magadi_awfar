@@ -163,7 +163,11 @@ class ApiService {
                 packCount: p.packCount,
                 packType: p.packType,
                 packLabelAr: p.packLabelAr,
-                imageUrl: (match.imageUrl != null && match.imageUrl!.isNotEmpty) ? match.imageUrl : p.imageUrl,
+                imageUrl: (match.imageUrl != null && match.imageUrl!.isNotEmpty)
+                    ? match.imageUrl
+                    : ((p.imageUrl != null && p.imageUrl!.isNotEmpty)
+                        ? p.imageUrl
+                        : OfflineCatalog.lookupImage(p.nameAr)),
                 offers: sortedOffers,
               );
             }

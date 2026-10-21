@@ -521,23 +521,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                   // Product Image + Bell
                                   Stack(
                                     children: [
-                                      Container(
-                                        height: 96,
+                                      ProductImage(
+                                        imageUrl: item.imageUrl,
+                                        nameAr: item.nameAr,
                                         width: double.infinity,
-                                        decoration: BoxDecoration(
-                                          color: AppTheme.background,
-                                          borderRadius: BorderRadius.circular(16),
-                                        ),
-                                        child: (item.imageUrl != null && item.imageUrl!.isNotEmpty)
-                                            ? ClipRRect(
-                                                borderRadius: BorderRadius.circular(16),
-                                                child: Image.network(
-                                                  item.imageUrl!,
-                                                  fit: BoxFit.contain,
-                                                  errorBuilder: (_, __, ___) => const Icon(Icons.shopping_bag_outlined, color: AppTheme.textMuted),
-                                                ),
-                                              )
-                                            : const Icon(Icons.shopping_bag_outlined, color: AppTheme.textMuted),
+                                        height: 96,
+                                        borderRadius: 16,
                                       ),
                                       Positioned(
                                         top: 6,

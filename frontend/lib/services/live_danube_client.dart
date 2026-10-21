@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/models.dart';
+import 'offline_catalog.dart';
 
 class LiveDanubeClient {
   static const String appId = '1D2IEWLQAD';
@@ -282,7 +283,9 @@ class LiveDanubeClient {
             packCount: packCount,
             packType: packType,
             packLabelAr: packLabel,
-            imageUrl: image,
+            imageUrl: (image != null && image.isNotEmpty && image.startsWith('http'))
+                ? image
+                : OfflineCatalog.lookupImage(displayNameAr),
             offers: finalOffers,
           ));
         }

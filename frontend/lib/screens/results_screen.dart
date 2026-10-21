@@ -559,24 +559,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Product Image
-                        Container(
+                        ProductImage(
+                          imageUrl: product.imageUrl,
+                          nameAr: product.nameAr,
                           width: 70,
                           height: 70,
-                          decoration: BoxDecoration(
-                            color: AppTheme.background,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppTheme.border.withOpacity(0.6)),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: product.imageUrl != null && product.imageUrl!.isNotEmpty
-                                ? Image.network(
-                                    product.imageUrl!,
-                                    fit: BoxFit.contain,
-                                    errorBuilder: (c, e, s) => const Icon(Icons.shopping_bag_outlined, color: AppTheme.textMuted),
-                                  )
-                                : const Icon(Icons.shopping_bag_outlined, color: AppTheme.textMuted),
-                          ),
+                          borderRadius: 16,
                         ),
                         const SizedBox(width: 14),
                         Expanded(

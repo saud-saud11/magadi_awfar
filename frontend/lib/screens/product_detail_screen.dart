@@ -102,24 +102,12 @@ class ProductDetailScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(22),
                 child: Column(
                   children: [
-                    Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        color: AppTheme.background,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppTheme.border.withOpacity(0.8)),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: product.imageUrl != null && product.imageUrl!.isNotEmpty
-                            ? Image.network(
-                                product.imageUrl!,
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => const Icon(Icons.shopping_bag_outlined, size: 54, color: AppTheme.primary),
-                              )
-                            : const Icon(Icons.shopping_bag_outlined, size: 54, color: AppTheme.primary),
-                      ),
+                    ProductImage(
+                      imageUrl: product.imageUrl,
+                      nameAr: product.nameAr,
+                      width: 130,
+                      height: 130,
+                      borderRadius: 22,
                     ),
                     const SizedBox(height: 16),
                     Text(

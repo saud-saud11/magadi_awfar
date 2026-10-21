@@ -12,7 +12,7 @@ class OfflineCatalog {
       'amount': 10000.0,
       'unit': 'g',
       'keywords': ['ارز', 'أرز', 'شعلان', 'rice', 'مزه', 'بسمتي'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281033000010.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/047/562/product/shalan-basmati-rice-10-kg.jpg',
       'prices': {
         'danube': 8995,
         'othaim': 8995,
@@ -32,7 +32,7 @@ class OfflineCatalog {
       'amount': 5000.0,
       'unit': 'g',
       'keywords': ['ارز', 'أرز', 'شعلان', 'rice', 'مزه', 'بسمتي'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281033000027.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/014/600/product/890600109002.jpg',
       'prices': {
         'danube': 4695,
         'othaim': 4695,
@@ -53,7 +53,7 @@ class OfflineCatalog {
       'amount': 500.0,
       'unit': 'g',
       'keywords': ['نوتيلا', 'شوكولاته', 'nutella', 'شوكولاتة', 'بندق'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/8000500179864.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/135/911/product/80176800-1.jpg',
       'prices': {
         'othaim': 2395,
         'panda': 2450,
@@ -73,7 +73,7 @@ class OfflineCatalog {
       'amount': 750.0,
       'unit': 'g',
       'keywords': ['نوتيلا', 'nutella'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/8000500023976.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/135/911/product/80176800-1.jpg',
       'prices': {
         'othaim': 3395,
         'panda': 3495,
@@ -93,7 +93,7 @@ class OfflineCatalog {
       'amount': 400.0,
       'unit': 'g',
       'keywords': ['نوتيلا', 'nutella'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/8000500000001.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/135/911/product/80176800-1.jpg',
       'prices': {
         'othaim': 1995,
         'panda': 2050,
@@ -113,7 +113,7 @@ class OfflineCatalog {
       'amount': 1000.0,
       'unit': 'ml',
       'keywords': ['حليب السعودية', 'السعودية', 'saudia', 'حليب'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281018000018.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/121/321/product/628103910216.jpeg',
       'prices': {
         'othaim': 595,
         'panda': 600,
@@ -133,7 +133,7 @@ class OfflineCatalog {
       'amount': 2000.0,
       'unit': 'ml',
       'keywords': ['حليب السعودية', 'السعودية', 'saudia', 'حليب'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281018000025.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/128/687/product/628103917531.jpg',
       'prices': {
         'othaim': 1075,
         'panda': 1100,
@@ -152,7 +152,7 @@ class OfflineCatalog {
       'amount': 1000.0,
       'unit': 'ml',
       'keywords': ['لاكتوز', 'خالي اللاكتوز', 'حليب السعودية'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281018000049.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/108/673/product/628103911231.jpeg',
       'prices': {
         'othaim': 795,
         'panda': 800,
@@ -172,7 +172,7 @@ class OfflineCatalog {
       'amount': 2000.0,
       'unit': 'ml',
       'keywords': ['مراعي', 'المراعي', 'almarai', 'حليب'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281007000021.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/128/688/product/628100706688.jpg',
       'prices': {
         'othaim': 1025,
         'panda': 1050,
@@ -191,7 +191,7 @@ class OfflineCatalog {
       'amount': 1000.0,
       'unit': 'ml',
       'keywords': ['مراعي', 'المراعي', 'almarai', 'حليب'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281007000014.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/101/924/product/628100707005.jpeg',
       'prices': {
         'othaim': 550,
         'panda': 575,
@@ -211,7 +211,7 @@ class OfflineCatalog {
       'amount': 216.0,
       'unit': 'g',
       'keywords': ['كيري', 'جبن كيري', 'جبنة كيري', 'kiri', 'جبن', 'جبنة'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/3073780860012.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/095/266/product/6281006141209_1.jpg',
       'prices': {
         'othaim': 1250,
         'panda': 1295,
@@ -230,7 +230,7 @@ class OfflineCatalog {
       'amount': 432.0,
       'unit': 'g',
       'keywords': ['كيري', 'جبن كيري', 'kiri'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/3073780860029.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/095/266/product/6281006141209_1.jpg',
       'prices': {
         'othaim': 2395,
         'panda': 2495,
@@ -250,7 +250,7 @@ class OfflineCatalog {
       'amount': 600.0,
       'unit': 'g',
       'keywords': ['توست', 'خبز', 'لوزين', 'toast', 'bread', 'lusine'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281030000012.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/111/280/product/70999332463.jpeg',
       'prices': {
         'othaim': 495,
         'panda': 500,
@@ -269,7 +269,7 @@ class OfflineCatalog {
       'amount': 600.0,
       'unit': 'g',
       'keywords': ['توست بر', 'أسمر', 'اسمر', 'لوزين'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281030000029.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/125/547/product/628100706020.jpg',
       'prices': {
         'othaim': 525,
         'panda': 550,
@@ -289,7 +289,7 @@ class OfflineCatalog {
       'amount': 1500.0,
       'unit': 'ml',
       'keywords': ['زيت', 'عافيه', 'عافية', 'oil', 'ذرة'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281017000011.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/087/571/product/6281011702181.png',
       'prices': {
         'othaim': 2195,
         'panda': 2295,
@@ -309,7 +309,7 @@ class OfflineCatalog {
       'amount': 200.0,
       'unit': 'g',
       'keywords': ['شاي', 'ليبتون', 'lipton', 'tea'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281006000015.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/144/038/product/506330500821.jpg',
       'prices': {
         'othaim': 1550,
         'panda': 1595,
@@ -329,7 +329,7 @@ class OfflineCatalog {
       'amount': 5000.0,
       'unit': 'g',
       'keywords': ['سكر', 'الاسره', 'الأسرة', 'sugar'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281026000019.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/088/044/product/Al_Osra_Fine_White_Sugar_5___1_KG_6285525000436.png',
       'prices': {
         'othaim': 2095,
         'panda': 2150,
@@ -349,7 +349,7 @@ class OfflineCatalog {
       'amount': 30.0,
       'unit': 'حبة',
       'keywords': ['بيض', 'egg', 'طبق بيض'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281039000014.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/111/280/product/70999332463.jpeg',
       'prices': {
         'othaim': 1895,
         'noon_minutes': 1950,
@@ -369,7 +369,7 @@ class OfflineCatalog {
       'amount': 800.0,
       'unit': 'g',
       'keywords': ['سيميلاك', 'similac', 'حليب اطفال', 'اطفال'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/8427031000018.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/061/288/product/539152305727.jpg',
       'prices': {
         'nahdi': 8950,
         'dawaa': 8950,
@@ -389,7 +389,7 @@ class OfflineCatalog {
       'amount': 66.0,
       'unit': 'حبة',
       'keywords': ['بيبي جوي', 'بيبيجوي', 'حفاضات', 'حفايض', 'baby joy', 'babyjoy', 'مقاس 5', 'مقاس ٥'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281008000501.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/058/598/product/6281017353141.PT01.jpg',
       'prices': {
         'tamimi': 6995,
         'othaim': 7250,
@@ -409,7 +409,7 @@ class OfflineCatalog {
       'amount': 74.0,
       'unit': 'حبة',
       'keywords': ['بيبي جوي', 'بيبيجوي', 'حفاضات', 'حفايض', 'baby joy', 'مقاس 4', 'مقاس ٤'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281008000402.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/058/549/product/6281017353097.PT02.jpg',
       'prices': {
         'tamimi': 7195,
         'othaim': 7250,
@@ -430,7 +430,7 @@ class OfflineCatalog {
       'amount': 800.0,
       'unit': 'g',
       'keywords': ['نان', 'nan', 'حليب اطفال', 'حليب نان'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/7613036000012.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/139/649/product/628705074013.jpg',
       'prices': {
         'othaim': 8295,
         'panda': 8350,
@@ -450,7 +450,7 @@ class OfflineCatalog {
       'amount': 24.0,
       'unit': 'حبة',
       'keywords': ['بنادول', 'بانادول', 'بندول', 'panadol', 'مسكن', 'صداع', 'اكسترا'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/5000347000014.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/097/254/product/Panadol_Advance_-_3D_Packshots___Thumbnail_page-0001.jpg',
       'prices': {
         'nahdi': 690,
         'dawaa': 690,
@@ -468,7 +468,7 @@ class OfflineCatalog {
       'amount': 453.0,
       'unit': 'g',
       'keywords': ['سيتافيل', 'cetaphil', 'مرطب', 'كريم مرطب', 'كريم'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/3499320000018.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/107/971/product/60602985.jpg',
       'prices': {
         'amazon_sa': 8400,
         'nahdi': 9900,
@@ -487,7 +487,7 @@ class OfflineCatalog {
       'amount': 100.0,
       'unit': 'g',
       'keywords': ['بيبانثين', 'بيبانثين الوردي', 'bepanthen', 'مرهم'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/4008500000019.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/127/010/product/6285074002974.jpg',
       'prices': {
         'othaim': 5195,
         'panda': 5250,
@@ -505,7 +505,7 @@ class OfflineCatalog {
       'amount': 185.0,
       'unit': 'g',
       'keywords': ['تونة', 'تونه', 'قودي', 'tuna', 'لحم تونة'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281017000101.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/116/262/product/6281014302227.01.jpg',
       'prices': {
         'othaim': 750,
         'amazon_sa': 775,
@@ -524,7 +524,7 @@ class OfflineCatalog {
       'amount': 200.0,
       'unit': 'g',
       'keywords': ['تونة', 'تونه', 'هالي', 'tuna'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281017000102.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/022/223/product/490293111068.jpg',
       'prices': {
         'othaim': 475,
         'panda': 525,
@@ -542,7 +542,7 @@ class OfflineCatalog {
       'amount': 185.0,
       'unit': 'g',
       'keywords': ['تونة', 'تونه', 'الخير', 'tuna'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281017000103.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/138/431/product/628110149436.jpg',
       'prices': {
         'othaim': 595,
         'tamimi': 625,
@@ -561,7 +561,7 @@ class OfflineCatalog {
       'amount': 400.0,
       'unit': 'g',
       'keywords': ['شاي', 'ربيع', 'شاي ربيع', 'tea', 'اوراق شاي'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281007000201.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/128/056/product/6281013222762_2.jpg',
       'prices': {
         'othaim': 2495,
         'carrefour': 2550,
@@ -580,7 +580,7 @@ class OfflineCatalog {
       'amount': 100.0,
       'unit': 'كيس',
       'keywords': ['شاي', 'ربيع', 'اكياس شاي', 'أكياس'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281007000202.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/128/687/product/628103917531.jpg',
       'prices': {
         'othaim': 1595,
         'panda': 1650,
@@ -598,7 +598,7 @@ class OfflineCatalog {
       'amount': 100.0,
       'unit': 'كيس',
       'keywords': ['شاي', 'لبتون', 'ليبتون', 'lipton'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281007000203.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/133/353/product/6281006710009_1.png',
       'prices': {
         'othaim': 1795,
         'carrefour': 1850,
@@ -617,7 +617,7 @@ class OfflineCatalog {
       'amount': 450.0,
       'unit': 'g',
       'keywords': ['مكرونة', 'معكرونة', 'سباغيتي', 'قودي', 'pasta'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281014000301.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/022/619/product/GOODY_SPAGHETTI__20_450GM.jpg',
       'prices': {
         'othaim': 450,
         'carrefour': 450,
@@ -636,7 +636,7 @@ class OfflineCatalog {
       'amount': 450.0,
       'unit': 'g',
       'keywords': ['مكرونة', 'معكرونة', 'قودي', 'خواتم'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281014000302.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/053/656/product/goody-ditalini-rigati-pasta-no-14-450g.jpg',
       'prices': {
         'othaim': 450,
         'carrefour': 450,
@@ -655,7 +655,7 @@ class OfflineCatalog {
       'amount': 432.0,
       'unit': 'g',
       'keywords': ['جبنة', 'جبن', 'كيري', 'kiri', 'مربعات'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/3073780850011.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/095/266/product/6281006141209_1.jpg',
       'prices': {
         'othaim': 2495,
         'carrefour': 2550,
@@ -673,7 +673,7 @@ class OfflineCatalog {
       'amount': 500.0,
       'unit': 'g',
       'keywords': ['جبنة', 'جبن', 'بوك', 'puck', 'كاسات', 'كريم'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/5760466750012.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/128/687/product/628103917531.jpg',
       'prices': {
         'othaim': 1695,
         'carrefour': 1750,
@@ -691,7 +691,7 @@ class OfflineCatalog {
       'amount': 480.0,
       'unit': 'g',
       'keywords': ['جبنة', 'جبن', 'كرافت', 'kraft', 'شيدر'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/7622210000015.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/041/493/product/762221085249.jpg',
       'prices': {
         'othaim': 1950,
         'carrefour': 1995,
@@ -710,7 +710,7 @@ class OfflineCatalog {
       'amount': 2500.0,
       'unit': 'g',
       'keywords': ['تايد', 'tide', 'صابون تايد', 'صابون', 'مسحوق غسيل'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/4084500000011.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/048/727/product/2_tide-protect-antibacterial-ls-automatic-2-25kg.png',
       'prices': {
         'othaim': 3695,
         'carrefour': 3750,
@@ -728,7 +728,7 @@ class OfflineCatalog {
       'amount': 1000.0,
       'unit': 'ml',
       'keywords': ['فيري', 'fairy', 'صابون صحون', 'سائل جلي'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/4084500000028.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/095/266/product/6281006141209_1.jpg',
       'prices': {
         'othaim': 1350,
         'carrefour': 1395,
@@ -750,7 +750,7 @@ class OfflineCatalog {
       'pack_type': 'single',
       'pack_label_ar': 'بالحبّة (مفرد)',
       'keywords': ['بيبسي', 'pepsi', 'مشروب غازي', 'علبة بيبسي', 'حبة بيبسي'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281004000012.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/133/397/product/12000059780_1.png',
       'prices': {
         'othaim': 250,
         'carrefour': 250,
@@ -771,7 +771,7 @@ class OfflineCatalog {
       'pack_type': 'bundle',
       'pack_label_ar': 'حزمة (6 علب)',
       'keywords': ['بيبسي', 'pepsi', 'حزمة بيبسي', 'شدة بيبسي', 'شدة', 'حزمة', '6 علب'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281004000012.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/133/397/product/12000059780_1.png',
       'prices': {
         'othaim': 1250,
         'carrefour': 1295,
@@ -792,7 +792,7 @@ class OfflineCatalog {
       'pack_type': 'bundle',
       'pack_label_ar': 'كرتون (24 علبة)',
       'keywords': ['بيبسي', 'pepsi', 'كرتون بيبسي', 'كرتون', '24 علبة', '24 حبة'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281004000012.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/133/397/product/12000059780_1.png',
       'prices': {
         'othaim': 5395,
         'carrefour': 5450,
@@ -813,7 +813,7 @@ class OfflineCatalog {
       'pack_type': 'single',
       'pack_label_ar': 'قارورة عائلية (بالحبّة)',
       'keywords': ['بيبسي', 'pepsi', 'قارورة', 'عائلي', '2.25 لتر'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281004000012.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/133/397/product/12000059780_1.png',
       'prices': {
         'othaim': 900,
         'carrefour': 925,
@@ -831,7 +831,7 @@ class OfflineCatalog {
       'amount': 325.0,
       'unit': 'ml',
       'keywords': ['سفن', 'سفن اب', '7up', 'مشروب غازي'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281004000029.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/133/493/product/12000022913_1.png',
       'prices': {
         'othaim': 250,
         'carrefour': 250,
@@ -849,7 +849,7 @@ class OfflineCatalog {
       'amount': 40.0,
       'unit': 'حبة',
       'keywords': ['ماء', 'مياه', 'صفا', 'كرتون مويه', 'مويه'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281023000018.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/026/784/product/628110006903.jpg',
       'prices': {
         'othaim': 1695,
         'carrefour': 1750,
@@ -871,7 +871,7 @@ class OfflineCatalog {
       'pack_type': 'single',
       'pack_label_ar': 'بالحبّة (مفرد)',
       'keywords': ['موسي', 'moussy', 'شعير', 'شراب شعير', 'مشروب شعير', 'موسي كلاسيك', 'سادة'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/7614400000018.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/097/254/product/Panadol_Advance_-_3D_Packshots___Thumbnail_page-0001.jpg',
       'prices': {
         'othaim': 495,
         'carrefour': 500,
@@ -892,7 +892,7 @@ class OfflineCatalog {
       'pack_type': 'single',
       'pack_label_ar': 'بالحبّة (مفرد)',
       'keywords': ['موسي', 'moussy', 'شعير', 'شراب شعير', 'رمان', 'موسي رمان'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/7614400000025.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/107/971/product/60602985.jpg',
       'prices': {
         'othaim': 495,
         'carrefour': 500,
@@ -913,7 +913,7 @@ class OfflineCatalog {
       'pack_type': 'single',
       'pack_label_ar': 'بالحبّة (مفرد)',
       'keywords': ['بربيكان', 'barbican', 'شعير', 'شراب شعير', 'سادة', 'مشروب شعير'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281034900013.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/127/010/product/6285074002974.jpg',
       'prices': {
         'othaim': 395,
         'carrefour': 425,
@@ -934,7 +934,7 @@ class OfflineCatalog {
       'pack_type': 'bundle',
       'pack_label_ar': 'حزمة (6 علب)',
       'keywords': ['بربيكان', 'barbican', 'شعير', 'شراب شعير', 'تفاح', 'شدة بربيكان', 'حزمة'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/6281034900020.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/013/593/product/7616297.jpg',
       'prices': {
         'othaim': 1195,
         'carrefour': 1250,
@@ -955,7 +955,7 @@ class OfflineCatalog {
       'pack_type': 'single',
       'pack_label_ar': 'بالحبّة (مفرد)',
       'keywords': ['هولستن', 'holsten', 'شعير', 'شراب شعير', 'مشروب شعير', 'كلاسيك'],
-      'image': 'https://images.deliveryhero.io/image/hungerstation/products/4008854000012.jpg',
+      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/078/981/product/3219110457551.jpg',
       'prices': {
         'othaim': 495,
         'carrefour': 500,
@@ -1177,6 +1177,22 @@ class OfflineCatalog {
       imageUrl: raw['image'] as String?,
       offers: offers,
     );
+  }
+
+  static String? lookupImage(String query) {
+    if (query.trim().isEmpty) return null;
+    final norm = _normalize(query);
+    for (var item in _staples) {
+      final name = _normalize(item['name_ar'] as String);
+      final brand = _normalize(item['brand_ar'] as String? ?? '');
+      if (name.contains(norm) || norm.contains(name) || (brand.isNotEmpty && norm.contains(brand))) {
+        final img = item['image'] as String?;
+        if (img != null && img.isNotEmpty && img.startsWith('http')) {
+          return img;
+        }
+      }
+    }
+    return null;
   }
 
   static VoiceBasketResult parseVoice(String query, {List<VoiceBasketItem>? currentBasket}) {

@@ -536,24 +536,12 @@ class _PantryScreenState extends State<PantryScreen> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
+                ProductImage(
+                  imageUrl: item.imageUrl,
+                  nameAr: item.productNameAr,
                   width: 68,
                   height: 68,
-                  decoration: BoxDecoration(
-                    color: AppTheme.background,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppTheme.border.withOpacity(0.6)),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: item.imageUrl != null && item.imageUrl!.isNotEmpty
-                        ? Image.network(
-                            item.imageUrl!,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => const Icon(Icons.shopping_bag_outlined, color: AppTheme.textMuted),
-                          )
-                        : const Icon(Icons.shopping_bag_outlined, color: AppTheme.textMuted),
-                  ),
+                  borderRadius: 14,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
