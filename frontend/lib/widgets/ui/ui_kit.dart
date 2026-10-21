@@ -621,9 +621,18 @@ class ProductImage extends StatelessWidget {
     return Icons.shopping_bag_rounded;
   }
 
+  static String safeWebImageUrl(String url) {
+    final clean = url.trim();
+    if (!clean.startsWith('http')) return clean;
+    if (clean.contains('wsrv.nl')) return clean;
+    final noProto = clean.replaceFirst(RegExp(r'^https?:\/\/'), '');
+    return 'https://wsrv.nl/?url=${Uri.encodeComponent(noProto)}&output=webp&q=85';
+  }
+
   @override
   Widget build(BuildContext context) {
     final validUrl = (imageUrl != null && imageUrl!.trim().isNotEmpty && imageUrl!.startsWith('http'));
+    final webUrl = validUrl ? safeWebImageUrl(imageUrl!) : '';
 
     return Container(
       width: width,
@@ -637,7 +646,7 @@ class ProductImage extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         child: validUrl
             ? Image.network(
-                imageUrl!,
+                webUrl,
                 fit: fit,
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
