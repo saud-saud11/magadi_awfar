@@ -411,6 +411,9 @@ class SourceInfo {
   final String status;
   final String statusText;
   final bool isEnabled;
+  final String? websiteUrl;
+  final String? searchUrl;
+  final String category;
 
   SourceInfo({
     required this.code,
@@ -418,6 +421,9 @@ class SourceInfo {
     required this.status,
     required this.statusText,
     required this.isEnabled,
+    this.websiteUrl,
+    this.searchUrl,
+    this.category = 'grocery',
   });
 
   factory SourceInfo.fromJson(Map<String, dynamic> json) {
@@ -428,6 +434,9 @@ class SourceInfo {
       statusText:
           (json['status_text'] ?? json['status_message']) as String? ?? '',
       isEnabled: json['is_enabled'] as bool? ?? true,
+      websiteUrl: json['website_url'] as String?,
+      searchUrl: json['search_url'] as String?,
+      category: json['category'] as String? ?? 'grocery',
     );
   }
 }

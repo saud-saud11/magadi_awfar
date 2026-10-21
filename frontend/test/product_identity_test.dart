@@ -107,6 +107,10 @@ void main() {
         ProductMatching.measurement('Pampers Diapers Size 3 (4-9kg) 60 pcs'),
         (amount: 60.0, unit: 'count', pack: null),
       );
+      expect(
+        ProductMatching.measurement('بامبرز كلوت (5) 12-18 كيلو صندوق جامبو 72 حفاض'),
+        (amount: 72.0, unit: 'count', pack: null),
+      );
       for (final title in [
         '330-355 ML',
         'Pepsi 15*150ml & Pepsi Diet 15*150ml',

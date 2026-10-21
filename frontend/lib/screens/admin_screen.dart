@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../models/models.dart';
 import '../theme/app_theme.dart';
+import '../widgets/source_tile.dart';
 
 /// Public read-only source coverage. Administrative controls live behind server authorization.
 class AdminScreen extends StatefulWidget {
@@ -48,20 +49,7 @@ class _AdminScreenState extends State<AdminScreen> {
                 ),
               ),
             for (final source in sources)
-              Card(
-                child: ListTile(
-                  leading: Icon(
-                    source.isEnabled
-                        ? Icons.check_circle_outline
-                        : Icons.link_off,
-                    color: source.isEnabled
-                        ? AppTheme.primary
-                        : AppTheme.textMuted,
-                  ),
-                  title: Text(source.nameAr),
-                  subtitle: Text(source.statusText),
-                ),
-              ),
+              Card(child: SourceTile(source: source)),
           ],
         );
       },

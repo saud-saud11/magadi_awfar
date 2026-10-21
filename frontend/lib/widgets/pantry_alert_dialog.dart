@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/models.dart';
 import '../services/pantry_service.dart';
+import '../services/api_service.dart';
 
 class PantryAlertDialog extends StatefulWidget {
   final PantryItemModel item;
@@ -26,15 +27,19 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
   late double? _selectedDropPercentage;
   late Set<String> _selectedStores;
 
-  final List<Map<String, String>> _availableStores = [
-    {'code': 'danube', 'name': 'الدانوب'},
-    {'code': 'panda', 'name': 'بنده'},
-    {'code': 'othaim', 'name': 'أسواق العثيم'},
-    {'code': 'tamimi', 'name': 'أسواق التميمي'},
-    {'code': 'carrefour', 'name': 'كارفور'},
-    {'code': 'nahdi', 'name': 'صيدلية النهدي'},
-    {'code': 'dawaa', 'name': 'صيدلية الدواء'},
-  ];
+  List<SourceInfo> _availableStores = [];
+  bool _loadingStores = true;
+
+  Future<void> _loadStores() async {
+    final stores = await ApiService.getSources();
+    if (!mounted) return;
+    setState(() {
+      _availableStores = stores
+          .where((s) => s.isEnabled || _selectedStores.contains(s.code))
+          .toList();
+      _loadingStores = false;
+    });
+  }
 
   @override
   void initState() {
@@ -50,6 +55,7 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
     _selectedStores = widget.item.storeCodes != null
         ? widget.item.storeCodes!.toSet()
         : <String>{};
+    _loadStores();
   }
 
   @override
@@ -318,10 +324,9 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
                     decimal: true,
                   ),
                   decoration: InputDecoration(
-                    hintText:
-                        widget.item.hasVerifiedPrice
-                            ? 'مثال: ${(widget.item.baselinePriceSar * 0.9).toStringAsFixed(2)}'
-                            : 'أدخل السعر الذي تريده',
+                    hintText: widget.item.hasVerifiedPrice
+                        ? 'مثال: ${(widget.item.baselinePriceSar * 0.9).toStringAsFixed(2)}'
+                        : 'أدخل السعر الذي تريده',
                     suffixText: 'ر.س',
                     filled: true,
                     fillColor: AppTheme.surfaceAlt,
@@ -372,13 +377,22 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
                   style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
                 ),
                 const SizedBox(height: 8),
+                if (_loadingStores)
+                  const LinearProgressIndicator()
+                else if (_availableStores.isEmpty)
+                  const Text(
+                    'تعذر تحميل قائمة المتاجر؛ إعدادك الحالي محفوظ.',
+                    style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                  ),
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
                   children: _availableStores.map((st) {
-                    final isChecked = _selectedStores.contains(st['code']);
+                    final isChecked = _selectedStores.contains(st.code);
                     return FilterChip(
-                      label: Text(st['name']!),
+                      label: Text(
+                        st.isEnabled ? st.nameAr : '${st.nameAr} (غير مرتبط)',
+                      ),
                       selected: isChecked,
                       selectedColor: AppTheme.primaryContainer,
                       checkmarkColor: AppTheme.primary,
@@ -399,9 +413,9 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
                       onSelected: (selected) {
                         setState(() {
                           if (selected) {
-                            _selectedStores.add(st['code']!);
+                            _selectedStores.add(st.code);
                           } else {
-                            _selectedStores.remove(st['code']!);
+                            _selectedStores.remove(st.code);
                           }
                         });
                       },

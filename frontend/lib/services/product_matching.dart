@@ -21,7 +21,7 @@ class ProductMatching {
   static const _units =
       r'كيلو\s*جرام|كيلوجرام|كيلو|كجم|كغم|كغ|kg|جرام|غرام|جم|غم|grams?|gm|g|ملليلتر|مليلتر|ml|مل|لتر|liters?|litres?|ltr|l';
   static const _counts =
-      r'عبوات|عبوه|علب|علبه|حبات|حبه|قطع|قطعه|حفاضات|حفاضه|مناديل|منديل|pieces?|pcs?|counts?|ct|diapers?|sheets?|wipes?|tablets?|capsules?|bottles?|cans?|sachets?';
+      r'عبوات|عبوه|علب|علبه|حبات|حبه|قطع|قطعه|حفاضات|حفاضه|حفاض|مناديل|منديل|pieces?|pcs?|counts?|ct|diapers?|sheets?|wipes?|tablets?|capsules?|bottles?|cans?|sachets?';
   static int? _arithmetic(String value) {
     final tokens = RegExp(r'\d+|[+*()]')
         .allMatches(
@@ -79,7 +79,7 @@ class ProductMatching {
     final countPattern = RegExp(
       r'(\d+)\s*(' + _counts + r')(?![a-z\u0600-\u06ff])',
     );
-    if (RegExp(r'diapers?|nappies|حفاضات|حفاضه').hasMatch(text) &&
+    if (RegExp(r'diapers?|nappies|حفاضات|حفاضه|حفاض').hasMatch(text) &&
         countPattern.hasMatch(text)) {
       text = text.replaceAll(
         RegExp(

@@ -1,4 +1,5 @@
 import '../widgets/verified_product_card.dart';
+import '../widgets/source_tile.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/models.dart';
@@ -292,32 +293,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
           style: TextStyle(fontSize: 11),
         ),
         children: [
-          for (final s in sources)
-            ListTile(
-              dense: true,
-              leading: Icon(
-                s.status == 'connected'
-                    ? Icons.check_circle_outline
-                    : s.isEnabled
-                    ? Icons.sync_problem
-                    : Icons.link_off,
-                color: s.status == 'connected'
-                    ? AppTheme.primary
-                    : AppTheme.textMuted,
-                size: 18,
-              ),
-              title: Text(
-                s.nameAr,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              subtitle: Text(
-                s.statusText,
-                style: const TextStyle(fontSize: 11),
-              ),
-            ),
+          for (final s in sources) SourceTile(source: s, compact: true),
           const Padding(
             padding: EdgeInsets.all(12),
             child: Text(
