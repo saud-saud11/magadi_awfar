@@ -12,6 +12,11 @@ from app.services.price_monitor_service import price_monitor_service
 
 # Initialize database schema
 Base.metadata.create_all(bind=engine)
+# Additive upgrade: old baselines are re-established from the first verified price.
+from sqlalchemy import inspect, text
+if 'baseline_version' not in {c['name'] for c in inspect(engine).get_columns('pantry_items')}:
+    with engine.begin() as connection:
+        connection.execute(text('ALTER TABLE pantry_items ADD COLUMN baseline_version INTEGER NOT NULL DEFAULT 0'))
 
 app = FastAPI(
     title="مقاضي أوفر (Magadi Awfar) API",
@@ -22,8 +27,8 @@ app = FastAPI(
 # Enable CORS for Flutter mobile and web apps
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=[s.strip() for s in settings.CORS_ORIGINS.split(",") if s.strip()],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -39,40 +44,22 @@ app.include_router(pantry.router, prefix=settings.API_V1_STR)
 app.include_router(push.router, prefix=settings.API_V1_STR)
 
 @app.on_event("startup")
-def on_startup():
+async def on_startup():
     """Seed initial Madinah data, stores, and staple products on startup, and start background monitor."""
     # Start server price monitoring background task
-    asyncio.create_task(price_monitor_service.start_background_loop())
+    app.state.monitor_task = asyncio.create_task(price_monitor_service.start_background_loop())
     db = SessionLocal()
     try:
         # Seed stores
-        initial_stores = [
-            {"code": "danube", "name_ar": "الدانوب", "name_en": "Danube", "status": "connected", "delivery": 1500, "free": 15000},
-            {"code": "panda", "name_ar": "بنده", "name_en": "Panda", "status": "connected", "delivery": 1200, "free": 10000},
-            {"code": "othaim", "name_ar": "أسواق العثيم", "name_en": "Othaim Markets", "status": "connected", "delivery": 1000, "free": 12000},
-            {"code": "tamimi", "name_ar": "أسواق التميمي", "name_en": "Tamimi Markets", "status": "connected", "delivery": 1500, "free": 15000},
-            {"code": "noon_minutes", "name_ar": "نون منتس (فوري)", "name_en": "Noon Minutes", "status": "connected", "delivery": 500, "free": 5000},
-            {"code": "amazon_sa", "name_ar": "أمازون السعودية (شحن للمدينة)", "name_en": "Amazon.sa", "status": "connected", "delivery": 1200, "free": 10000},
-            {"code": "nahdi", "name_ar": "صيدلية النهدي", "name_en": "Nahdi Pharmacy", "status": "connected", "delivery": 1200, "free": 10000},
-            {"code": "dawaa", "name_ar": "صيدلية الدواء", "name_en": "Al-Dawaa Pharmacy", "status": "connected", "delivery": 1000, "free": 10000},
-            {"code": "carrefour", "name_ar": "كارفور السعودية", "name_en": "Carrefour KSA", "status": "requires_setup", "delivery": 1500, "free": 15000},
-            {"code": "hungerstation", "name_ar": "هنقرستيشن", "name_en": "Hungerstation", "status": "requires_setup", "delivery": None, "free": None},
-            {"code": "ninja", "name_ar": "تطبيق نينجا", "name_en": "Ninja App", "status": "requires_setup", "delivery": None, "free": None},
-            {"code": "keeta", "name_ar": "كيتا (Keemart)", "name_en": "Keeta", "status": "requires_setup", "delivery": None, "free": None},
-            {"code": "amazon_now", "name_ar": "Amazon Now", "name_en": "Amazon Now", "status": "unsupported", "delivery": None, "free": None},
-        ]
-        for s in initial_stores:
-            exists = db.query(Store).filter(Store.code == s["code"]).first()
-            if not exists:
-                db.add(Store(
-                    code=s["code"],
-                    name_ar=s["name_ar"],
-                    name_en=s["name_en"],
-                    status=s["status"],
-                    base_delivery_fee_halalas=s["delivery"],
-                    free_delivery_threshold_halalas=s["free"],
-                    logo_url=f"/assets/stores/{s['code']}.png"
-                ))
+        from app.connectors.manager import connector_manager
+        for source in connector_manager.get_all_statuses():
+            store = db.query(Store).filter(Store.code == source['code']).first()
+            if not store:
+                store = Store(code=source['code'], name_ar=source['name_ar'], name_en=source['name_en'])
+                db.add(store)
+            store.status = source['status']
+            store.base_delivery_fee_halalas = None
+            store.free_delivery_threshold_halalas = None
         db.commit()
 
         # Seed staple catalog products & offers
@@ -95,3 +82,17 @@ web_dir = Path(__file__).resolve().parent.parent.parent / "frontend" / "build" /
 if web_dir.exists():
     app.mount("/app", StaticFiles(directory=str(web_dir), html=True), name="web_app")
 
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    price_monitor_service.stop_background_loop()
+    task = getattr(app.state, 'monitor_task', None)
+    if task:
+        task.cancel()
+        try: await task
+        except asyncio.CancelledError: pass
+
+@app.get(settings.API_V1_STR + '/sources')
+def public_sources():
+    from app.connectors.manager import connector_manager
+    return {'sources': connector_manager.get_all_statuses()}

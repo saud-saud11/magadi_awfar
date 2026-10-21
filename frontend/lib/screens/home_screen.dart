@@ -1,3 +1,5 @@
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/product_matching.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/models.dart';
@@ -31,11 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<District> _districts = [];
   List<ProductItem> _featuredDeals = [];
 
-  final List<String> _recentSearches = [
-    'نوتيلا 500 جرام',
-    'حليب المراعي 2 لتر',
-    'أرز الشعلان 10 كجم',
-  ];
+  final List<String> _recentSearches = [];
 
   final List<String> _quickQueries = [
     'تونة قودي',
@@ -68,6 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadInitialData() async {
+    final prefs = await SharedPreferences.getInstance();
     final districts = await ApiService.getDistricts();
     // Load real staple products from catalog for featured deals
     final staples = OfflineCatalog.search(query: '').matchedProducts;
@@ -81,6 +80,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (mounted) {
       setState(() {
+        _selectedDistrict =
+            prefs.getString('magadi_district') ?? ApiService.selectedDistrict;
+        ApiService.selectedDistrict = _selectedDistrict;
+        _recentSearches.clear();
+        _recentSearches.addAll(
+          prefs.getStringList('magadi_recent_searches') ?? [],
+        );
         _districts = districts;
         _featuredDeals = deals;
       });
@@ -90,6 +96,14 @@ class _HomeScreenState extends State<HomeScreen> {
   void _performSearch(String query) {
     final q = query.trim();
     if (q.isEmpty) return;
+    setState(() {
+      _recentSearches.remove(q);
+      _recentSearches.insert(0, q);
+      if (_recentSearches.length > 8) _recentSearches.removeLast();
+    });
+    SharedPreferences.getInstance().then(
+      (prefs) => prefs.setStringList('magadi_recent_searches', _recentSearches),
+    );
 
     Navigator.push(
       context,
@@ -102,6 +116,44 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _showBarcodeInput() async {
+    final controller = TextEditingController();
+    final value = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('بحث بالباركود'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: 'الرقم المكتوب أسفل الباركود',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            child: const Text('بحث'),
+          ),
+        ],
+      ),
+    );
+    // Dialog exit animations may still reference the text controller.
+    if (!mounted || value == null) return;
+    final barcode = ProductMatching.normalize(value).replaceAll(' ', '');
+    if (!ProductMatching.validBarcode(barcode)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تحقق من أرقام الباركود كاملة')),
+      );
+      return;
+    }
+    _performSearch(barcode);
   }
 
   void _showDistrictPicker() {
@@ -124,11 +176,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     const Row(
                       children: [
-                        Icon(Icons.location_on, color: AppTheme.primary, size: 24),
+                        Icon(
+                          Icons.location_on,
+                          color: AppTheme.primary,
+                          size: 24,
+                        ),
                         SizedBox(width: 8),
                         Text(
                           'اختر حيّك في المدينة المنورة',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.textDark),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.textDark,
+                          ),
                         ),
                       ],
                     ),
@@ -140,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'تُربط نتائج الأسعار والتوفر بالفروع ونطاقات التوصيل الفعلية لحيّك',
+                  'اختر حيّك للمقارنة؛ تغطية التوصيل والتوفر النهائي يُؤكّدان لدى المتجر',
                   style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
                 ),
                 const SizedBox(height: 16),
@@ -149,7 +209,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: () {
                     Navigator.pop(ctx);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('تم تفعيل نطاق المدينة المنورة - حي سلطانة بناءً على الموقع')),
+                      const SnackBar(
+                        content: Text(
+                          'تم تفعيل نطاق المدينة المنورة - حي سلطانة بناءً على الموقع',
+                        ),
+                      ),
                     );
                   },
                   child: const Row(
@@ -157,15 +221,31 @@ class _HomeScreenState extends State<HomeScreen> {
                       CircleAvatar(
                         backgroundColor: AppTheme.primary,
                         radius: 18,
-                        child: Icon(Icons.my_location, color: Colors.white, size: 20),
+                        child: Icon(
+                          Icons.my_location,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                       SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('استخدام موقعي الحالي على الخريطة', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                            Text('تحديد الفرع الأقرب تلقائيًا لموقعك في المدينة', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                            Text(
+                              'استخدام موقعي الحالي على الخريطة',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                              ),
+                            ),
+                            Text(
+                              'تحديد الفرع الأقرب تلقائيًا لموقعك في المدينة',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.textMuted,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -182,20 +262,40 @@ class _HomeScreenState extends State<HomeScreen> {
                       final isSelected = dist.nameAr == _selectedDistrict;
                       return ListTile(
                         leading: Icon(
-                          isSelected ? Icons.check_circle_rounded : Icons.location_on_outlined,
-                          color: isSelected ? AppTheme.primary : AppTheme.textMuted,
+                          isSelected
+                              ? Icons.check_circle_rounded
+                              : Icons.location_on_outlined,
+                          color: isSelected
+                              ? AppTheme.primary
+                              : AppTheme.textMuted,
                         ),
                         title: Text(
                           dist.nameAr,
                           style: TextStyle(
-                            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                            color: isSelected ? AppTheme.primary : AppTheme.textDark,
+                            fontWeight: isSelected
+                                ? FontWeight.w800
+                                : FontWeight.w500,
+                            color: isSelected
+                                ? AppTheme.primary
+                                : AppTheme.textDark,
                           ),
                         ),
-                        subtitle: Text(dist.city, style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        subtitle: Text(
+                          dist.city,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.textMuted,
+                          ),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         onTap: () {
                           setState(() => _selectedDistrict = dist.nameAr);
+                          ApiService.selectedDistrict = dist.nameAr;
+                          SharedPreferences.getInstance().then(
+                            (p) => p.setString('magadi_district', dist.nameAr),
+                          );
                           Navigator.pop(ctx);
                         },
                       );
@@ -235,16 +335,26 @@ class _HomeScreenState extends State<HomeScreen> {
                             onTap: _showDistrictPicker,
                             borderRadius: BorderRadius.circular(30),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 7,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.18),
                                 borderRadius: BorderRadius.circular(30),
-                                border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.3),
+                                  width: 1,
+                                ),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.location_on_rounded, color: AppTheme.accentGold, size: 17),
+                                  const Icon(
+                                    Icons.location_on_rounded,
+                                    color: AppTheme.accentGold,
+                                    size: 17,
+                                  ),
                                   const SizedBox(width: 6),
                                   Flexible(
                                     child: Text(
@@ -258,7 +368,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                   ),
                                   const SizedBox(width: 4),
-                                  const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white70, size: 18),
+                                  const Icon(
+                                    Icons.keyboard_arrow_down_rounded,
+                                    color: Colors.white70,
+                                    size: 18,
+                                  ),
                                 ],
                               ),
                             ),
@@ -272,13 +386,19 @@ class _HomeScreenState extends State<HomeScreen> {
                               color: Colors.white.withOpacity(0.15),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.settings_outlined, color: Colors.white, size: 20),
+                            child: const Icon(
+                              Icons.settings_outlined,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                           ),
                           tooltip: 'الإعدادات والتفضيلات',
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                              MaterialPageRoute(
+                                builder: (_) => const SettingsScreen(),
+                              ),
                             );
                           },
                         ),
@@ -296,7 +416,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: AppTheme.glowShadow(AppTheme.accentGold),
                           ),
-                          child: const Icon(Icons.shopping_bag_rounded, color: Colors.white, size: 26),
+                          child: const Icon(
+                            Icons.shopping_bag_rounded,
+                            color: Colors.white,
+                            size: 26,
+                          ),
                         ),
                         const SizedBox(width: 14),
                         const Expanded(
@@ -314,7 +438,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               Text(
                                 'مقارنة أسعار البقالة الذكية في المدينة المنورة',
-                                style: TextStyle(color: Colors.white70, fontSize: 13),
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 13,
+                                ),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
@@ -343,22 +470,34 @@ class _HomeScreenState extends State<HomeScreen> {
                         onSubmitted: _performSearch,
                         decoration: InputDecoration(
                           hintText: 'ابحث عن منتج: مثال «نوتيلا 500 جرام»',
-                          hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 14),
-                          prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.primary, size: 24),
+                          hintStyle: const TextStyle(
+                            color: AppTheme.textMuted,
+                            fontSize: 14,
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.search_rounded,
+                            color: AppTheme.primary,
+                            size: 24,
+                          ),
                           suffixIcon: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.mic_rounded, color: AppTheme.primary),
+                                icon: const Icon(
+                                  Icons.mic_rounded,
+                                  color: AppTheme.primary,
+                                ),
                                 tooltip: 'السلة الصوتية بالذكاء الاصطناعي',
                                 onPressed: widget.onOpenVoiceBasket,
                               ),
                               IconButton(
-                                icon: const Icon(Icons.qr_code_scanner_rounded, color: AppTheme.textMuted),
-                                tooltip: 'مسح الباركود',
+                                icon: const Icon(
+                                  Icons.qr_code_scanner_rounded,
+                                  color: AppTheme.textMuted,
+                                ),
+                                tooltip: 'بحث بالباركود',
                                 onPressed: () {
-                                  _searchController.text = '8000500193389';
-                                  _performSearch('8000500193389');
+                                  _showBarcodeInput();
                                 },
                               ),
                               const SizedBox(width: 4),
@@ -367,7 +506,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,
                           focusedBorder: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
                         ),
                       ),
                     ),
@@ -389,7 +531,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       begin: Alignment.topRight,
                       end: Alignment.bottomLeft,
                     ),
-                    border: Border.all(color: AppTheme.primary.withOpacity(0.2), width: 1.2),
+                    border: Border.all(
+                      color: AppTheme.primary.withOpacity(0.2),
+                      width: 1.2,
+                    ),
                     onTap: widget.onOpenVoiceBasket,
                     child: Row(
                       children: [
@@ -401,7 +546,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             gradient: AppTheme.emeraldButton,
                             boxShadow: AppTheme.glowShadow(AppTheme.primary),
                           ),
-                          child: const Icon(Icons.mic_rounded, color: Colors.white, size: 28),
+                          child: const Icon(
+                            Icons.mic_rounded,
+                            color: Colors.white,
+                            size: 28,
+                          ),
                         ),
                         const SizedBox(width: 14),
                         const Expanded(
@@ -428,12 +577,19 @@ class _HomeScreenState extends State<HomeScreen> {
                               SizedBox(height: 3),
                               Text(
                                 'تحدّث بلهجتك: «حليب السعودية واثنين جبن كيري»',
-                                style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppTheme.textMuted,
+                                ),
                               ),
                             ],
                           ),
                         ),
-                        const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AppTheme.primary),
+                        const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 16,
+                          color: AppTheme.primary,
+                        ),
                       ],
                     ),
                   ),
@@ -456,7 +612,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             borderRadius: BorderRadius.circular(20),
                             child: Container(
                               width: 86,
-                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                                horizontal: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppTheme.surface,
                                 borderRadius: BorderRadius.circular(20),
@@ -466,14 +625,21 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Text(cat['emoji']!, style: const TextStyle(fontSize: 28)),
+                                  Text(
+                                    cat['emoji']!,
+                                    style: const TextStyle(fontSize: 28),
+                                  ),
                                   const SizedBox(height: 6),
                                   Text(
                                     cat['title']!,
                                     textAlign: TextAlign.center,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.textDark),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTheme.textDark,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -487,12 +653,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   // Featured Deals (from verified catalog)
                   if (_featuredDeals.isNotEmpty) ...[
-                    SectionTitle(
-                      'عروض اليوم المؤكدة',
-                      emoji: '🔥',
-                      actionLabel: 'عرض الكل',
-                      onAction: () => _performSearch(''),
-                    ),
+                    SectionTitle('جهّز مقاضيك المعتادة', emoji: '🔥'),
                     SizedBox(
                       height: 228,
                       child: ListView.separated(
@@ -503,121 +664,177 @@ class _HomeScreenState extends State<HomeScreen> {
                           final item = _featuredDeals[i];
                           final bestOffer = item.lowestOffer;
                           final price = bestOffer?.priceSar ?? 0.0;
-                          final storeName = bestOffer?.storeNameAr ?? 'أرخص متجر';
+                          final storeName =
+                              bestOffer?.storeNameAr ?? 'ابحث للتحقق من السعر';
                           return FadeSlideIn(
                             index: i,
-                            child: Container(
-                              width: 168,
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AppTheme.surface,
-                                borderRadius: BorderRadius.circular(22),
-                                border: Border.all(color: AppTheme.border),
-                                boxShadow: AppTheme.softShadow,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Product Image + Bell
-                                  Stack(
-                                    children: [
-                                      ProductImage(
-                                        imageUrl: item.imageUrl,
-                                        nameAr: item.nameAr,
-                                        width: double.infinity,
-                                        height: 96,
-                                        borderRadius: 16,
+                            child: GestureDetector(
+                              onTap: () => _performSearch(item.nameAr),
+                              child: Container(
+                                width: 168,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.surface,
+                                  borderRadius: BorderRadius.circular(22),
+                                  border: Border.all(color: AppTheme.border),
+                                  boxShadow: AppTheme.softShadow,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Product Image + Bell
+                                    Stack(
+                                      children: [
+                                        ProductImage(
+                                          imageUrl: item.imageUrl,
+                                          nameAr: item.nameAr,
+                                          width: double.infinity,
+                                          height: 96,
+                                          borderRadius: 16,
+                                        ),
+                                        Positioned(
+                                          top: 6,
+                                          left: 6,
+                                          child:
+                                              ValueListenableBuilder<
+                                                List<PantryItemModel>
+                                              >(
+                                                valueListenable: _pantryService
+                                                    .trackedItemsNotifier,
+                                                builder: (context, _, __) {
+                                                  final isTracked =
+                                                      _pantryService
+                                                          .isProductTracked(
+                                                            item.id,
+                                                          );
+                                                  return AnimatedBell(
+                                                    active: isTracked,
+                                                    size: 18,
+                                                    tooltip: isTracked
+                                                        ? 'متابع في مقاضي البيت'
+                                                        : 'تابع السعر',
+                                                    onTap: () async {
+                                                      if (!isTracked) {
+                                                        await _pantryService
+                                                            .addToPantry(item);
+                                                        if (context.mounted) {
+                                                          ScaffoldMessenger.of(
+                                                            context,
+                                                          ).showSnackBar(
+                                                            SnackBar(
+                                                              content: Text(
+                                                                _pantryService
+                                                                    .statusNotifier
+                                                                    .value,
+                                                              ),
+                                                              duration:
+                                                                  const Duration(
+                                                                    seconds: 2,
+                                                                  ),
+                                                            ),
+                                                          );
+                                                        }
+                                                      } else {
+                                                        await _pantryService
+                                                            .toggleAlert(
+                                                              0,
+                                                              productId:
+                                                                  item.id,
+                                                            );
+                                                      }
+                                                    },
+                                                  );
+                                                },
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+
+                                    // Name
+                                    Text(
+                                      item.nameAr,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13,
+                                        color: AppTheme.textDark,
                                       ),
-                                      Positioned(
-                                        top: 6,
-                                        left: 6,
-                                        child: ValueListenableBuilder<List<PantryItemModel>>(
-                                          valueListenable: _pantryService.trackedItemsNotifier,
-                                          builder: (context, _, __) {
-                                            final isTracked = _pantryService.isProductTracked(item.id);
-                                            return AnimatedBell(
-                                              active: isTracked,
-                                              size: 18,
-                                              tooltip: isTracked ? 'متابع في مقاضي البيت' : 'تابع السعر',
-                                              onTap: () async {
-                                                if (!isTracked) {
-                                                  await _pantryService.addToPantry(item);
-                                                  if (context.mounted) {
-                                                    ScaffoldMessenger.of(context).showSnackBar(
-                                                      SnackBar(
-                                                        content: Text('تمت إضافة «${item.nameAr}» لمقاضي البيت 🔔'),
-                                                        duration: const Duration(seconds: 2),
-                                                      ),
-                                                    );
-                                                  }
-                                                } else {
-                                                  await _pantryService.toggleAlert(0, productId: item.id);
-                                                }
-                                              },
+                                    ),
+                                    const SizedBox(height: 2),
+
+                                    // Store label
+                                    Text(
+                                      storeName,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppTheme.primary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const Spacer(),
+
+                                    // Price + Add
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                bestOffer == null
+                                                    ? 'تحقق من السعر'
+                                                    : '${price.toStringAsFixed(2)} ر.س',
+                                                style: const TextStyle(
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.w900,
+                                                  color: AppTheme.textDark,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        InkWell(
+                                          onTap: () {
+                                            widget.onAddToBasket(item);
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'تمت إضافة «${item.nameAr}» للسلة',
+                                                ),
+                                                duration: const Duration(
+                                                  seconds: 2,
+                                                ),
+                                              ),
                                             );
                                           },
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-
-                                  // Name
-                                  Text(
-                                    item.nameAr,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppTheme.textDark),
-                                  ),
-                                  const SizedBox(height: 2),
-
-                                  // Store label
-                                  Text(
-                                    storeName,
-                                    style: const TextStyle(fontSize: 11, color: AppTheme.primary, fontWeight: FontWeight.w600),
-                                  ),
-                                  const Spacer(),
-
-                                  // Price + Add
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            '${price.toStringAsFixed(2)} ر.س',
-                                            style: const TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w900,
-                                              color: AppTheme.textDark,
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          child: Container(
+                                            padding: const EdgeInsets.all(7),
+                                            decoration: BoxDecoration(
+                                              gradient: AppTheme.emeraldButton,
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: const Icon(
+                                              Icons.add_shopping_cart_rounded,
+                                              color: Colors.white,
+                                              size: 16,
                                             ),
                                           ),
-                                        ],
-                                      ),
-                                      InkWell(
-                                        onTap: () {
-                                          widget.onAddToBasket(item);
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text('تمت إضافة «${item.nameAr}» للسلة'),
-                                              duration: const Duration(seconds: 2),
-                                            ),
-                                          );
-                                        },
-                                        borderRadius: BorderRadius.circular(12),
-                                        child: Container(
-                                          padding: const EdgeInsets.all(7),
-                                          decoration: BoxDecoration(
-                                            gradient: AppTheme.emeraldButton,
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          child: const Icon(Icons.add_shopping_cart_rounded, color: Colors.white, size: 16),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           );
@@ -638,8 +855,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         backgroundColor: AppTheme.surface,
                         elevation: 0,
                         side: const BorderSide(color: AppTheme.border),
-                        labelStyle: const TextStyle(color: AppTheme.textDark, fontSize: 13, fontWeight: FontWeight.w600),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        labelStyle: const TextStyle(
+                          color: AppTheme.textDark,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         onPressed: () {
                           _searchController.text = q;
                           _performSearch(q);
@@ -657,11 +880,24 @@ class _HomeScreenState extends State<HomeScreen> {
                       runSpacing: 6,
                       children: _recentSearches.map((r) {
                         return InputChip(
-                          avatar: const Icon(Icons.history_rounded, size: 16, color: AppTheme.textMuted),
-                          label: Text(r, style: const TextStyle(fontSize: 12, color: AppTheme.textMuted, fontWeight: FontWeight.w600)),
+                          avatar: const Icon(
+                            Icons.history_rounded,
+                            size: 16,
+                            color: AppTheme.textMuted,
+                          ),
+                          label: Text(
+                            r,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.textMuted,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                           backgroundColor: Colors.transparent,
                           side: const BorderSide(color: AppTheme.border),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                           onPressed: () {
                             _searchController.text = r;
                             _performSearch(r);

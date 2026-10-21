@@ -36,10 +36,10 @@ class PriceCalculator:
     ) -> CalculatedOffer:
         base_delivery = fees_info.get("base_delivery_fee_halalas")
         free_threshold = fees_info.get("free_delivery_threshold_halalas")
-        service_fee = fees_info.get("service_fee_halalas") or 0
+        service_fee = fees_info.get("service_fee_halalas")
 
         # Check if delivery fee is known
-        if base_delivery is None:
+        if base_delivery is None or service_fee is None:
             # Unknown fees must NEVER be treated as 0!
             return CalculatedOffer(
                 price_halalas=product_price_halalas,

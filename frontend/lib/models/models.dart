@@ -1,3 +1,11 @@
+DateTime? parseServerTime(Object? value) {
+  if (value == null) return null;
+  final text = value.toString();
+  return DateTime.tryParse(
+    RegExp(r'(Z|[+-]\d{2}:\d{2})$').hasMatch(text) ? text : '${text}Z',
+  );
+}
+
 class District {
   final int id;
   final String nameAr;
@@ -22,6 +30,10 @@ class District {
 }
 
 class StoreOffer {
+  final DateTime? lastVerifiedAt;
+  final bool priceVerified;
+  final bool stockKnown;
+  final String? sourceUrl;
   final int id;
   final String storeCode;
   final String storeNameAr;
@@ -43,6 +55,10 @@ class StoreOffer {
   final double? unitPricePer100gSar;
 
   StoreOffer({
+    this.lastVerifiedAt,
+    this.priceVerified = false,
+    this.stockKnown = false,
+    this.sourceUrl,
     required this.id,
     required this.storeCode,
     required this.storeNameAr,
@@ -66,6 +82,10 @@ class StoreOffer {
 
   factory StoreOffer.fromJson(Map<String, dynamic> json) {
     return StoreOffer(
+      lastVerifiedAt: parseServerTime(json['last_verified_at']),
+      priceVerified: json['price_verified'] == true,
+      stockKnown: json['stock_known'] == true,
+      sourceUrl: json['source_url'] as String?,
       id: json['id'] as int? ?? 0,
       storeCode: json['store_code'] as String? ?? '',
       storeNameAr: json['store_name_ar'] as String? ?? '',
@@ -74,21 +94,75 @@ class StoreOffer {
       priceSar: (json['price_sar'] as num?)?.toDouble() ?? 0.0,
       originalPriceSar: (json['original_price_sar'] as num?)?.toDouble(),
       isOnSale: json['is_on_sale'] as bool? ?? false,
-      isInStock: json['is_in_stock'] as bool? ?? true,
+      isInStock: json['is_in_stock'] as bool? ?? false,
       productUrl: json['product_url'] as String? ?? '',
       deepLink: json['deep_link'] as String?,
       promoConditions: json['promo_conditions'] as String?,
       deliveryFeeSar: (json['delivery_fee_sar'] as num?)?.toDouble(),
       totalLandedSar: (json['total_landed_sar'] as num?)?.toDouble(),
-      totalStatus: json['total_status'] as String? ?? 'REQUIRES_STORE_CONFIRMATION',
-      totalStatusText: json['total_status_text'] as String? ?? 'الإجمالي يُؤكد لدى المتجر',
+      totalStatus:
+          json['total_status'] as String? ?? 'REQUIRES_STORE_CONFIRMATION',
+      totalStatusText:
+          json['total_status_text'] as String? ?? 'الإجمالي يُؤكد لدى المتجر',
       isCheapestProduct: json['is_cheapest_product'] as bool? ?? false,
       isCheapestTotal: json['is_cheapest_total'] as bool? ?? false,
-      unitPricePer100gSar: (json['unit_price_per_100g_sar'] as num?)?.toDouble(),
+      unitPricePer100gSar: (json['unit_price_per_100g_sar'] as num?)
+          ?.toDouble(),
     );
   }
 
+  bool get isFresh =>
+      priceVerified &&
+      priceHalalas > 0 &&
+      lastVerifiedAt != null &&
+      DateTime.now().difference(lastVerifiedAt!.toLocal()) >= Duration.zero &&
+      DateTime.now().difference(lastVerifiedAt!.toLocal()) <
+          const Duration(hours: 24);
+  bool get canCompare => isFresh && (!stockKnown || isInStock);
+  String get verificationText {
+    if (!isFresh) return 'السعر يحتاج تحديثًا';
+    final minutes = DateTime.now()
+        .difference(lastVerifiedAt!.toLocal())
+        .inMinutes;
+    final age = minutes < 1
+        ? 'الآن'
+        : minutes < 60
+        ? 'منذ $minutes دقيقة'
+        : 'منذ ${minutes ~/ 60} ساعة';
+    return 'تم جلب السعر $age • ${stockKnown ? (isInStock ? 'متوفر حسب المصدر' : 'غير متوفر') : 'التوفر يُؤكّد لدى المتجر'}';
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'store_code': storeCode,
+    'store_name_ar': storeNameAr,
+    'branch_name_ar': branchNameAr,
+    'price_halalas': priceHalalas,
+    'price_sar': priceSar,
+    'original_price_sar': originalPriceSar,
+    'is_on_sale': isOnSale,
+    'is_in_stock': isInStock,
+    'product_url': productUrl,
+    'deep_link': deepLink,
+    'promo_conditions': promoConditions,
+    'delivery_fee_sar': deliveryFeeSar,
+    'total_landed_sar': totalLandedSar,
+    'total_status': totalStatus,
+    'total_status_text': totalStatusText,
+    'is_cheapest_product': isCheapestProduct,
+    'is_cheapest_total': isCheapestTotal,
+    'unit_price_per_100g_sar': unitPricePer100gSar,
+    'last_verified_at': lastVerifiedAt?.toUtc().toIso8601String(),
+    'price_verified': priceVerified,
+    'stock_known': stockKnown,
+    'source_url': sourceUrl,
+  };
+
   StoreOffer copyWith({
+    DateTime? lastVerifiedAt,
+    bool? priceVerified,
+    bool? stockKnown,
+    String? sourceUrl,
     int? id,
     String? storeCode,
     String? storeNameAr,
@@ -110,6 +184,10 @@ class StoreOffer {
     double? unitPricePer100gSar,
   }) {
     return StoreOffer(
+      lastVerifiedAt: lastVerifiedAt ?? this.lastVerifiedAt,
+      priceVerified: priceVerified ?? this.priceVerified,
+      stockKnown: stockKnown ?? this.stockKnown,
+      sourceUrl: sourceUrl ?? this.sourceUrl,
       id: id ?? this.id,
       storeCode: storeCode ?? this.storeCode,
       storeNameAr: storeNameAr ?? this.storeNameAr,
@@ -176,12 +254,18 @@ class ProductItem {
       nameAr.contains('ربطة');
 
   String get displayPackBadge {
-    if (packLabelAr != null && packLabelAr!.isNotEmpty && packLabelAr != 'بالحبّة') {
+    if (packLabelAr != null &&
+        packLabelAr!.isNotEmpty &&
+        packLabelAr != 'بالحبّة') {
       return packLabelAr!;
     }
     if (isBundle) {
-      if (nameAr.contains('كرتون')) return packCount > 1 ? 'كرتون ($packCount علبة)' : 'كرتون عائلي';
-      if (nameAr.contains('شدة') || nameAr.contains('شدّة')) return packCount > 1 ? 'شدّة ($packCount علب)' : 'شدّة توفير';
+      if (nameAr.contains('كرتون')) {
+        return packCount > 1 ? 'كرتون ($packCount علبة)' : 'كرتون عائلي';
+      }
+      if (nameAr.contains('شدة') || nameAr.contains('شدّة')) {
+        return packCount > 1 ? 'شدّة ($packCount علب)' : 'شدّة توفير';
+      }
       if (packCount > 1) return 'حزمة ($packCount حبات)';
       return 'حزمة توفير';
     }
@@ -189,15 +273,27 @@ class ProductItem {
   }
 
   StoreOffer? get lowestOffer {
-    if (offers.isEmpty) return null;
-    StoreOffer best = offers.first;
-    for (final o in offers) {
-      if (o.priceSar < best.priceSar) {
-        best = o;
-      }
-    }
-    return best;
+    final valid = offers.where((o) => o.canCompare).toList()
+      ..sort((a, b) => a.priceHalalas.compareTo(b.priceHalalas));
+    return valid.isEmpty ? null : valid.first;
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'gtin_barcode': gtinBarcode,
+    'name_ar': nameAr,
+    'name_en': nameEn,
+    'brand_ar': brandAr,
+    'sub_category': subCategory,
+    'sub_category_rank': subCategoryRank,
+    'normalized_size_amount': normalizedSizeAmount,
+    'normalized_size_unit': normalizedSizeUnit,
+    'pack_count': packCount,
+    'pack_type': packType,
+    'pack_label_ar': packLabelAr,
+    'image_url': imageUrl,
+    'offers': offers.map((o) => o.toJson()).toList(),
+  };
 
   factory ProductItem.fromJson(Map<String, dynamic> json) {
     var rawOffers = json['offers'] as List<dynamic>? ?? [];
@@ -209,13 +305,16 @@ class ProductItem {
       brandAr: json['brand_ar'] as String?,
       subCategory: json['sub_category'] as String?,
       subCategoryRank: json['sub_category_rank'] as int? ?? 10,
-      normalizedSizeAmount: (json['normalized_size_amount'] as num?)?.toDouble(),
+      normalizedSizeAmount: (json['normalized_size_amount'] as num?)
+          ?.toDouble(),
       normalizedSizeUnit: json['normalized_size_unit'] as String?,
       packCount: json['pack_count'] as int? ?? 1,
       packType: json['pack_type'] as String?,
       packLabelAr: json['pack_label_ar'] as String?,
       imageUrl: json['image_url'] as String?,
-      offers: rawOffers.map((o) => StoreOffer.fromJson(o as Map<String, dynamic>)).toList(),
+      offers: rawOffers
+          .map((o) => StoreOffer.fromJson(o as Map<String, dynamic>))
+          .toList(),
     );
   }
 }
@@ -252,9 +351,15 @@ class SearchResult {
       districtName: json['district_name'] as String?,
       exactSizeMatched: json['exact_size_matched'] as bool? ?? true,
       statusMessage: json['status_message'] as String? ?? '',
-      disclaimer: json['disclaimer'] as String? ?? 'الأرخص بين العروض المطابقة التي تم فحصها لموقعك',
-      matchedProducts: matched.map((p) => ProductItem.fromJson(p as Map<String, dynamic>)).toList(),
-      alternativeSizes: alts.map((p) => ProductItem.fromJson(p as Map<String, dynamic>)).toList(),
+      disclaimer:
+          json['disclaimer'] as String? ??
+          'الأرخص بين العروض المطابقة التي تم فحصها لموقعك',
+      matchedProducts: matched
+          .map((p) => ProductItem.fromJson(p as Map<String, dynamic>))
+          .toList(),
+      alternativeSizes: alts
+          .map((p) => ProductItem.fromJson(p as Map<String, dynamic>))
+          .toList(),
       subCategories: rawCats.map((c) => c.toString()).toList(),
       sourcesSummary: json['sources_summary'] as List<dynamic>? ?? [],
     );
@@ -289,6 +394,7 @@ class SourceInfo {
 
 class VoiceBasketItem {
   final int productId;
+  final int packCount;
   final String nameAr;
   final String? brandAr;
   int quantity;
@@ -298,6 +404,7 @@ class VoiceBasketItem {
   final String? notes;
 
   VoiceBasketItem({
+    this.packCount = 1,
     required this.productId,
     required this.nameAr,
     this.brandAr,
@@ -310,6 +417,7 @@ class VoiceBasketItem {
 
   factory VoiceBasketItem.fromJson(Map<String, dynamic> json) {
     return VoiceBasketItem(
+      packCount: json['pack_count'] as int? ?? 1,
       productId: json['product_id'] as int? ?? 0,
       nameAr: json['name_ar'] as String? ?? '',
       brandAr: json['brand_ar'] as String?,
@@ -328,7 +436,7 @@ class VoiceBasketItem {
       brandAr: brandAr,
       normalizedSizeAmount: sizeAmount,
       normalizedSizeUnit: sizeUnit,
-      packCount: 1,
+      packCount: packCount,
       imageUrl: imageUrl,
       offers: [],
     );
@@ -376,10 +484,16 @@ class VoiceBasketResult {
       recognizedText: json['recognized_text'] as String? ?? '',
       intent: json['intent'] as String? ?? '',
       messageAr: json['message_ar'] as String? ?? '',
-      itemsAdded: added.map((i) => VoiceBasketItem.fromJson(i as Map<String, dynamic>)).toList(),
-      itemsModified: modified.map((i) => VoiceBasketItem.fromJson(i as Map<String, dynamic>)).toList(),
+      itemsAdded: added
+          .map((i) => VoiceBasketItem.fromJson(i as Map<String, dynamic>))
+          .toList(),
+      itemsModified: modified
+          .map((i) => VoiceBasketItem.fromJson(i as Map<String, dynamic>))
+          .toList(),
       itemsRemoved: removed.map((r) => r.toString()).toList(),
-      currentBasket: current.map((i) => VoiceBasketItem.fromJson(i as Map<String, dynamic>)).toList(),
+      currentBasket: current
+          .map((i) => VoiceBasketItem.fromJson(i as Map<String, dynamic>))
+          .toList(),
       clarificationQuestion: json['clarification_question'] as String?,
       clarificationOptions: options.map((o) => o.toString()).toList(),
       canUndo: json['can_undo'] as bool? ?? false,
@@ -389,6 +503,10 @@ class VoiceBasketResult {
 }
 
 class PantryItemModel {
+  final bool serverSynced;
+  final bool hasVerifiedPrice;
+  final double? normalizedSizeAmount;
+  final String? normalizedSizeUnit;
   final int id;
   final String deviceUuid;
   final int productId;
@@ -418,6 +536,10 @@ class PantryItemModel {
   final bool isTargetMet;
 
   PantryItemModel({
+    this.serverSynced = false,
+    this.hasVerifiedPrice = false,
+    this.normalizedSizeAmount,
+    this.normalizedSizeUnit,
     required this.id,
     required this.deviceUuid,
     required this.productId,
@@ -449,6 +571,11 @@ class PantryItemModel {
 
   factory PantryItemModel.fromJson(Map<String, dynamic> json) {
     return PantryItemModel(
+      serverSynced: json['server_synced'] == true,
+      hasVerifiedPrice: json['has_verified_price'] == true,
+      normalizedSizeAmount: (json['normalized_size_amount'] as num?)
+          ?.toDouble(),
+      normalizedSizeUnit: json['normalized_size_unit'] as String?,
       id: json['id'] as int? ?? 0,
       deviceUuid: json['device_uuid'] as String? ?? '',
       productId: json['product_id'] as int? ?? 0,
@@ -462,29 +589,45 @@ class PantryItemModel {
       baselinePriceSar: (json['baseline_price_sar'] as num?)?.toDouble() ?? 0.0,
       baselineStoreCode: json['baseline_store_code'] as String?,
       baselineStoreName: json['baseline_store_name'] as String?,
-      lastLowestPriceSar: (json['current_lowest_price_sar'] as num?)?.toDouble() ??
+      lastLowestPriceSar:
+          (json['current_lowest_price_sar'] as num?)?.toDouble() ??
           (json['last_lowest_price_sar'] as num?)?.toDouble() ??
           0.0,
-      lastLowestStoreCode: (json['current_lowest_store_code'] as String?) ??
+      lastLowestStoreCode:
+          (json['current_lowest_store_code'] as String?) ??
           (json['last_lowest_store_code'] as String?),
-      lastLowestStoreName: (json['current_lowest_store_name_ar'] as String?) ??
+      lastLowestStoreName:
+          (json['current_lowest_store_name_ar'] as String?) ??
           (json['last_lowest_store_name'] as String?),
       targetPriceSar: (json['target_price_sar'] as num?)?.toDouble(),
-      dropPercentageThreshold: (json['target_discount_percent'] as num?)?.toDouble() ??
+      dropPercentageThreshold:
+          (json['target_discount_percent'] as num?)?.toDouble() ??
           (json['drop_percentage_threshold'] as num?)?.toDouble(),
-      storeCodes: (json['specific_store_codes'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
-          (json['store_codes'] as List<dynamic>?)?.map((e) => e.toString()).toList(),
+      storeCodes:
+          (json['specific_store_codes'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          (json['store_codes'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList(),
       isAlertEnabled: json['is_alert_enabled'] as bool? ?? true,
-      lastCheckedAt: json['last_checked_at'] != null ? DateTime.tryParse(json['last_checked_at'].toString()) : null,
-      lastAlertSentAt: json['last_alert_sent_at'] != null ? DateTime.tryParse(json['last_alert_sent_at'].toString()) : null,
-      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at'].toString()) : null,
-      priceDropSar: (json['savings_amount_sar'] as num?)?.toDouble() ??
+      lastCheckedAt: parseServerTime(json['last_checked_at']),
+      lastAlertSentAt: json['last_alert_sent_at'] != null
+          ? DateTime.tryParse(json['last_alert_sent_at'].toString())
+          : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'].toString())
+          : null,
+      priceDropSar:
+          (json['savings_amount_sar'] as num?)?.toDouble() ??
           (json['price_drop_sar'] as num?)?.toDouble() ??
           0.0,
-      priceDropPercentage: (json['savings_percent'] as num?)?.toDouble() ??
+      priceDropPercentage:
+          (json['savings_percent'] as num?)?.toDouble() ??
           (json['price_drop_percentage'] as num?)?.toDouble() ??
           0.0,
-      hasPriceDrop: json['is_price_dropped'] as bool? ??
+      hasPriceDrop:
+          json['is_price_dropped'] as bool? ??
           json['has_price_drop'] as bool? ??
           false,
       isTargetMet: json['is_target_met'] as bool? ?? false,
@@ -492,12 +635,16 @@ class PantryItemModel {
   }
 
   Map<String, dynamic> toJson() => {
+    'server_synced': serverSynced,
+    'has_verified_price': hasVerifiedPrice,
+    'normalized_size_amount': normalizedSizeAmount,
+    'normalized_size_unit': normalizedSizeUnit,
     'id': id,
     'device_uuid': deviceUuid,
     'product_id': productId,
     'product_name_ar': productNameAr,
     'product_name_en': productNameEn,
-    'brandAr': brandAr,
+    'brand_ar': brandAr,
     'pack_label_ar': packLabelAr,
     'pack_count': packCount,
     'image_url': imageUrl,
@@ -527,6 +674,8 @@ class PantryItemModel {
       nameAr: productNameAr,
       nameEn: productNameEn,
       brandAr: brandAr,
+      normalizedSizeAmount: normalizedSizeAmount,
+      normalizedSizeUnit: normalizedSizeUnit,
       packCount: packCount,
       packLabelAr: packLabelAr,
       imageUrl: imageUrl,
@@ -553,11 +702,17 @@ class PantrySummaryModel {
   factory PantrySummaryModel.fromJson(Map<String, dynamic> json) {
     var rawItems = json['items'] as List<dynamic>? ?? [];
     return PantrySummaryModel(
-      totalItems: json['total_items'] as int? ?? json['items_count'] as int? ?? rawItems.length,
+      totalItems:
+          json['total_items'] as int? ??
+          json['items_count'] as int? ??
+          rawItems.length,
       activeAlertsCount: json['active_alerts_count'] as int? ?? 0,
       itemsWithDropsCount: json['items_with_drops_count'] as int? ?? 0,
-      totalPotentialSavingsSar: (json['total_potential_savings_sar'] as num?)?.toDouble() ?? 0.0,
-      items: rawItems.map((i) => PantryItemModel.fromJson(i as Map<String, dynamic>)).toList(),
+      totalPotentialSavingsSar:
+          (json['total_potential_savings_sar'] as num?)?.toDouble() ?? 0.0,
+      items: rawItems
+          .map((i) => PantryItemModel.fromJson(i as Map<String, dynamic>))
+          .toList(),
     );
   }
 }
@@ -599,7 +754,8 @@ class NotificationLogItem {
     return NotificationLogItem(
       id: json['id'] as int? ?? 0,
       pantryItemId: json['pantry_item_id'] as int?,
-      titleAr: (json['title_ar'] as String?) ?? (json['title'] as String?) ?? '',
+      titleAr:
+          (json['title_ar'] as String?) ?? (json['title'] as String?) ?? '',
       bodyAr: (json['body_ar'] as String?) ?? (json['body'] as String?) ?? '',
       eventType: json['event_type'] as String? ?? 'info',
       storeCode: json['store_code'] as String?,
@@ -612,7 +768,9 @@ class NotificationLogItem {
       isRead: json['is_read'] as bool? ?? false,
       createdAt: json['sent_at'] != null
           ? DateTime.tryParse(json['sent_at'].toString())
-          : (json['created_at'] != null ? DateTime.tryParse(json['created_at'].toString()) : null),
+          : (json['created_at'] != null
+                ? DateTime.tryParse(json['created_at'].toString())
+                : null),
     );
   }
 
@@ -663,4 +821,3 @@ class AlertPreferencesModel {
     'daily_digest_enabled': dailyDigestEnabled,
   };
 }
-

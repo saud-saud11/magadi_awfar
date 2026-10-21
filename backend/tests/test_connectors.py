@@ -1,34 +1,23 @@
-import pytest
 import asyncio
-from app.connectors.manager import connector_manager
+from datetime import datetime
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
+from app.connectors.manager import ConnectorManager
 from app.connectors.base import ConnectorStatus
 
-def test_resilient_search_one_failure_does_not_break_others():
-    """Verify that if one connector raises an exception, the rest continue unharmed."""
-    async def run():
-        results = await connector_manager.search_all("نوتيلا", "سلطانة")
-        assert isinstance(results, list)
-        assert len(results) > 0
 
-        # Ensure Danube products are returned with valid price in Halalas
-        danube_items = [r for r in results if r.store_code == "danube"]
-        assert len(danube_items) > 0
-        assert danube_items[0].price_halalas > 0
+def test_failure_isolated_and_unverified_prices_filtered():
+    manager = ConnectorManager()
+    real = SimpleNamespace(price_verified=True, fetched_at=datetime.utcnow(), price_halalas=1800)
+    fake = SimpleNamespace(price_verified=False, fetched_at=datetime.utcnow(), price_halalas=1700)
+    manager.connectors = {
+        'failure': SimpleNamespace(is_enabled=True, store_code='failure', search=AsyncMock(side_effect=RuntimeError('offline'))),
+        'working': SimpleNamespace(is_enabled=True, store_code='working', search=AsyncMock(return_value=[real, fake])),
+    }
+    assert asyncio.run(manager.search_all('نوتيلا', 'سلطانة')) == [real]
 
-    asyncio.run(run())
 
-def test_store_status_transparency():
-    """Ensure every source has a valid defined status without false claims."""
-    statuses = connector_manager.get_all_statuses()
-    status_map = {s["code"]: s["status"] for s in statuses}
-
-    assert status_map["danube"] == ConnectorStatus.CONNECTED.value
-    assert status_map["tamimi"] == ConnectorStatus.CONNECTED.value
-    assert status_map["noon_minutes"] == ConnectorStatus.CONNECTED.value
-    assert status_map["amazon_sa"] == ConnectorStatus.CONNECTED.value
-    assert status_map["nahdi"] == ConnectorStatus.CONNECTED.value
-    assert status_map["dawaa"] == ConnectorStatus.CONNECTED.value
-    assert status_map["carrefour"] == ConnectorStatus.REQUIRES_SETUP.value
-    assert status_map["hungerstation"] == ConnectorStatus.REQUIRES_SETUP.value
-    assert status_map["ninja"] == ConnectorStatus.REQUIRES_SETUP.value
-    assert status_map["amazon_now"] == ConnectorStatus.UNSUPPORTED.value
+def test_unconnected_sources_never_claim_connected():
+    statuses = {s['code']: s['status'] for s in ConnectorManager().get_all_statuses()}
+    assert statuses['danube'] == ConnectorStatus.UNDER_INVESTIGATION.value
+    assert all(value == ConnectorStatus.REQUIRES_SETUP.value for code, value in statuses.items() if code != 'danube')

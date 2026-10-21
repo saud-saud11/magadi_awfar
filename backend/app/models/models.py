@@ -143,6 +143,8 @@ class PantryItem(Base):
     # Usual home replenishment quantity
     usual_quantity = Column(Integer, default=1, nullable=False)
     
+    baseline_version = Column(Integer, default=0, nullable=False)
+
     # Baseline price (first valid reading when item is added; never considered a drop)
     baseline_price_halalas = Column(Integer, nullable=False)
     baseline_store_code = Column(String(50), nullable=False)
@@ -212,7 +214,7 @@ class NotificationLog(Base):
     new_price_halalas = Column(Integer, nullable=False)
     
     deep_link = Column(String(500), nullable=True)
-    is_sent = Column(Boolean, default=True, nullable=False)
+    is_sent = Column(Boolean, default=False, nullable=False)
     sent_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     pantry_item = relationship("PantryItem", back_populates="notifications")

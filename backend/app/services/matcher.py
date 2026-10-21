@@ -278,7 +278,7 @@ class StrictMatcher:
 
         # Exact weight check with tight tolerance (within 2% to account for minor rounding)
         diff = abs(query.target_amount - p_amount)
-        if diff <= (query.target_amount * 0.02):
+        if diff < 0.000001:
             return True
 
         return False
@@ -396,7 +396,10 @@ class StrictMatcher:
                 types.append(f'size_{diaper_size_m.group(1)}')
 
         type_sig = '_'.join(types) if types else 'general'
-        return f"{brand}_{type_sig}_{amount}_{unit}_{pack}"
+        # Without a shared GTIN, only identical normalized titles may be grouped.
+        # A broad category such as "cheese" is not an SKU identity.
+        identity = f'gtin:{barcode}' if barcode else f'name:{norm}'
+        return f"{identity}_{amount}_{unit}_{pack}"
 
     def get_product_sub_category(self, title_ar: str) -> Tuple[str, int]:
         """

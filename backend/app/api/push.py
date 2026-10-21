@@ -4,17 +4,25 @@ from typing import List, Optional
 from datetime import datetime
 
 from app.database import get_db
+from app.security import require_device
+from app.config import settings
 from app.models.models import PushSubscription, NotificationLog, PantryItem, Product
 from app.schemas.pantry import (
     PushSubscriptionCreate, AlertPreferencesUpdate, NotificationLogOut
 )
 from app.services.web_push_service import web_push_service
 
-router = APIRouter(prefix="/push", tags=["إشعارات Push والتنبيهات"])
+router = APIRouter(prefix="/push", tags=["إشعارات Push والتنبيهات"], dependencies=[Depends(require_device)])
 
 @router.post("/subscribe")
 def register_push_subscription(data: PushSubscriptionCreate, db: Session = Depends(get_db)):
     """Register or update browser/device Web Push or FCM credentials."""
+    if not web_push_service.configured:
+        raise HTTPException(503, 'خدمة التنبيهات لم تُهيأ على الخادم بعد')
+    if data.platform != 'web' or not web_push_service.valid_endpoint(data.endpoint) or not data.p256dh_key or not data.auth_key:
+        raise HTTPException(422, 'اشتراك Web Push غير صالح')
+    if data.daily_digest_enabled:
+        raise HTTPException(422, 'الملخص اليومي غير متاح بعد')
     sub = db.query(PushSubscription).filter(PushSubscription.device_uuid == data.device_uuid).first()
     if sub:
         sub.platform = data.platform
@@ -79,7 +87,7 @@ async def send_test_notification(device_uuid: str = Query(...), db: Session = De
     
     payload = web_push_service.format_notification_payload(
         title="🔔 تجربة تنبيهات مقاضي البيت",
-        body="تم تفعيل إشعارات مقاضي أوفر بنجاح! ستصلك تنبيهات انخفاض الأسعار فور حدوثها.",
+        body="تم تفعيل إشعارات مقاضي أوفر بنجاح! ستصلك التنبيهات عند رصد انخفاض أثناء الفحص الدوري.",
         product_id=1,
         store_code="danube",
         store_name_ar="الدانوب",
@@ -88,15 +96,20 @@ async def send_test_notification(device_uuid: str = Query(...), db: Session = De
         deep_link="/pantry"
     )
 
-    if sub:
-        await web_push_service.send_web_push({
-            "endpoint": sub.endpoint,
-            "p256dh_key": sub.p256dh_key,
-            "auth_key": sub.auth_key,
-            "device_uuid": device_uuid
-        }, payload)
+    if not sub or not sub.is_active:
+        raise HTTPException(409, 'فعّل التنبيهات لهذا الجهاز أولًا')
+    sent = await web_push_service.send_web_push({
+        'endpoint': sub.endpoint, 'p256dh_key': sub.p256dh_key, 'auth_key': sub.auth_key,
+    }, payload)
+    if not sent: raise HTTPException(503, 'تعذر إرسال التنبيه؛ تحقق من إعدادات الخادم والاشتراك')
+    return {'status': 'success', 'message': 'تم إرسال التنبيه إلى مزود الإشعارات'}
 
-    return {"status": "success", "message": "تم إرسال الإشعار التجريبي بنجاح"}
+@router.get('/config')
+def get_push_config(device_uuid: str = Depends(require_device), db: Session = Depends(get_db)):
+    sub = db.query(PushSubscription).filter(PushSubscription.device_uuid == device_uuid).first()
+    return {'enabled': web_push_service.configured,
+            'registered': bool(sub and sub.is_active and sub.endpoint),
+            'public_key': settings.VAPID_PUBLIC_KEY if web_push_service.configured else None}
 
 @router.get("/preferences")
 def get_alert_preferences(device_uuid: str = Query(...), db: Session = Depends(get_db)):
@@ -124,7 +137,9 @@ def update_alert_preferences(
     device_uuid: str = Query(...),
     db: Session = Depends(get_db)
 ):
-    """Update user's alert, quiet hours, and daily digest preferences."""
+    """Update supported alert preferences."""
+    if data.daily_digest_enabled:
+        raise HTTPException(422, "الملخص اليومي غير متاح بعد")
     sub = db.query(PushSubscription).filter(PushSubscription.device_uuid == device_uuid).first()
     if not sub:
         sub = PushSubscription(

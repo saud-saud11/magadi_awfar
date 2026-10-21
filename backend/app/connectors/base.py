@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import List, Optional, Tuple, Dict, Any
 from dataclasses import dataclass
+from datetime import datetime
 
 class ConnectorStatus(str, Enum):
     CONNECTED = "connected"                      # متصل
@@ -29,6 +30,10 @@ class RawConnectorItem:
     pack_count: int = 1
     branch_name: Optional[str] = None
     promo_conditions: Optional[str] = None
+    price_verified: bool = False
+    stock_known: bool = False
+    source_url: Optional[str] = None
+    fetched_at: Optional[datetime] = None
 
 class BaseConnector(ABC):
     def __init__(self, store_code: str, store_name_ar: str, store_name_en: str):

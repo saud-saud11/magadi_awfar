@@ -1,10 +1,8 @@
+import '../widgets/verified_product_card.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
-import '../services/url_launcher_helper.dart';
-import '../services/pantry_service.dart';
-import '../widgets/pantry_alert_dialog.dart';
 import '../widgets/ui/ui_kit.dart';
 import 'product_detail_screen.dart';
 
@@ -31,7 +29,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
   String _selectedStoreFilter = 'all'; // all, danube, panda, othaim, carrefour
   String _selectedCategoryFilter = 'all'; // all, or specific subCategory
   String _selectedPackagingFilter = 'all'; // all, single, bundle
-  bool _onlyInStock = true;
+  bool _onlyInStock = false;
 
   SearchResult? _result;
   bool _isLoading = true;
@@ -60,8 +58,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
       if (mounted) {
         setState(() {
           _result = res;
-          if (res == null || (res.matchedProducts.isEmpty && res.alternativeSizes.isEmpty)) {
-            _errorMessage = 'لم نتمكن من العثور على عروض لبحث «${widget.initialQuery}». يرجى تجربة كلمات أخرى مثل: أرز الشعلان، نوتيلا، حليب السعودية.';
+          if (res == null ||
+              (res.matchedProducts.isEmpty && res.alternativeSizes.isEmpty)) {
+            _errorMessage =
+                'لم نتمكن من العثور على عروض لبحث «${widget.initialQuery}». يرجى تجربة كلمات أخرى مثل: أرز الشعلان، نوتيلا، حليب السعودية.';
           }
           _isLoading = false;
         });
@@ -100,32 +100,52 @@ class _ResultsScreenState extends State<ResultsScreen> {
               child: Column(
                 children: [
                   // Location and Sort bar
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.location_on, color: AppTheme.primary, size: 16),
+                          const Icon(
+                            Icons.location_on,
+                            color: AppTheme.primary,
+                            size: 16,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             'المدينة المنورة • ${widget.district}',
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primary),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primary,
+                            ),
                           ),
                         ],
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: AppTheme.primaryContainer,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.arrow_downward, size: 13, color: AppTheme.primary),
+                            Icon(
+                              Icons.arrow_downward,
+                              size: 13,
+                              color: AppTheme.primary,
+                            ),
                             SizedBox(width: 4),
                             Text(
-                              'مرتبة من الأرخص للأعلى',
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primary),
+                              'المتاجر حسب السعر',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primary,
+                              ),
                             ),
                           ],
                         ),
@@ -166,7 +186,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     child: Row(
                       children: [
                         _buildPackagingChip('كافة الأشكال', 'all'),
-                        _buildPackagingChip('🥫 عبوات فردية (بالحبّة)', 'single'),
+                        _buildPackagingChip(
+                          '🥫 عبوات فردية (بالحبّة)',
+                          'single',
+                        ),
                         _buildPackagingChip('📦 حزم وكراتين (شدّات)', 'bundle'),
                       ],
                     ),
@@ -180,7 +203,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
                       child: Row(
                         children: [
                           _buildCategoryChip('كافة الأقسام', 'all'),
-                          ..._result!.subCategories.map((cat) => _buildCategoryChip(cat, cat)),
+                          ..._result!.subCategories.map(
+                            (cat) => _buildCategoryChip(cat, cat),
+                          ),
                         ],
                       ),
                     ),
@@ -198,30 +223,36 @@ class _ResultsScreenState extends State<ResultsScreen> {
                       child: ProductSkeletonList(count: 4),
                     )
                   : _errorMessage != null
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const EmptyIllustration(icon: Icons.wifi_off_rounded),
-                                const SizedBox(height: 16),
-                                Text(
-                                  _errorMessage!,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(color: AppTheme.textMuted, fontSize: 13, height: 1.4),
-                                ),
-                                const SizedBox(height: 18),
-                                GradientButton(
-                                  label: 'إعادة المحاولة',
-                                  icon: Icons.refresh_rounded,
-                                  onPressed: _fetchResults,
-                                ),
-                              ],
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const EmptyIllustration(
+                              icon: Icons.wifi_off_rounded,
                             ),
-                          ),
-                        )
-                      : _buildResultsList(),
+                            const SizedBox(height: 16),
+                            Text(
+                              _errorMessage!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: AppTheme.textMuted,
+                                fontSize: 13,
+                                height: 1.4,
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                            GradientButton(
+                              label: 'إعادة المحاولة',
+                              icon: Icons.refresh_rounded,
+                              onPressed: _fetchResults,
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : _buildResultsList(),
             ),
           ],
         ),
@@ -245,7 +276,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
           fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
           fontSize: 12,
         ),
-        side: BorderSide(color: isSelected ? AppTheme.primary : AppTheme.border),
+        side: BorderSide(
+          color: isSelected ? AppTheme.primary : AppTheme.border,
+        ),
         onSelected: (_) {
           setState(() => _selectedStoreFilter = code);
         },
@@ -271,7 +304,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
         ),
         checkmarkColor: Colors.white,
         showCheckmark: isSelected,
-        side: BorderSide(color: isSelected ? AppTheme.primary : AppTheme.border),
+        side: BorderSide(
+          color: isSelected ? AppTheme.primary : AppTheme.border,
+        ),
         onSelected: (_) {
           setState(() => _selectedCategoryFilter = code);
         },
@@ -307,17 +342,27 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
   IconData _getCategoryIcon(String cat) {
     if (cat.contains('طازج')) return Icons.local_drink;
-    if (cat.contains('طويل الأجل') || cat.contains('طويل الاجل')) return Icons.inventory_2_outlined;
-    if (cat.contains('مبخر') || cat.contains('مكثف')) return Icons.coffee_outlined;
+    if (cat.contains('طويل الأجل') || cat.contains('طويل الاجل')) {
+      return Icons.inventory_2_outlined;
+    }
+    if (cat.contains('مبخر') || cat.contains('مكثف')) {
+      return Icons.coffee_outlined;
+    }
     if (cat.contains('نكهات')) return Icons.icecream_outlined;
     if (cat.contains('مجفف') || cat.contains('بودرة')) return Icons.grain;
-    if (cat.contains('ألبان') || cat.contains('زبادي')) return Icons.breakfast_dining_outlined;
-    if (cat.contains('شوكولاتة') || cat.contains('نوتيلا')) return Icons.cake_outlined;
+    if (cat.contains('ألبان') || cat.contains('زبادي')) {
+      return Icons.breakfast_dining_outlined;
+    }
+    if (cat.contains('شوكولاتة') || cat.contains('نوتيلا')) {
+      return Icons.cake_outlined;
+    }
     if (cat.contains('أرز') || cat.contains('ارز')) return Icons.rice_bowl;
     if (cat.contains('زيت')) return Icons.opacity;
     if (cat.contains('أطفال')) return Icons.child_care;
     if (cat.contains('حزم') || cat.contains('كراتين')) return Icons.inventory_2;
-    if (cat.contains('فردية') || cat.contains('بالحبّة')) return Icons.sports_bar_outlined;
+    if (cat.contains('فردية') || cat.contains('بالحبّة')) {
+      return Icons.sports_bar_outlined;
+    }
     return Icons.category_outlined;
   }
 
@@ -330,7 +375,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
     var matched = _selectedCategoryFilter == 'all'
         ? allMatched
-        : allMatched.where((p) => (p.subCategory ?? 'عروض مطابقة') == _selectedCategoryFilter).toList();
+        : allMatched
+              .where(
+                (p) =>
+                    (p.subCategory ?? 'عروض مطابقة') == _selectedCategoryFilter,
+              )
+              .toList();
 
     if (_selectedPackagingFilter == 'single') {
       matched = matched.where((p) => !p.isBundle).toList();
@@ -341,6 +391,13 @@ class _ResultsScreenState extends State<ResultsScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(
+            _result!.disclaimer,
+            style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+          ),
+        ),
         // Strict matching Warning banner if requested size was not found
         if (!exactMatched)
           Container(
@@ -358,16 +415,26 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   children: [
                     Icon(Icons.info, color: AppTheme.warning, size: 22),
                     SizedBox(width: 8),
-                    Text(
-                      'لم نجد هذا الحجم في المصادر المفحوصة',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF92400E)),
+                    Expanded(
+                      child: Text(
+                        'لم نجد هذا الحجم في المصادر المفحوصة',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: Color(0xFF92400E),
+                        ),
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'بحثت عن «${widget.initialQuery}». لم نجد عبوة مطابقة تمامًا لهذا الحجم في فروع المدينة المنورة المفحوصة. لا نخلط بين الأحجام، وعرضنا لك أدناه كافة الأحجام البديلة المتوفرة مع سعر كل 100 جرام لسهولة المقارنة.',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF78350F), height: 1.4),
+                  'بحثت عن «${widget.initialQuery}». لم نجد عبوة مطابقة تمامًا لهذا الحجم في المصادر التي استجابت. لا نخلط بين الأحجام، وعرضنا لك أدناه الأحجام البديلة مع سعر كل 100 جرام لسهولة المقارنة.',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF78350F),
+                    height: 1.4,
+                  ),
                 ),
               ],
             ),
@@ -378,8 +445,14 @@ class _ResultsScreenState extends State<ResultsScreen> {
           Row(
             children: [
               Text(
-                _selectedCategoryFilter == 'all' ? 'العروض المطابقة' : _selectedCategoryFilter,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textDark),
+                _selectedCategoryFilter == 'all'
+                    ? 'المنتجات المطابقة'
+                    : _selectedCategoryFilter,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textDark,
+                ),
               ),
               const Spacer(),
               Text(
@@ -400,8 +473,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
               const Icon(Icons.swap_horiz, color: AppTheme.primary, size: 20),
               const SizedBox(width: 6),
               const Text(
-                'الأحجام البديلة المتوفرة في المدينة المنورة',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textDark),
+                'أحجام بديلة',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textDark,
+                ),
               ),
               const Spacer(),
               Text(
@@ -420,19 +497,30 @@ class _ResultsScreenState extends State<ResultsScreen> {
             padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
             child: Column(
               children: [
-                const EmptyIllustration(icon: Icons.search_off_rounded, size: 90),
+                const EmptyIllustration(
+                  icon: Icons.search_off_rounded,
+                  size: 90,
+                ),
                 const SizedBox(height: 18),
                 Text(
                   _result!.statusMessage.isNotEmpty
                       ? _result!.statusMessage
                       : 'لم يتم العثور على منتجات مطابقة لبحثك.',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textDark),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.textDark,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 10),
                 const Text(
                   'جرّب البحث باسم المنتج أو الماركة الأساسية مثل: «نوتيلا»، «حليب المراعي»، «أرز الشعلان»، «زيت عافية»، «سكر الأسرة».',
-                  style: TextStyle(fontSize: 13, color: AppTheme.textMuted, height: 1.5),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppTheme.textMuted,
+                    height: 1.5,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -446,7 +534,11 @@ class _ResultsScreenState extends State<ResultsScreen> {
         Center(
           child: Text(
             '«${_result!.disclaimer}»',
-            style: const TextStyle(fontSize: 12, color: AppTheme.textMuted, fontStyle: FontStyle.italic),
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppTheme.textMuted,
+              fontStyle: FontStyle.italic,
+            ),
             textAlign: TextAlign.center,
           ),
         ),
@@ -465,7 +557,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
       // Insert section divider when a new sub-category starts
       if (_selectedCategoryFilter == 'all' && cat != currentCategory) {
         currentCategory = cat;
-        final count = products.where((item) => (item.subCategory ?? 'عروض مطابقة') == cat).length;
+        final count = products
+            .where((item) => (item.subCategory ?? 'عروض مطابقة') == cat)
+            .length;
         widgets.add(
           Padding(
             padding: const EdgeInsets.only(top: 14, bottom: 10),
@@ -477,7 +571,11 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     color: AppTheme.primaryContainer,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(_getCategoryIcon(cat), size: 16, color: AppTheme.primary),
+                  child: Icon(
+                    _getCategoryIcon(cat),
+                    size: 16,
+                    color: AppTheme.primary,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -490,14 +588,21 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     '$count',
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.textDark),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textDark,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -516,346 +621,36 @@ class _ResultsScreenState extends State<ResultsScreen> {
   }
 
   Widget _buildProductCard(ProductItem product, {required bool isAlternative}) {
-    // Filter offers by selected store
-    final visibleOffers = product.offers.where((o) {
-      if (_selectedStoreFilter != 'all' && o.storeCode != _selectedStoreFilter) {
-        return false;
-      }
-      if (_onlyInStock && !o.isInStock) {
-        return false;
-      }
-      return true;
-    }).toList();
-
-    if (visibleOffers.isEmpty) return const SizedBox();
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: SoftCard(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Product Header
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ProductDetailScreen(
-                            product: product,
-                            district: widget.district,
-                            onAddToBasket: widget.onAddToBasket,
-                          ),
-                        ),
-                      );
-                    },
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Product Image
-                        ProductImage(
-                          imageUrl: product.imageUrl,
-                          nameAr: product.nameAr,
-                          width: 70,
-                          height: 70,
-                          borderRadius: 16,
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                product.nameAr,
-                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppTheme.textDark),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 6),
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 4,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  // Packaging Badge (بالحبة vs حزمة/كرتون)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: product.isBundle ? const Color(0xFFF3E8FF) : const Color(0xFFECFDF5),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: product.isBundle ? const Color(0xFFD8B4FE) : const Color(0xFFA7F3D0),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          product.isBundle ? Icons.inventory_2_rounded : Icons.sports_bar_rounded,
-                                          size: 12,
-                                          color: product.isBundle ? const Color(0xFF7E22CE) : const Color(0xFF047857),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          product.displayPackBadge,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w700,
-                                            color: product.isBundle ? const Color(0xFF6B21A8) : const Color(0xFF065F46),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  if (product.normalizedSizeAmount != null)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.primaryContainer,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        product.normalizedSizeAmount! >= 1000 && product.normalizedSizeUnit == 'ml'
-                                            ? '${(product.normalizedSizeAmount! / 1000).toStringAsFixed(product.normalizedSizeAmount! % 1000 == 0 ? 0 : 2)} لتر'
-                                            : '${product.normalizedSizeAmount!.toInt()} ${product.normalizedSizeUnit == 'g' ? 'جرام' : (product.normalizedSizeUnit ?? '')}',
-                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.primary),
-                                      ),
-                                    ),
-                                  if (product.gtinBarcode != null)
-                                    Text(
-                                      'باركود: ${product.gtinBarcode}',
-                                      style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
-                                    ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                ValueListenableBuilder<List<PantryItemModel>>(
-                  valueListenable: PantryService().trackedItemsNotifier,
-                  builder: (context, trackedItems, _) {
-                    final isTracked = trackedItems.any((i) => i.productId == product.id);
-                    final trackedItem = isTracked ? trackedItems.firstWhere((i) => i.productId == product.id) : null;
-                    final isAlertActive = trackedItem?.isAlertEnabled ?? false;
-
-                    return AnimatedBell(
-                      active: isTracked && isAlertActive,
-                      tooltip: isTracked
-                          ? (isAlertActive ? 'التنبيه مفعل (انقر للتعطيل)' : 'التنبيه معطل (انقر للتفعيل)')
-                          : 'تابع السعر في مقاضي البيت',
-                      onTap: () async {
-                        if (!isTracked) {
-                          await PantryService().addToPantry(product);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('تمت إضافة «${product.nameAr}» إلى مقاضي البيت ومتابعة الأسعار بنجاح 🔔'),
-                                backgroundColor: AppTheme.primary,
-                                behavior: SnackBarBehavior.floating,
-                                action: SnackBarAction(
-                                  label: 'تخصيص',
-                                  textColor: Colors.white,
-                                  onPressed: () {
-                                    final item = PantryService().getTrackedItemByProductId(product.id);
-                                    if (item != null) {
-                                      PantryAlertDialog.show(context, item);
-                                    }
-                                  },
-                                ),
-                              ),
-                            );
-                          }
-                        } else if (trackedItem != null) {
-                          await PantryService().toggleAlert(trackedItem.id);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  !isAlertActive
-                                      ? 'تم تفعيل التنبيه لـ «${product.nameAr}» 🔔'
-                                      : 'تم إيقاف التنبيه مؤقتاً لـ «${product.nameAr}»',
-                                ),
-                                duration: const Duration(seconds: 3),
-                                behavior: SnackBarBehavior.floating,
-                                action: SnackBarAction(
-                                  label: 'تخصيص',
-                                  textColor: Colors.amberAccent,
-                                  onPressed: () => PantryAlertDialog.show(context, trackedItem),
-                                ),
-                              ),
-                            );
-                          }
-                        }
-                      },
-                    );
-                  },
-                ),
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: const Icon(Icons.add_shopping_cart_rounded, color: AppTheme.primary),
-                  tooltip: 'أضف لقائمة المشتريات',
-                  onPressed: () {
-                    widget.onAddToBasket(product);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('تمت إضافة «${product.nameAr}» لقائمة المشتريات')),
-                    );
-                  },
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 14),
-            Divider(height: 1, color: AppTheme.border.withOpacity(0.6)),
-            const SizedBox(height: 12),
-
-            // Store Offers List
-            ...visibleOffers.map((offer) => _buildOfferRow(offer)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOfferRow(StoreOffer offer) {
-    final isCheapest = offer.isCheapestProduct;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isCheapest
-            ? const Color(0xFFFFFDF5)
-            : AppTheme.surfaceAlt,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isCheapest ? AppTheme.accentGold : AppTheme.border,
-          width: isCheapest ? 1.5 : 1,
-        ),
-        boxShadow: isCheapest ? AppTheme.glowShadow(AppTheme.accentGold.withOpacity(0.25)) : null,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              // Store Badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppTheme.border),
-                ),
-                child: Text(
-                  offer.storeNameAr,
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppTheme.textDark),
-                ),
-              ),
-              const SizedBox(width: 8),
-              if (isCheapest)
-                const SavingsBadge('الأرخص 👑', gold: true),
-              const Spacer(),
-              // Price
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        '${offer.priceSar.toStringAsFixed(2)} ',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                          color: isCheapest ? const Color(0xFFB47D1E) : AppTheme.primary,
-                        ),
-                      ),
-                      Text(
-                        'ر.س',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isCheapest ? const Color(0xFFB47D1E) : AppTheme.primary,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (offer.originalPriceSar != null && offer.originalPriceSar! > offer.priceSar)
-                    Text(
-                      '${offer.originalPriceSar!.toStringAsFixed(2)} ر.س',
-                      style: const TextStyle(fontSize: 11, color: AppTheme.textMuted, decoration: TextDecoration.lineThrough),
-                    ),
-                ],
-              ),
-            ],
+    final offers = product.offers
+        .where(
+          (o) =>
+              o.isFresh &&
+              (_selectedStoreFilter == 'all' ||
+                  o.storeCode == _selectedStoreFilter) &&
+              (!_onlyInStock || (o.stockKnown && o.isInStock)),
+        )
+        .toList();
+    if (offers.isEmpty && (_selectedStoreFilter != 'all' || _onlyInStock)) {
+      return const SizedBox();
+    }
+    return VerifiedProductCard(
+      product: product,
+      offers: offers,
+      onAdd: () {
+        widget.onAddToBasket(product);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تمت الإضافة للسلة')));
+      },
+      onDetails: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ProductDetailScreen(
+            product: product,
+            district: widget.district,
+            onAddToBasket: widget.onAddToBasket,
           ),
-
-          const SizedBox(height: 10),
-
-          // Bottom Info Row: Unit Price and Open Button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              if (offer.unitPricePer100gSar != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.shade200),
-                  ),
-                  child: Text(
-                    'لكل 100 جم: ${offer.unitPricePer100gSar!.toStringAsFixed(2)} ر.س',
-                    style: TextStyle(fontSize: 11, color: Colors.blue.shade800, fontWeight: FontWeight.w700),
-                  ),
-                )
-              else
-                const Row(
-                  children: [
-                    Icon(Icons.verified_rounded, size: 14, color: AppTheme.primary),
-                    SizedBox(width: 4),
-                    Text(
-                      'سعر موحد في فروع المدينة',
-                      style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
-                    ),
-                  ],
-                ),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.open_in_new_rounded, size: 14),
-                label: const Text('افتح بالمتجر', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppTheme.primary,
-                  side: const BorderSide(color: AppTheme.primary, width: 1.2),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                ),
-                onPressed: () async {
-                  final launched = await UrlLauncherHelper.openStoreUrl(
-                    offer.productUrl,
-                    deepLink: offer.deepLink,
-                  );
-                  if (mounted && !launched) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('تعذر فتح الرابط تلقائيًا: ${offer.productUrl}'),
-                        backgroundColor: Colors.red.shade700,
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                },
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

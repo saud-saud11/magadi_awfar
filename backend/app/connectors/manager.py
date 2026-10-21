@@ -2,36 +2,16 @@ import asyncio
 from typing import List, Dict, Any, Optional
 from app.connectors.base import BaseConnector, RawConnectorItem
 from app.connectors.danube import DanubeConnector
-from app.connectors.panda import PandaConnector
-from app.connectors.othaim import OthaimConnector
-from app.connectors.carrefour import CarrefourConnector
-from app.connectors.tamimi import TamimiConnector
-from app.connectors.noon_minutes import NoonMinutesConnector
-from app.connectors.pharmacies import NahdiConnector, DawaaConnector
-from app.connectors.amazon_standard import AmazonStandardConnector
-from app.connectors.delivery_apps import (
-    HungerstationConnector, NinjaConnector, KeetaConnector, AmazonNowConnector
-)
-
-from app.connectors.live_market_scraper import fetch_live_market_items
+from app.connectors.unavailable import UnavailableConnector
 
 class ConnectorManager:
     def __init__(self):
-        self.connectors: Dict[str, BaseConnector] = {
-            "danube": DanubeConnector(),
-            "panda": PandaConnector(),
-            "othaim": OthaimConnector(),
-            "tamimi": TamimiConnector(),
-            "noon_minutes": NoonMinutesConnector(),
-            "amazon_sa": AmazonStandardConnector(),
-            "nahdi": NahdiConnector(),
-            "dawaa": DawaaConnector(),
-            "carrefour": CarrefourConnector(),
-            "hungerstation": HungerstationConnector(),
-            "ninja": NinjaConnector(),
-            "keeta": KeetaConnector(),
-            "amazon_now": AmazonNowConnector(),
-        }
+        self.connectors = {'danube': DanubeConnector()}
+        names = {'panda':'بنده', 'othaim':'أسواق العثيم', 'tamimi':'أسواق التميمي',
+                 'noon_minutes':'نون منتس', 'amazon_sa':'أمازون السعودية', 'nahdi':'النهدي',
+                 'dawaa':'الدواء', 'carrefour':'كارفور', 'lulu':'لولو', 'hungerstation':'هنقرستيشن',
+                 'ninja':'نينجا', 'keeta':'كيتا', 'amazon_now':'أمازون ناو'}
+        for code, name in names.items(): self.connectors[code] = UnavailableConnector(code, name, code)
 
     def get_connector(self, code: str) -> Optional[BaseConnector]:
         return self.connectors.get(code)
@@ -61,22 +41,14 @@ class ConnectorManager:
                 print(f"[ConnectorManager] Error running {connector.store_code}: {e}")
                 return []
 
-        async def safe_live_scraper() -> List[RawConnectorItem]:
-            try:
-                return await fetch_live_market_items(query, district)
-            except Exception as e:
-                print(f"[ConnectorManager] Error running live_market_scraper: {e}")
-                return []
-
         tasks = [safe_search(c) for c in active_connectors]
-        tasks.append(safe_live_scraper())
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
         
         all_items: List[RawConnectorItem] = []
         for res in results:
             if isinstance(res, list):
-                all_items.extend(res)
+                all_items.extend(item for item in res if item.price_verified and item.fetched_at and item.price_halalas > 0)
                 
         return all_items
 
