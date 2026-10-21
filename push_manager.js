@@ -37,20 +37,28 @@
     }
 
     try {
-      const reg = await navigator.serviceWorker.register('sw_push.js');
-      await navigator.serviceWorker.ready;
-
+      // Request permission in the user gesture before waiting for a service worker.
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
         return JSON.stringify({ success: false, error: 'Permission ' + permission });
       }
 
+      const reg = await navigator.serviceWorker.register(new URL('sw_push.js', document.baseURI));
+      await navigator.serviceWorker.ready;
       const subscribeOptions = {
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
       };
 
       let subscription = await reg.pushManager.getSubscription();
+      if (subscription && subscription.options.applicationServerKey) {
+        const oldKey = new Uint8Array(subscription.options.applicationServerKey);
+        const newKey = subscribeOptions.applicationServerKey;
+        if (oldKey.length !== newKey.length || oldKey.some((v, i) => v !== newKey[i])) {
+          await subscription.unsubscribe();
+          subscription = null;
+        }
+      }
       if (!subscription) {
         subscription = await reg.pushManager.subscribe(subscribeOptions);
       }

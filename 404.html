@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <base href="/magadi_awfar/">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="theme-color" content="#059669">
+  <meta name="description" content="مقاضي أوفر - مقارنة أسعار السوبرماركت وسلة المشتريات بالصوت بالذكاء الاصطناعي في المدينة المنورة">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="مقاضي أوفر">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>مقاضي أوفر — المدينة المنورة</title>
+  <link rel="manifest" href="manifest.json">
+</head>
+<body style="margin: 0; padding: 0; background-color: #047857; overflow-x: hidden;">
+  <script src="voice_recognition.js"></script>
+  <script src="push_manager.js"></script>
+  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        for (var r of regs) {
+          r.update();
+        }
+      });
+      navigator.serviceWorker.addEventListener('controllerchange', function() {
+        console.log('[SW] Controller changed, new service worker activated');
+      });
+    }
+  </script>
+</body>
+</html>

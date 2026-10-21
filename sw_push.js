@@ -26,10 +26,8 @@ self.addEventListener('push', (event) => {
     lang: 'ar',
     vibrate: [200, 100, 200],
     data: data.data || {},
-    actions: [
-      { action: 'open_pantry', title: 'عرض مقاضي البيت' },
-      { action: 'open_store', title: 'فتح المتجر' }
-    ]
+    tag: data.tag || 'magadi-price-update',
+    actions: [{ action: 'open_pantry', title: 'عرض مقاضي البيت' }]
   };
 
   event.waitUntil(
@@ -39,31 +37,16 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const action = event.action;
-  const nData = event.notification.data || {};
-
-  event.waitUntil(
-    (async () => {
-      if (action === 'open_store' && nData.store_url) {
-        if (self.clients.openWindow) {
-          return self.clients.openWindow(nData.store_url);
-        }
+  event.waitUntil((async () => {
+    const target = new URL(self.registration.scope);
+    target.searchParams.set('view', 'pantry');
+    const clients = await self.clients.matchAll({type: 'window', includeUncontrolled: true});
+    for (const client of clients) {
+      if (client.url.startsWith(self.registration.scope) && 'navigate' in client) {
+        const navigated = await client.navigate(target.href);
+        if (navigated) return navigated.focus();
       }
-
-      // Default: focus or open app at pantry screen
-      const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      for (const client of allClients) {
-        if ('focus' in client) {
-          client.focus();
-          client.postMessage({ type: 'NAVIGATE_TO_PANTRY', data: nData });
-          return;
-        }
-      }
-
-      if (self.clients.openWindow) {
-        const targetUrl = nData.deep_link || '/magadi_awfar/#/pantry';
-        return self.clients.openWindow(targetUrl);
-      }
-    })()
-  );
+    }
+    return self.clients.openWindow(target.href);
+  })());
 });
