@@ -209,70 +209,16 @@ def search_staple_catalog(query: str, store_code: str, store_name_ar: str, branc
     return results
 
 def seed_staple_products_to_db(db_session) -> int:
-    """
-    Seeds all STAPLE_CATALOG items and their store offers into the database.
-    Ensures that Product and StoreOffer rows exist with real IDs for baskets.
-    """
-    from app.models.models import Product, Store, StoreOffer
-    from app.services.matcher import strict_matcher
-
-    stores_map = {s.code: s.id for s in db_session.query(Store).all()}
+    """Seed metadata for offline language matching; never seed price observations."""
+    from app.models.models import Product
     count = 0
-
-    for cat in STAPLE_CATALOG:
-        brand_ar = cat["brand_ar"]
-        brand_en = cat["brand_en"]
-        for v in cat["variants"]:
-            amount, unit, pack = strict_matcher.parse_size_and_unit(v["raw_size"])
-            sub_cat, sub_cat_rank = strict_matcher.get_product_sub_category(v["title_ar"])
-            
-            # Find or create Product
-            prod = db_session.query(Product).filter(Product.gtin_barcode == v["barcode"]).first()
-            if not prod:
-                prod = Product(
-                    gtin_barcode=v["barcode"],
-                    name_ar=v["title_ar"],
-                    name_en=v.get("title_en"),
-                    brand_ar=brand_ar,
-                    brand_en=brand_en,
-                    category="بقالة",
-                    normalized_size_amount=amount,
-                    normalized_size_unit=unit,
-                    pack_count=pack,
-                    image_url="https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/135/911/product/80176800-1.jpg"
-                )
-                db_session.add(prod)
-                db_session.flush()
-                count += 1
-            else:
-                # Update details if needed
-                prod.name_ar = v["title_ar"]
-                prod.normalized_size_amount = amount
-                prod.normalized_size_unit = unit
-
-            # Add offers for stores that have prices defined
-            for store_code, store_id in stores_map.items():
-                price = v.get(store_code)
-                if price is not None:
-                    offer = db_session.query(StoreOffer).filter(
-                        StoreOffer.product_id == prod.id,
-                        StoreOffer.store_id == store_id
-                    ).first()
-                    if not offer:
-                        orig_price = int(round(price * 1.15)) if price < v.get("danube", price) else None
-                        offer = StoreOffer(
-                            store_id=store_id,
-                            product_id=prod.id,
-                            price_halalas=price,
-                            original_price_halalas=orig_price,
-                            is_on_sale=(orig_price is not None),
-                            is_in_stock=True,
-                            product_url=f"https://{store_code}.sa/product/{v['barcode']}",
-                            deep_link=f"{store_code}://product/{v['barcode']}",
-                            promo_conditions="عرض ترويجي" if orig_price else None
-                        )
-                        db_session.add(offer)
-
+    for category in STAPLE_CATALOG:
+        for item in category['variants']:
+            if db_session.query(Product).filter(Product.name_ar == item['title_ar']).first(): continue
+            amount, unit, pack = strict_matcher.parse_size_and_unit(item['title_ar'])
+            db_session.add(Product(name_ar=item['title_ar'], name_en=item.get('title_en'),
+                brand_ar=category['brand_ar'], normalized_size_amount=amount,
+                normalized_size_unit=unit, pack_count=pack))
+            count += 1
     db_session.commit()
     return count
-

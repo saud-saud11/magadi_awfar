@@ -1,17 +1,19 @@
-﻿import json
+import json
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
 
 from app.database import get_db
+from app.security import require_device
+from app.services.verified_offers import is_verified_offer
 from app.models.models import PantryItem, Product, StoreOffer, District
 from app.schemas.pantry import (
     PantryItemCreate, PantryItemUpdate, PantryItemOut, PantrySummaryOut
 )
 from app.services.price_monitor_service import price_monitor_service, STORE_NAMES
 
-router = APIRouter(prefix="/pantry", tags=["مقاضي البيت - Watchlist & Price Tracking"])
+router = APIRouter(prefix="/pantry", tags=["مقاضي البيت - Watchlist & Price Tracking"], dependencies=[Depends(require_device)])
 
 def _build_pantry_out(item: PantryItem, db: Session) -> PantryItemOut:
     product = item.product
@@ -50,6 +52,8 @@ def _build_pantry_out(item: PantryItem, db: Session) -> PantryItemOut:
         normalized_size_amount=product.normalized_size_amount,
         normalized_size_unit=product.normalized_size_unit,
         pack_count=product.pack_count,
+        server_synced=True,
+        has_verified_price=item.baseline_version == 2,
         pack_label_ar=pack_label,
         usual_quantity=item.usual_quantity,
         baseline_price_sar=baseline_sar,
@@ -71,7 +75,7 @@ def _build_pantry_out(item: PantryItem, db: Session) -> PantryItemOut:
     )
 
 @router.get("", response_model=PantrySummaryOut)
-def get_pantry_items(device_uuid: str = Query(..., description="Device UUID"), db: Session = Depends(get_db)):
+def get_pantry_items(device_uuid: str = Query(..., description="Device UUID"), db: Session = Depends(get_db), device_id: str = Depends(require_device)):
     """Retrieve full persistent watchlist for a user device."""
     items = db.query(PantryItem).filter(PantryItem.device_uuid == device_uuid).all()
     
@@ -89,13 +93,15 @@ def get_pantry_items(device_uuid: str = Query(..., description="Device UUID"), d
         active_alerts_count=active_alerts,
         total_estimated_monthly_sar=round(total_est, 2),
         total_potential_savings_sar=round(total_savings, 2),
-        monitoring_status=f"مراقبة نشطة على الخادم (كل {status_info['interval_minutes']} دقيقة)",
+        monitoring_status=(f"فحص دوري كل {status_info['interval_minutes']} دقيقة" if status_info["is_active"] else "الفحص الدوري غير نشط"),
         items=out_items
     )
 
 @router.post("", response_model=PantryItemOut)
-def add_pantry_item(data: PantryItemCreate, db: Session = Depends(get_db)):
+def add_pantry_item(data: PantryItemCreate, db: Session = Depends(get_db), device_id: str = Depends(require_device)):
     """Add a product to pantry watchlist with baseline price registration."""
+    if data.track_landed_total:
+        raise HTTPException(422, "متابعة الإجمالي متوقفة حتى تتوفر رسوم مؤكدة")
     product = db.query(Product).filter(Product.id == data.product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="المنتج غير موجود في الكتالوج")
@@ -107,13 +113,12 @@ def add_pantry_item(data: PantryItemCreate, db: Session = Depends(get_db)):
     ).first()
 
     # Determine initial lowest confirmed price as baseline
-    lowest_offer = db.query(StoreOffer).filter(
-        StoreOffer.product_id == product.id,
-        StoreOffer.price_halalas > 0
-    ).order_by(StoreOffer.price_halalas.asc()).first()
-
-    baseline_price = lowest_offer.price_halalas if lowest_offer else 2500
-    baseline_store = lowest_offer.store.code if lowest_offer else "othaim"
+    candidates = db.query(StoreOffer).filter(StoreOffer.product_id == product.id).order_by(StoreOffer.price_halalas).all()
+    lowest_offer = next((o for o in candidates if is_verified_offer(o, in_stock=False)), None)
+    if lowest_offer is None:
+        raise HTTPException(409, 'لم نحصل على سعر موثوق لتفعيل المتابعة على الخادم؛ احتفظ بالصنف محليًا وحاول تحديثه لاحقًا')
+    baseline_price = lowest_offer.price_halalas
+    baseline_store = lowest_offer.store.code
 
     district = db.query(District).filter(District.name_ar == data.district_name).first() if data.district_name else None
 
@@ -136,6 +141,7 @@ def add_pantry_item(data: PantryItemCreate, db: Session = Depends(get_db)):
         product_id=data.product_id,
         district_id=district.id if district else None,
         usual_quantity=data.usual_quantity,
+        baseline_version=2,
         baseline_price_halalas=baseline_price,
         baseline_store_code=baseline_store,
         target_price_halalas=target_halalas,
@@ -145,7 +151,7 @@ def add_pantry_item(data: PantryItemCreate, db: Session = Depends(get_db)):
         track_landed_total=data.track_landed_total,
         last_lowest_price_halalas=baseline_price,
         last_lowest_store_code=baseline_store,
-        last_checked_at=datetime.utcnow()
+        last_checked_at=lowest_offer.last_verified_at
     )
     db.add(item)
     db.commit()
@@ -154,12 +160,14 @@ def add_pantry_item(data: PantryItemCreate, db: Session = Depends(get_db)):
     return _build_pantry_out(item, db)
 
 @router.put("/{item_id}", response_model=PantryItemOut)
-def update_pantry_item(item_id: int, data: PantryItemUpdate, db: Session = Depends(get_db)):
+def update_pantry_item(item_id: int, data: PantryItemUpdate, db: Session = Depends(get_db), device_id: str = Depends(require_device)):
     """Update settings or quantity for a tracked pantry item."""
-    item = db.query(PantryItem).filter(PantryItem.id == item_id).first()
+    item = db.query(PantryItem).filter(PantryItem.id == item_id, PantryItem.device_uuid == device_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="الصنف غير موجود في مقاضي البيت")
 
+    if data.track_landed_total:
+        raise HTTPException(422, "متابعة الإجمالي متوقفة حتى تتوفر رسوم مؤكدة")
     if data.usual_quantity is not None:
         item.usual_quantity = data.usual_quantity
     if data.target_price_sar is not None:
@@ -178,9 +186,9 @@ def update_pantry_item(item_id: int, data: PantryItemUpdate, db: Session = Depen
     return _build_pantry_out(item, db)
 
 @router.delete("/{item_id}")
-def delete_pantry_item(item_id: int, db: Session = Depends(get_db)):
+def delete_pantry_item(item_id: int, db: Session = Depends(get_db), device_id: str = Depends(require_device)):
     """Remove item from watchlist."""
-    item = db.query(PantryItem).filter(PantryItem.id == item_id).first()
+    item = db.query(PantryItem).filter(PantryItem.id == item_id, PantryItem.device_uuid == device_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="الصنف غير موجود")
     db.delete(item)
@@ -188,9 +196,9 @@ def delete_pantry_item(item_id: int, db: Session = Depends(get_db)):
     return {"status": "success", "message": "تم حذف الصنف من مقاضي البيت بنجاح"}
 
 @router.post("/{item_id}/toggle-alert")
-def toggle_item_alert(item_id: int, db: Session = Depends(get_db)):
+def toggle_item_alert(item_id: int, db: Session = Depends(get_db), device_id: str = Depends(require_device)):
     """Toggle alerts on/off for a single item."""
-    item = db.query(PantryItem).filter(PantryItem.id == item_id).first()
+    item = db.query(PantryItem).filter(PantryItem.id == item_id, PantryItem.device_uuid == device_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="الصنف غير موجود")
     item.is_alert_enabled = not item.is_alert_enabled
@@ -199,7 +207,7 @@ def toggle_item_alert(item_id: int, db: Session = Depends(get_db)):
     return {"status": "success", "is_alert_enabled": item.is_alert_enabled, "message": f"تنبيهات الصنف أصبحت {state_str}"}
 
 @router.post("/toggle-all")
-def toggle_all_alerts(device_uuid: str = Query(...), enabled: bool = Query(...), db: Session = Depends(get_db)):
+def toggle_all_alerts(device_uuid: str = Query(...), enabled: bool = Query(...), db: Session = Depends(get_db), device_id: str = Depends(require_device)):
     """Enable or disable all alerts for a device."""
     items = db.query(PantryItem).filter(PantryItem.device_uuid == device_uuid).all()
     for i in items:
@@ -209,7 +217,7 @@ def toggle_all_alerts(device_uuid: str = Query(...), enabled: bool = Query(...),
     return {"status": "success", "updated_count": len(items), "message": f"تم {state_str} جميع تنبيهات مقاضي البيت"}
 
 @router.post("/trigger-check")
-async def trigger_monitoring_check(db: Session = Depends(get_db)):
+async def trigger_monitoring_check(db: Session = Depends(get_db), device_id: str = Depends(require_device)):
     """Manual trigger for server monitoring cycle (useful for verification)."""
-    stats = await price_monitor_service.run_single_monitoring_cycle(db)
-    return {"status": "success", "stats": stats}
+    stats = await price_monitor_service.run_single_monitoring_cycle(db, device_uuid=device_id)
+    return {"status": "success", "stats": stats, "alerts_sent": stats.get("alerts_sent", 0)}

@@ -14,6 +14,14 @@ analyzer:
     deprecated_member_use: ignore
     avoid_print: ignore
     prefer_final_fields: ignore
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 
 linter:
   rules:

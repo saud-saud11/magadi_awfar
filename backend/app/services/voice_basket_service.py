@@ -3,6 +3,7 @@ import copy
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional, Tuple
 from app.models.models import Product, StoreOffer, PantryItem
+from app.services.verified_offers import is_verified_offer
 from app.services.matcher import strict_matcher
 from app.schemas.schemas import VoiceBasketItemOut, VoiceParseResponse
 
@@ -228,47 +229,24 @@ class VoiceBasketService:
         target_idx = len(session["basket"]) - 1
         last_item = session["basket"][target_idx]
 
-        # Determine new size
-        brand = last_item.get("brand_ar", "")
-        name = last_item.get("name_ar", "")
-
-        # Look up large variant in database or catalog
-        category_key = self._detect_category_key(name)
-        cfg = DEFAULT_CATEGORY_CONFIGS.get(category_key, {})
-        new_size_amount = cfg.get("large_size_amount", 2000.0 if cfg.get("default_size_unit") == "ml" else 750.0)
-        new_size_unit = cfg.get("default_size_unit", "ml")
-
-        # Find matching large product in DB
-        large_prod = (
-            db_session.query(Product)
-            .filter(
-                Product.brand_ar == brand,
-                Product.normalized_size_amount == new_size_amount
-            )
-            .first()
-        )
-
-        if not large_prod:
-            # Fallback search by title
-            large_prod = (
-                db_session.query(Product)
-                .filter(
-                    Product.name_ar.like(f"%{brand}%"),
-                    Product.normalized_size_amount == new_size_amount
-                )
-                .first()
-            )
-
-        if large_prod:
-            session["basket"][target_idx]["product_id"] = large_prod.id
-            session["basket"][target_idx]["name_ar"] = large_prod.name_ar
-            session["basket"][target_idx]["size_amount"] = large_prod.normalized_size_amount
-            session["basket"][target_idx]["size_unit"] = large_prod.normalized_size_unit
-        else:
-            # Update virtual record
-            session["basket"][target_idx]["size_amount"] = new_size_amount
-            session["basket"][target_idx]["size_unit"] = new_size_unit
-            session["basket"][target_idx]["name_ar"] = session["basket"][target_idx]["name_ar"].replace("١ لتر", "٢ لتر").replace("1L", "2L")
+        brand = last_item.get('brand_ar')
+        def variant(title):
+            norm = strict_matcher.normalize_text(title)
+            return re.sub(r'\d+(?:\.\d+)?\s*(?:جرام|غرام|جم|كجم|كيلو|لتر|مل|kg|ml|g|l)\b', '', norm).strip()
+        candidates = [p for p in db_session.query(Product).filter(Product.brand_ar == brand,
+            Product.normalized_size_unit == last_item.get('size_unit'),
+            Product.pack_count == last_item.get('pack_count', 1)).all()
+            if variant(p.name_ar) == variant(last_item['name_ar'])]
+        candidates.sort(key=lambda p: p.normalized_size_amount or 0)
+        large_prod = candidates[-1] if candidates else None
+        if not large_prod or (large_prod.normalized_size_amount or 0) <= (last_item.get('size_amount') or 0):
+            return VoiceParseResponse(status='no_op', recognized_text=query, intent='change_size_or_type',
+                message_ar='لم أجد حجمًا أكبر من نفس الصنف والنوع. لم تتغير السلة.',
+                current_basket=[VoiceBasketItemOut(**i) for i in session['basket']], session_id=session_id)
+        new_size_amount, new_size_unit = large_prod.normalized_size_amount, large_prod.normalized_size_unit
+        session['basket'][target_idx].update(product_id=large_prod.id, name_ar=large_prod.name_ar,
+            size_amount=new_size_amount, size_unit=new_size_unit, pack_count=large_prod.pack_count,
+            image_url=large_prod.image_url)
 
         if request_id:
             session["processed_request_ids"].add(request_id)
@@ -439,8 +417,9 @@ class VoiceBasketService:
                 if pref_size:
                     amount, unit = pref_size.get("amount"), pref_size.get("unit")
                 else:
-                    amount = cfg.get("default_size_amount", 1.0)
-                    unit = cfg.get("default_size_unit", "l")
+                    amount, unit = None, None
+                    if re.search(r'(?:^|\s)لتر(?:$|\s)', item_phrase):
+                        amount, unit = 1000.0, 'ml'
 
             # Resolve to real database product
             product_record = self._resolve_db_product(
@@ -460,30 +439,19 @@ class VoiceBasketService:
                     name_ar=product_record.name_ar,
                     brand_ar=product_record.brand_ar,
                     quantity=qty,
+                    pack_count=product_record.pack_count,
                     size_amount=product_record.normalized_size_amount or amount,
                     size_unit=product_record.normalized_size_unit or unit,
                     image_url=product_record.image_url,
                     notes="خالي اللاكتوز" if is_lactose_free else ("قليل الدسم" if is_low_fat else None)
                 )
             else:
-                # Logical fallback from catalog specs
-                brand_name = cfg.get("default_brand", "عام")
-                title = f"{item_phrase} {amount or ''} {unit or ''}".strip()
-                p_out = VoiceBasketItemOut(
-                    product_id=len(session["basket"]) + len(added_items) + 100,
-                    name_ar=title,
-                    brand_ar=brand_name,
-                    quantity=qty,
-                    size_amount=amount,
-                    size_unit=unit,
-                    image_url="https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/135/911/product/80176800-1.jpg",
-                    notes="مطابقة افتراضية"
-                )
+                continue  # Never invent a product ID, variant, or photo.
 
             # Check if this item is already in session basket
             existing = next((i for i in session["basket"] if i["product_id"] == p_out.product_id), None)
             if existing:
-                existing["quantity"] += qty
+                existing["quantity"] = min(100, existing["quantity"] + qty)
             else:
                 session["basket"].append(p_out.model_dump())
 
@@ -529,39 +497,25 @@ class VoiceBasketService:
     def _split_compound_utterance(self, q_norm: str) -> List[str]:
         # Remove common introductory words
         cleaned = re.sub(r"^(?:ابي|ابغى|اريد|اضف|حط|سجل|ضيف|محتاج)\s+", "", q_norm).strip()
-        
+
         # Separate proclitic Arabic conjunction 'و' when followed by numbers or food keywords
         spaced = re.sub(
             r"\bو(?=اثنين|ثنتين|ثلاث|اربع|خمس|واحد|حبه|حبتين|علبه|علبتين|حليب|جبن|كيري|خبز|توست|نوتيلا|عصير|زيت|رز|شاي|سكر|بيض|لبن|زبادي)",
             "و ",
             cleaned
         )
-        
+
         # Split on ' و ' or ' مع ' or commas
         chunks = re.split(r"(?:\s+و\s+|\s+مع\s+|\s*,\s*|\s*،\s*)", spaced)
         return [c.strip() for c in chunks if c.strip()]
 
     def _extract_quantity_from_chunk(self, chunk: str) -> Tuple[int, str]:
-        # Check for dual form (حبتين، علبتين، كرتونين)
-        if re.search(r"\b(حبتين|علبتين|عبوتين|قارورتين|قطعتين)\b", chunk):
-            cleaned = re.sub(r"\b(حبتين|علبتين|عبوتين|قارورتين|قطعتين)\b", "", chunk).strip()
-            return 2, cleaned
-
-        # Check for numeric word (اثنين، ثنتين، 2)
-        match_two = re.search(r"\b(اثنين|ثنتين|حبتين|2|٢)\b", chunk)
-        if match_two:
-            cleaned = re.sub(r"\b(اثنين|ثنتين|حبتين|2|٢)\b", "", chunk).strip()
-            return 2, cleaned
-
-        # Check for other numbers (ثلاثة، اربعة، 3، 4)
-        num_match = re.search(r"\b(\d+|ثلاثه|ثلاث|اربعه|اربع|خمسه|خمس)\b", chunk)
-        if num_match:
-            word = num_match.group(1)
-            qty = self._parse_arabic_number(word)
-            cleaned = re.sub(r"\b" + re.escape(word) + r"\b", "", chunk).strip()
-            return qty, cleaned
-
-        # Default quantity: 1 unit (Section 6)
+        # Measurements such as 500 grams are never quantities.
+        match = re.match(r'^(حبتين|علبتين|عبوتين|قارورتين|قطعتين|اثنين|ثنتين|ثلاثه|ثلاث|اربعه|اربع|خمسه|خمس|\d+)\s+(?!جرام|جم|كجم|مل|لتر|kg|ml)', chunk)
+        if match:
+            word = match.group(1)
+            qty = int(word) if word.isdigit() else (2 if word in ('عبوتين','قارورتين','قطعتين') else self._parse_arabic_number(word))
+            return max(1, min(qty, 100)), chunk[match.end():].strip()
         return 1, chunk
 
     def _parse_arabic_number(self, word: str) -> int:
@@ -642,21 +596,26 @@ class VoiceBasketService:
             if full_fat_check.first():
                 query = full_fat_check
 
+        if target_unit:
+            query = query.filter(Product.normalized_size_unit == target_unit)
+        if cat_key == "milk": query = query.filter(Product.pack_count == 1)
+        if cat_key == 'general':
+            candidates = [p for p in query.all() if strict_matcher.is_relevant_match(q_norm, p.name_ar, p.brand_ar)]
+            return candidates[0] if candidates else None
+
         # 3. Match Target Amount if specified
         if target_amount is not None:
             # Query with exact size
             exact_prod = query.filter(Product.normalized_size_amount == target_amount).first()
-            if exact_prod:
-                return exact_prod
+            return exact_prod
 
-        # 4. Return standard first matching product
-        return query.first()
+        return query.order_by(Product.normalized_size_amount.asc()).first()
 
     def _find_matching_product(self, db_session, term: str) -> Optional[Product]:
         """Finds closest matching product in DB for a term."""
         # Strip digits/numbers first so target price doesn't pollute product title
         term_clean = re.sub(r"\d+(?:\.\d+)?", " ", term)
-        term_clean = re.sub(r"(?:حط|ضيف|تابع|سعر|في|قائمة|المتابعة|مقاضي|البيت|نبهني|إذا|اذا|صار|أقل|اقل|أكثر|اكثر|من|ريال|ر\.س|رس|وقف|تنبيهات|تنبيه|عطل|علمني|لو|سمحت)", " ", term_clean).strip()
+        term_clean = re.sub(r"\b(?:حط|ضيف|تابع|سعر|في|قائمه|المتابعه|مقاضي|البيت|نبهني|اذا|صار|اقل|اكثر|من|ريال|ر\.س|رس|وقف|تنبيهات|تنبيه|عطل|علمني|لو|سمحت)\b", " ", term_clean).strip()
         term_clean = re.sub(r"\s+", " ", term_clean).strip()
         if not term_clean:
             return None
@@ -671,7 +630,7 @@ class VoiceBasketService:
     def _handle_add_to_watchlist(self, db_session, query, q_norm, session, session_id, request_id) -> VoiceParseResponse:
         current_out = [VoiceBasketItemOut(**i) for i in session["basket"]]
         product = self._find_matching_product(db_session, q_norm)
-        
+
         if not product:
             return VoiceParseResponse(
                 status="success",
@@ -692,21 +651,27 @@ class VoiceBasketService:
         lowest_offer = db_session.query(StoreOffer).filter(
             StoreOffer.product_id == product.id,
             StoreOffer.price_halalas > 0
-        ).order_by(StoreOffer.price_halalas.asc()).first()
-        baseline_price = lowest_offer.price_halalas if lowest_offer else 2500
-        baseline_store = lowest_offer.store.code if lowest_offer else "othaim"
+        ).order_by(StoreOffer.price_halalas.asc()).all()
+        lowest_offer = next((o for o in lowest_offer if is_verified_offer(o)), None)
+        if lowest_offer is None:
+            return VoiceParseResponse(status='requires_setup', recognized_text=query, intent='add_to_watchlist',
+                message_ar='ابحث عن سعر موثوق مطابق للمنتج أولًا ثم فعّل المتابعة من صفحة المنتج.',
+                current_basket=current_out, session_id=session_id)
+        baseline_price = lowest_offer.price_halalas
+        baseline_store = lowest_offer.store.code
 
         if not existing:
             item = PantryItem(
                 device_uuid=device_uuid,
                 product_id=product.id,
                 usual_quantity=1,
+                baseline_version=2,
                 baseline_price_halalas=baseline_price,
                 baseline_store_code=baseline_store,
                 last_lowest_price_halalas=baseline_price,
                 last_lowest_store_code=baseline_store,
                 is_alert_enabled=True,
-                last_checked_at=datetime.utcnow()
+                last_checked_at=lowest_offer.last_verified_at
             )
             db_session.add(item)
         else:
@@ -727,11 +692,11 @@ class VoiceBasketService:
 
     def _handle_set_price_alert(self, db_session, query, q_norm, session, session_id, request_id) -> VoiceParseResponse:
         current_out = [VoiceBasketItemOut(**i) for i in session["basket"]]
-        
+
         # Extract target price number
         price_match = re.search(r"(\d+(?:\.\d+)?)\s*(?:ريال|ر\.س|رس)?", q_norm)
         target_sar = float(price_match.group(1)) if price_match else None
-        
+
         product = self._find_matching_product(db_session, q_norm)
         if not product or not target_sar:
             return VoiceParseResponse(
@@ -745,7 +710,7 @@ class VoiceBasketService:
 
         device_uuid = session_id
         target_halalas = int(round(target_sar * 100))
-        
+
         item = db_session.query(PantryItem).filter(
             PantryItem.device_uuid == device_uuid,
             PantryItem.product_id == product.id
@@ -755,21 +720,27 @@ class VoiceBasketService:
             lowest_offer = db_session.query(StoreOffer).filter(
                 StoreOffer.product_id == product.id,
                 StoreOffer.price_halalas > 0
-            ).order_by(StoreOffer.price_halalas.asc()).first()
-            baseline_price = lowest_offer.price_halalas if lowest_offer else int(round(target_sar * 1.15 * 100))
-            baseline_store = lowest_offer.store.code if lowest_offer else "othaim"
+            ).order_by(StoreOffer.price_halalas.asc()).all()
+            lowest_offer = next((o for o in lowest_offer if is_verified_offer(o)), None)
+            if lowest_offer is None:
+                return VoiceParseResponse(status='requires_setup', recognized_text=query, intent='set_price_alert',
+                    message_ar='لم نجد سعرًا موثوقًا لتفعيل المتابعة. ابحث عن المنتج أولًا.',
+                    current_basket=current_out, session_id=session_id)
+            baseline_price = lowest_offer.price_halalas
+            baseline_store = lowest_offer.store.code
 
             item = PantryItem(
                 device_uuid=device_uuid,
                 product_id=product.id,
                 usual_quantity=1,
+                baseline_version=2,
                 baseline_price_halalas=baseline_price,
                 baseline_store_code=baseline_store,
                 last_lowest_price_halalas=baseline_price,
                 last_lowest_store_code=baseline_store,
                 target_price_halalas=target_halalas,
                 is_alert_enabled=True,
-                last_checked_at=datetime.utcnow()
+                last_checked_at=lowest_offer.last_verified_at
             )
             db_session.add(item)
         else:

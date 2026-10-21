@@ -1,8 +1,8 @@
-﻿import json
+import json
 import logging
 import asyncio
 from typing import Dict, Any, List, Optional, Tuple
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
@@ -31,6 +31,7 @@ STORE_NAMES = {
 class PriceMonitorService:
     def __init__(self):
         self.is_running = False
+        self._cycle_lock = asyncio.Lock()
         self._interval_minutes = 30
         self._last_run_at: Optional[datetime] = None
         self._last_stats: Dict[str, Any] = {
@@ -70,13 +71,20 @@ class PriceMonitorService:
         except Exception:
             return False
 
-    async def run_single_monitoring_cycle(self, db: Session) -> Dict[str, Any]:
+    async def run_single_monitoring_cycle(self, db: Session, device_uuid: Optional[str] = None) -> Dict[str, Any]:
+        async with self._cycle_lock:
+            return await self._run_cycle(db, device_uuid)
+
+    async def _run_cycle(self, db: Session, device_uuid=None):
         """
         Executes one full deduplicated monitoring cycle across all active pantry items.
         Safe, idempotent, and records price changes accurately.
         """
         self._last_run_at = datetime.utcnow()
-        active_items = db.query(PantryItem).filter(PantryItem.is_alert_enabled == True).all()
+        query = db.query(PantryItem).filter(PantryItem.is_alert_enabled == True)
+        if device_uuid: query = query.filter(PantryItem.device_uuid == device_uuid)
+        active_items = query.all()
+        refreshed_ids = set()
 
         if not active_items:
             self._last_stats = {
@@ -112,18 +120,17 @@ class PriceMonitorService:
             valid_offers: List[Dict[str, Any]] = []
             for raw in raw_items:
                 # Source failure guard: price must be valid positive integer
-                if not raw.price_halalas or raw.price_halalas <= 0:
+                if not raw.price_verified or not raw.fetched_at or not raw.stock_known or not raw.is_in_stock or not raw.price_halalas or raw.price_halalas <= 0:
                     continue
 
                 # Verify strict size and pack count match
                 amount, unit, pack = strict_matcher.parse_size_and_unit(f"{raw.title_ar} {raw.raw_size_text or ''}")
                 
                 # Rule: Smaller pack is NEVER considered a price drop for a larger item
-                if product.pack_count > 1 and pack != product.pack_count:
+                if pack != product.pack_count or unit != product.normalized_size_unit or amount != product.normalized_size_amount:
                     continue
-                if product.normalized_size_amount and amount:
-                    if abs(amount - product.normalized_size_amount) > (product.normalized_size_amount * 0.15):
-                        continue
+                if product.gtin_barcode and raw.barcode and product.gtin_barcode != raw.barcode:
+                    continue
 
                 # Check relevance
                 if not strict_matcher.is_relevant_match(product.name_ar, raw.title_ar, raw.brand_ar):
@@ -136,7 +143,8 @@ class PriceMonitorService:
                     "original_price_halalas": raw.original_price_halalas,
                     "is_on_sale": bool(raw.original_price_halalas and raw.original_price_halalas > raw.price_halalas),
                     "url": raw.url,
-                    "promo_conditions": raw.promo_conditions
+                    "promo_conditions": raw.promo_conditions,
+                    "fetched_at": raw.fetched_at
                 })
 
             if not valid_offers:
@@ -151,6 +159,8 @@ class PriceMonitorService:
 
             # 2. Process each subscriber for this product
             for item in subscribers:
+                if item.track_landed_total:
+                    continue  # No delivery-inclusive baseline until verified fees are available.
                 # Allowed stores filter
                 allowed_stores = json.loads(item.specific_store_codes) if item.specific_store_codes else None
                 if allowed_stores and best_store not in allowed_stores:
@@ -162,9 +172,20 @@ class PriceMonitorService:
                 else:
                     current_best = best_offer
 
+                refreshed_ids.add(item.id)
                 curr_price = current_best["price_halalas"]
                 curr_store = current_best["store_code"]
                 curr_store_name = current_best["store_name_ar"]
+
+                if item.baseline_version != 2:
+                    item.baseline_price_halalas = curr_price
+                    item.baseline_store_code = curr_store
+                    item.last_lowest_price_halalas = curr_price
+                    item.last_lowest_store_code = curr_store
+                    item.last_checked_at = current_best['fetched_at']
+                    item.baseline_version = 2
+                    db.commit()
+                    continue  # First verified observation is a baseline, never a discount.
 
                 # Compare against baseline and previous reading
                 prev_price = item.last_lowest_price_halalas
@@ -222,7 +243,7 @@ class PriceMonitorService:
                 # Update latest recorded snapshot on pantry item
                 item.last_lowest_price_halalas = curr_price
                 item.last_lowest_store_code = curr_store
-                item.last_checked_at = datetime.utcnow()
+                item.last_checked_at = current_best['fetched_at']
                 db.commit()
 
                 if not should_alert:
@@ -238,16 +259,6 @@ class PriceMonitorService:
                     total_skipped += 1
                     continue
 
-                # 4. Check user subscription and quiet hours
-                sub = db.query(PushSubscription).filter(
-                    PushSubscription.device_uuid == item.device_uuid,
-                    PushSubscription.is_active == True
-                ).first()
-
-                is_quiet = False
-                if sub and self.is_in_quiet_hours(sub):
-                    is_quiet = True
-
                 # Record in notification logs regardless of push permissions (in-app history)
                 notif_log = NotificationLog(
                     device_uuid=item.device_uuid,
@@ -261,41 +272,45 @@ class PriceMonitorService:
                     old_price_halalas=prev_price if prev_price > 0 else None,
                     new_price_halalas=curr_price,
                     deep_link=f"/product/{product.id}?offer={curr_store}",
-                    is_sent=not is_quiet
+                    is_sent=False
                 )
                 db.add(notif_log)
                 db.commit()
 
-                # Dispatch Web Push if not in quiet hours
-                if sub and not is_quiet:
-                    payload = web_push_service.format_notification_payload(
-                        title=title,
-                        body=body,
-                        product_id=product.id,
-                        store_code=curr_store,
-                        store_name_ar=curr_store_name,
-                        new_price_sar=curr_price / 100.0,
-                        old_price_sar=(prev_price / 100.0) if prev_price > 0 else None,
-                        deep_link=notif_log.deep_link,
-                        image_url=product.image_url
-                    )
-                    sub_dict = {
-                        "endpoint": sub.endpoint,
-                        "p256dh_key": sub.p256dh_key,
-                        "auth_key": sub.auth_key,
-                        "device_uuid": sub.device_uuid
-                    }
-                    asyncio.create_task(web_push_service.send_web_push(sub_dict, payload))
-
                 total_alerts += 1
 
+        sent = await self._deliver_pending(db, device_uuid, refreshed_ids)
         self._last_stats = {
+            "alerts_sent": sent,
             "items_checked": len(active_items),
             "alerts_generated": total_alerts,
             "dedup_skipped": total_skipped,
             "status": "active"
         }
         return self._last_stats
+
+    async def _deliver_pending(self, db, device_uuid=None, refreshed_ids=None):
+        query = db.query(NotificationLog).filter(NotificationLog.is_sent == False,
+            NotificationLog.sent_at >= datetime.utcnow() - timedelta(hours=24))
+        if device_uuid: query = query.filter(NotificationLog.device_uuid == device_uuid)
+        sent = 0
+        for log in query.limit(200).all():
+            if refreshed_ids is None or log.pantry_item_id not in refreshed_ids: continue
+            item = log.pantry_item
+            if not item or not item.is_alert_enabled or item.baseline_version != 2: continue
+            if item.last_checked_at < datetime.utcnow() - timedelta(hours=1): continue
+            if item.last_lowest_price_halalas != log.new_price_halalas or item.last_lowest_store_code != log.store_code: continue
+            sub = db.query(PushSubscription).filter(PushSubscription.device_uuid == log.device_uuid,
+                PushSubscription.is_active == True).first()
+            if not sub or self.is_in_quiet_hours(sub): continue
+            payload = web_push_service.format_notification_payload(log.title, log.body, item.product_id,
+                log.store_code, log.store_name_ar, log.new_price_halalas / 100,
+                log.old_price_halalas / 100 if log.old_price_halalas else None)
+            log.is_sent = await web_push_service.send_web_push({
+                'endpoint': sub.endpoint, 'p256dh_key': sub.p256dh_key, 'auth_key': sub.auth_key}, payload)
+            if log.is_sent: sent += 1
+            db.commit()
+        return sent
 
     async def start_background_loop(self):
         """Continuous background task running on the server."""

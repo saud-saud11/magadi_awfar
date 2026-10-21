@@ -1,4 +1,5 @@
 import '../models/models.dart';
+import 'product_matching.dart';
 
 class OfflineCatalog {
   static final List<Map<String, dynamic>> _staples = [
@@ -12,16 +13,8 @@ class OfflineCatalog {
       'amount': 10000.0,
       'unit': 'g',
       'keywords': ['ارز', 'أرز', 'شعلان', 'rice', 'مزه', 'بسمتي'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/047/562/product/shalan-basmati-rice-10-kg.jpg',
-      'prices': {
-        'danube': 8995,
-        'othaim': 8995,
-        'panda': 8995,
-        'amazon_sa': 8995,
-        'noon_minutes': 8995,
-        'carrefour': 8995,
-        'tamimi': 8995,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/047/562/product/shalan-basmati-rice-10-kg.jpg',
     },
     {
       'id': 102,
@@ -32,16 +25,8 @@ class OfflineCatalog {
       'amount': 5000.0,
       'unit': 'g',
       'keywords': ['ارز', 'أرز', 'شعلان', 'rice', 'مزه', 'بسمتي'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/014/600/product/890600109002.jpg',
-      'prices': {
-        'danube': 4695,
-        'othaim': 4695,
-        'panda': 4695,
-        'amazon_sa': 4695,
-        'noon_minutes': 4695,
-        'carrefour': 4695,
-        'tamimi': 4695,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/014/600/product/890600109002.jpg',
     },
     // Nutella
     {
@@ -53,16 +38,8 @@ class OfflineCatalog {
       'amount': 500.0,
       'unit': 'g',
       'keywords': ['نوتيلا', 'شوكولاته', 'nutella', 'شوكولاتة', 'بندق'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/135/911/product/80176800-1.jpg',
-      'prices': {
-        'othaim': 2395,
-        'panda': 2450,
-        'noon_minutes': 2495,
-        'amazon_sa': 2495,
-        'tamimi': 2550,
-        'danube': 2650,
-        'carrefour': 2595,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/135/911/product/80176800-1.jpg',
     },
     {
       'id': 202,
@@ -73,16 +50,8 @@ class OfflineCatalog {
       'amount': 750.0,
       'unit': 'g',
       'keywords': ['نوتيلا', 'nutella'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/135/911/product/80176800-1.jpg',
-      'prices': {
-        'othaim': 3395,
-        'panda': 3495,
-        'noon_minutes': 3550,
-        'amazon_sa': 3495,
-        'tamimi': 3650,
-        'danube': 3795,
-        'carrefour': 3650,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/135/911/product/80176800-1.jpg',
     },
     {
       'id': 203,
@@ -93,15 +62,8 @@ class OfflineCatalog {
       'amount': 400.0,
       'unit': 'g',
       'keywords': ['نوتيلا', 'nutella'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/135/911/product/80176800-1.jpg',
-      'prices': {
-        'othaim': 1995,
-        'panda': 2050,
-        'noon_minutes': 2100,
-        'amazon_sa': 2050,
-        'tamimi': 2150,
-        'danube': 2250,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/135/911/product/80176800-1.jpg',
     },
     // Saudia Milk
     {
@@ -113,16 +75,8 @@ class OfflineCatalog {
       'amount': 1000.0,
       'unit': 'ml',
       'keywords': ['حليب السعودية', 'السعودية', 'saudia', 'حليب'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/121/321/product/628103910216.jpeg',
-      'prices': {
-        'othaim': 595,
-        'panda': 600,
-        'noon_minutes': 600,
-        'amazon_sa': 600,
-        'tamimi': 625,
-        'danube': 650,
-        'carrefour': 600,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/121/321/product/628103910216.jpeg',
     },
     {
       'id': 302,
@@ -133,15 +87,8 @@ class OfflineCatalog {
       'amount': 2000.0,
       'unit': 'ml',
       'keywords': ['حليب السعودية', 'السعودية', 'saudia', 'حليب'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/128/687/product/628103917531.jpg',
-      'prices': {
-        'othaim': 1075,
-        'panda': 1100,
-        'noon_minutes': 1100,
-        'amazon_sa': 1095,
-        'tamimi': 1125,
-        'danube': 1150,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/128/687/product/628103917531.jpg',
     },
     {
       'id': 303,
@@ -152,15 +99,8 @@ class OfflineCatalog {
       'amount': 1000.0,
       'unit': 'ml',
       'keywords': ['لاكتوز', 'خالي اللاكتوز', 'حليب السعودية'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/108/673/product/628103911231.jpeg',
-      'prices': {
-        'othaim': 795,
-        'panda': 800,
-        'noon_minutes': 800,
-        'amazon_sa': 800,
-        'tamimi': 825,
-        'danube': 850,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/108/673/product/628103911231.jpeg',
     },
     // Almarai Milk
     {
@@ -172,15 +112,8 @@ class OfflineCatalog {
       'amount': 2000.0,
       'unit': 'ml',
       'keywords': ['مراعي', 'المراعي', 'almarai', 'حليب'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/128/688/product/628100706688.jpg',
-      'prices': {
-        'othaim': 1025,
-        'panda': 1050,
-        'noon_minutes': 1050,
-        'amazon_sa': 1075,
-        'tamimi': 1095,
-        'danube': 1100,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/128/688/product/628100706688.jpg',
     },
     {
       'id': 402,
@@ -191,15 +124,8 @@ class OfflineCatalog {
       'amount': 1000.0,
       'unit': 'ml',
       'keywords': ['مراعي', 'المراعي', 'almarai', 'حليب'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/101/924/product/628100707005.jpeg',
-      'prices': {
-        'othaim': 550,
-        'panda': 575,
-        'noon_minutes': 575,
-        'amazon_sa': 585,
-        'tamimi': 595,
-        'danube': 600,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/101/924/product/628100707005.jpeg',
     },
     // Kiri Cheese
     {
@@ -211,15 +137,8 @@ class OfflineCatalog {
       'amount': 216.0,
       'unit': 'g',
       'keywords': ['كيري', 'جبن كيري', 'جبنة كيري', 'kiri', 'جبن', 'جبنة'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/095/266/product/6281006141209_1.jpg',
-      'prices': {
-        'othaim': 1250,
-        'panda': 1295,
-        'noon_minutes': 1295,
-        'amazon_sa': 1295,
-        'tamimi': 1350,
-        'danube': 1425,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/095/266/product/6281006141209_1.jpg',
     },
     {
       'id': 502,
@@ -230,15 +149,8 @@ class OfflineCatalog {
       'amount': 432.0,
       'unit': 'g',
       'keywords': ['كيري', 'جبن كيري', 'kiri'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/095/266/product/6281006141209_1.jpg',
-      'prices': {
-        'othaim': 2395,
-        'panda': 2495,
-        'noon_minutes': 2495,
-        'amazon_sa': 2450,
-        'tamimi': 2550,
-        'danube': 2695,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/095/266/product/6281006141209_1.jpg',
     },
     // Lusine Toast
     {
@@ -250,15 +162,8 @@ class OfflineCatalog {
       'amount': 600.0,
       'unit': 'g',
       'keywords': ['توست', 'خبز', 'لوزين', 'toast', 'bread', 'lusine'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/111/280/product/70999332463.jpeg',
-      'prices': {
-        'othaim': 495,
-        'panda': 500,
-        'noon_minutes': 500,
-        'amazon_sa': 500,
-        'tamimi': 525,
-        'danube': 550,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/111/280/product/70999332463.jpeg',
     },
     {
       'id': 602,
@@ -269,15 +174,8 @@ class OfflineCatalog {
       'amount': 600.0,
       'unit': 'g',
       'keywords': ['توست بر', 'أسمر', 'اسمر', 'لوزين'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/125/547/product/628100706020.jpg',
-      'prices': {
-        'othaim': 525,
-        'panda': 550,
-        'noon_minutes': 550,
-        'amazon_sa': 550,
-        'tamimi': 575,
-        'danube': 600,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/125/547/product/628100706020.jpg',
     },
     // Afia Oil
     {
@@ -289,15 +187,8 @@ class OfflineCatalog {
       'amount': 1500.0,
       'unit': 'ml',
       'keywords': ['زيت', 'عافيه', 'عافية', 'oil', 'ذرة'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/087/571/product/6281011702181.png',
-      'prices': {
-        'othaim': 2195,
-        'panda': 2295,
-        'noon_minutes': 2250,
-        'amazon_sa': 2295,
-        'tamimi': 2350,
-        'danube': 2595,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/087/571/product/6281011702181.png',
     },
     // Lipton Tea
     {
@@ -309,15 +200,8 @@ class OfflineCatalog {
       'amount': 200.0,
       'unit': 'g',
       'keywords': ['شاي', 'ليبتون', 'lipton', 'tea'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/144/038/product/506330500821.jpg',
-      'prices': {
-        'othaim': 1550,
-        'panda': 1595,
-        'noon_minutes': 1595,
-        'amazon_sa': 1550,
-        'tamimi': 1695,
-        'danube': 1750,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/144/038/product/506330500821.jpg',
     },
     // Sugar
     {
@@ -329,15 +213,8 @@ class OfflineCatalog {
       'amount': 5000.0,
       'unit': 'g',
       'keywords': ['سكر', 'الاسره', 'الأسرة', 'sugar'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/088/044/product/Al_Osra_Fine_White_Sugar_5___1_KG_6285525000436.png',
-      'prices': {
-        'othaim': 2095,
-        'panda': 2150,
-        'noon_minutes': 2150,
-        'amazon_sa': 2195,
-        'tamimi': 2250,
-        'danube': 2395,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/088/044/product/Al_Osra_Fine_White_Sugar_5___1_KG_6285525000436.png',
     },
     // Eggs
     {
@@ -349,15 +226,8 @@ class OfflineCatalog {
       'amount': 30.0,
       'unit': 'حبة',
       'keywords': ['بيض', 'egg', 'طبق بيض'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/111/280/product/70999332463.jpeg',
-      'prices': {
-        'othaim': 1895,
-        'noon_minutes': 1950,
-        'panda': 1995,
-        'amazon_sa': 2000,
-        'tamimi': 2050,
-        'danube': 2150,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/111/280/product/70999332463.jpeg',
     },
     // Similac Baby Formula (Pharmacy + Supermarket)
     {
@@ -369,15 +239,8 @@ class OfflineCatalog {
       'amount': 800.0,
       'unit': 'g',
       'keywords': ['سيميلاك', 'similac', 'حليب اطفال', 'اطفال'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/061/288/product/539152305727.jpg',
-      'prices': {
-        'nahdi': 8950,
-        'dawaa': 8950,
-        'othaim': 8800,
-        'panda': 8850,
-        'amazon_sa': 8750,
-        'danube': 9200,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/061/288/product/539152305727.jpg',
     },
     // Baby Joy Diapers (Size 5, 4)
     {
@@ -388,17 +251,18 @@ class OfflineCatalog {
       'category': 'حليب ورعاية الأطفال',
       'amount': 66.0,
       'unit': 'حبة',
-      'keywords': ['بيبي جوي', 'بيبيجوي', 'حفاضات', 'حفايض', 'baby joy', 'babyjoy', 'مقاس 5', 'مقاس ٥'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/058/598/product/6281017353141.PT01.jpg',
-      'prices': {
-        'tamimi': 6995,
-        'othaim': 7250,
-        'panda': 7495,
-        'carrefour': 7495,
-        'danube': 7850,
-        'nahdi': 7995,
-        'dawaa': 7995,
-      }
+      'keywords': [
+        'بيبي جوي',
+        'بيبيجوي',
+        'حفاضات',
+        'حفايض',
+        'baby joy',
+        'babyjoy',
+        'مقاس 5',
+        'مقاس ٥',
+      ],
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/058/598/product/6281017353141.PT01.jpg',
     },
     {
       'id': 1103,
@@ -408,17 +272,17 @@ class OfflineCatalog {
       'category': 'حليب ورعاية الأطفال',
       'amount': 74.0,
       'unit': 'حبة',
-      'keywords': ['بيبي جوي', 'بيبيجوي', 'حفاضات', 'حفايض', 'baby joy', 'مقاس 4', 'مقاس ٤'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/058/549/product/6281017353097.PT02.jpg',
-      'prices': {
-        'tamimi': 7195,
-        'othaim': 7250,
-        'panda': 7395,
-        'carrefour': 7450,
-        'danube': 7850,
-        'nahdi': 7995,
-        'dawaa': 7995,
-      }
+      'keywords': [
+        'بيبي جوي',
+        'بيبيجوي',
+        'حفاضات',
+        'حفايض',
+        'baby joy',
+        'مقاس 4',
+        'مقاس ٤',
+      ],
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/058/549/product/6281017353097.PT02.jpg',
     },
     // NAN Optipro 3
     {
@@ -430,15 +294,8 @@ class OfflineCatalog {
       'amount': 800.0,
       'unit': 'g',
       'keywords': ['نان', 'nan', 'حليب اطفال', 'حليب نان'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/139/649/product/628705074013.jpg',
-      'prices': {
-        'othaim': 8295,
-        'panda': 8350,
-        'carrefour': 8350,
-        'nahdi': 8450,
-        'dawaa': 8450,
-        'danube': 8695,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/139/649/product/628705074013.jpg',
     },
     // Panadol Extra
     {
@@ -449,14 +306,17 @@ class OfflineCatalog {
       'category': 'الأدوية والرعاية الصحية',
       'amount': 24.0,
       'unit': 'حبة',
-      'keywords': ['بنادول', 'بانادول', 'بندول', 'panadol', 'مسكن', 'صداع', 'اكسترا'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/097/254/product/Panadol_Advance_-_3D_Packshots___Thumbnail_page-0001.jpg',
-      'prices': {
-        'nahdi': 690,
-        'dawaa': 690,
-        'tamimi': 690,
-        'danube': 690,
-      }
+      'keywords': [
+        'بنادول',
+        'بانادول',
+        'بندول',
+        'panadol',
+        'مسكن',
+        'صداع',
+        'اكسترا',
+      ],
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/097/254/product/Panadol_Advance_-_3D_Packshots___Thumbnail_page-0001.jpg',
     },
     // Cetaphil Cream 453g
     {
@@ -468,14 +328,8 @@ class OfflineCatalog {
       'amount': 453.0,
       'unit': 'g',
       'keywords': ['سيتافيل', 'cetaphil', 'مرطب', 'كريم مرطب', 'كريم'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/107/971/product/60602985.jpg',
-      'prices': {
-        'amazon_sa': 8400,
-        'nahdi': 9900,
-        'carrefour': 11000,
-        'danube': 11500,
-        'dawaa': 12250,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/107/971/product/60602985.jpg',
     },
     // Bepanthen Pink 100g
     {
@@ -487,13 +341,8 @@ class OfflineCatalog {
       'amount': 100.0,
       'unit': 'g',
       'keywords': ['بيبانثين', 'بيبانثين الوردي', 'bepanthen', 'مرهم'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/127/010/product/6285074002974.jpg',
-      'prices': {
-        'othaim': 5195,
-        'panda': 5250,
-        'nahdi': 5405,
-        'dawaa': 5405,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/127/010/product/6285074002974.jpg',
     },
     // Tuna
     {
@@ -505,15 +354,8 @@ class OfflineCatalog {
       'amount': 185.0,
       'unit': 'g',
       'keywords': ['تونة', 'تونه', 'قودي', 'tuna', 'لحم تونة'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/116/262/product/6281014302227.01.jpg',
-      'prices': {
-        'othaim': 750,
-        'amazon_sa': 775,
-        'panda': 795,
-        'carrefour': 795,
-        'tamimi': 825,
-        'danube': 850,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/116/262/product/6281014302227.01.jpg',
     },
     {
       'id': 1202,
@@ -524,14 +366,8 @@ class OfflineCatalog {
       'amount': 200.0,
       'unit': 'g',
       'keywords': ['تونة', 'تونه', 'هالي', 'tuna'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/022/223/product/490293111068.jpg',
-      'prices': {
-        'othaim': 475,
-        'panda': 525,
-        'carrefour': 550,
-        'tamimi': 595,
-        'danube': 625,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/022/223/product/490293111068.jpg',
     },
     {
       'id': 1203,
@@ -542,14 +378,8 @@ class OfflineCatalog {
       'amount': 185.0,
       'unit': 'g',
       'keywords': ['تونة', 'تونه', 'الخير', 'tuna'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/138/431/product/628110149436.jpg',
-      'prices': {
-        'othaim': 595,
-        'tamimi': 625,
-        'carrefour': 650,
-        'panda': 675,
-        'danube': 700,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/138/431/product/628110149436.jpg',
     },
     // Tea
     {
@@ -561,15 +391,8 @@ class OfflineCatalog {
       'amount': 400.0,
       'unit': 'g',
       'keywords': ['شاي', 'ربيع', 'شاي ربيع', 'tea', 'اوراق شاي'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/128/056/product/6281013222762_2.jpg',
-      'prices': {
-        'othaim': 2495,
-        'carrefour': 2550,
-        'tamimi': 2600,
-        'panda': 2650,
-        'amazon_sa': 2650,
-        'danube': 2795,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/128/056/product/6281013222762_2.jpg',
     },
     {
       'id': 1302,
@@ -580,14 +403,8 @@ class OfflineCatalog {
       'amount': 100.0,
       'unit': 'كيس',
       'keywords': ['شاي', 'ربيع', 'اكياس شاي', 'أكياس'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/128/687/product/628103917531.jpg',
-      'prices': {
-        'othaim': 1595,
-        'panda': 1650,
-        'carrefour': 1650,
-        'tamimi': 1725,
-        'danube': 1850,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/128/687/product/628103917531.jpg',
     },
     {
       'id': 1303,
@@ -598,14 +415,8 @@ class OfflineCatalog {
       'amount': 100.0,
       'unit': 'كيس',
       'keywords': ['شاي', 'لبتون', 'ليبتون', 'lipton'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/133/353/product/6281006710009_1.png',
-      'prices': {
-        'othaim': 1795,
-        'carrefour': 1850,
-        'panda': 1895,
-        'tamimi': 1950,
-        'danube': 2095,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/133/353/product/6281006710009_1.png',
     },
     // Pasta
     {
@@ -617,15 +428,8 @@ class OfflineCatalog {
       'amount': 450.0,
       'unit': 'g',
       'keywords': ['مكرونة', 'معكرونة', 'سباغيتي', 'قودي', 'pasta'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/022/619/product/GOODY_SPAGHETTI__20_450GM.jpg',
-      'prices': {
-        'othaim': 450,
-        'carrefour': 450,
-        'panda': 495,
-        'tamimi': 525,
-        'amazon_sa': 525,
-        'danube': 575,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/022/619/product/GOODY_SPAGHETTI__20_450GM.jpg',
     },
     {
       'id': 1402,
@@ -636,14 +440,8 @@ class OfflineCatalog {
       'amount': 450.0,
       'unit': 'g',
       'keywords': ['مكرونة', 'معكرونة', 'قودي', 'خواتم'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/053/656/product/goody-ditalini-rigati-pasta-no-14-450g.jpg',
-      'prices': {
-        'othaim': 450,
-        'carrefour': 450,
-        'panda': 495,
-        'tamimi': 525,
-        'danube': 575,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/053/656/product/goody-ditalini-rigati-pasta-no-14-450g.jpg',
     },
     // Cheeses
     {
@@ -655,14 +453,8 @@ class OfflineCatalog {
       'amount': 432.0,
       'unit': 'g',
       'keywords': ['جبنة', 'جبن', 'كيري', 'kiri', 'مربعات'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/095/266/product/6281006141209_1.jpg',
-      'prices': {
-        'othaim': 2495,
-        'carrefour': 2550,
-        'panda': 2595,
-        'tamimi': 2675,
-        'danube': 2850,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/095/266/product/6281006141209_1.jpg',
     },
     {
       'id': 1502,
@@ -673,14 +465,8 @@ class OfflineCatalog {
       'amount': 500.0,
       'unit': 'g',
       'keywords': ['جبنة', 'جبن', 'بوك', 'puck', 'كاسات', 'كريم'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/128/687/product/628103917531.jpg',
-      'prices': {
-        'othaim': 1695,
-        'carrefour': 1750,
-        'panda': 1795,
-        'tamimi': 1850,
-        'danube': 1995,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/128/687/product/628103917531.jpg',
     },
     {
       'id': 1503,
@@ -691,14 +477,8 @@ class OfflineCatalog {
       'amount': 480.0,
       'unit': 'g',
       'keywords': ['جبنة', 'جبن', 'كرافت', 'kraft', 'شيدر'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/041/493/product/762221085249.jpg',
-      'prices': {
-        'othaim': 1950,
-        'carrefour': 1995,
-        'panda': 2050,
-        'tamimi': 2125,
-        'danube': 2250,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/041/493/product/762221085249.jpg',
     },
     // Detergents
     {
@@ -710,14 +490,8 @@ class OfflineCatalog {
       'amount': 2500.0,
       'unit': 'g',
       'keywords': ['تايد', 'tide', 'صابون تايد', 'صابون', 'مسحوق غسيل'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/048/727/product/2_tide-protect-antibacterial-ls-automatic-2-25kg.png',
-      'prices': {
-        'othaim': 3695,
-        'carrefour': 3750,
-        'panda': 3895,
-        'tamimi': 3995,
-        'danube': 4250,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/048/727/product/2_tide-protect-antibacterial-ls-automatic-2-25kg.png',
     },
     {
       'id': 1602,
@@ -728,14 +502,8 @@ class OfflineCatalog {
       'amount': 1000.0,
       'unit': 'ml',
       'keywords': ['فيري', 'fairy', 'صابون صحون', 'سائل جلي'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/095/266/product/6281006141209_1.jpg',
-      'prices': {
-        'othaim': 1350,
-        'carrefour': 1395,
-        'panda': 1450,
-        'tamimi': 1500,
-        'danube': 1650,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/095/266/product/6281006141209_1.jpg',
     },
     // Drinks & Sodas
     {
@@ -750,14 +518,8 @@ class OfflineCatalog {
       'pack_type': 'single',
       'pack_label_ar': 'بالحبّة (مفرد)',
       'keywords': ['بيبسي', 'pepsi', 'مشروب غازي', 'علبة بيبسي', 'حبة بيبسي'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/133/397/product/12000059780_1.png',
-      'prices': {
-        'othaim': 250,
-        'carrefour': 250,
-        'panda': 250,
-        'tamimi': 250,
-        'danube': 250,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/133/397/product/12000059780_1.png',
     },
     {
       'id': 1704,
@@ -770,15 +532,17 @@ class OfflineCatalog {
       'pack_count': 6,
       'pack_type': 'bundle',
       'pack_label_ar': 'حزمة (6 علب)',
-      'keywords': ['بيبسي', 'pepsi', 'حزمة بيبسي', 'شدة بيبسي', 'شدة', 'حزمة', '6 علب'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/133/397/product/12000059780_1.png',
-      'prices': {
-        'othaim': 1250,
-        'carrefour': 1295,
-        'panda': 1295,
-        'tamimi': 1250,
-        'danube': 1350,
-      }
+      'keywords': [
+        'بيبسي',
+        'pepsi',
+        'حزمة بيبسي',
+        'شدة بيبسي',
+        'شدة',
+        'حزمة',
+        '6 علب',
+      ],
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/133/397/product/12000059780_1.png',
     },
     {
       'id': 1705,
@@ -791,15 +555,16 @@ class OfflineCatalog {
       'pack_count': 24,
       'pack_type': 'bundle',
       'pack_label_ar': 'كرتون (24 علبة)',
-      'keywords': ['بيبسي', 'pepsi', 'كرتون بيبسي', 'كرتون', '24 علبة', '24 حبة'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/133/397/product/12000059780_1.png',
-      'prices': {
-        'othaim': 5395,
-        'carrefour': 5450,
-        'panda': 5495,
-        'tamimi': 5395,
-        'danube': 5500,
-      }
+      'keywords': [
+        'بيبسي',
+        'pepsi',
+        'كرتون بيبسي',
+        'كرتون',
+        '24 علبة',
+        '24 حبة',
+      ],
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/133/397/product/12000059780_1.png',
     },
     {
       'id': 1706,
@@ -813,14 +578,8 @@ class OfflineCatalog {
       'pack_type': 'single',
       'pack_label_ar': 'قارورة عائلية (بالحبّة)',
       'keywords': ['بيبسي', 'pepsi', 'قارورة', 'عائلي', '2.25 لتر'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/133/397/product/12000059780_1.png',
-      'prices': {
-        'othaim': 900,
-        'carrefour': 925,
-        'panda': 900,
-        'tamimi': 900,
-        'danube': 950,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/133/397/product/12000059780_1.png',
     },
     {
       'id': 1702,
@@ -831,14 +590,8 @@ class OfflineCatalog {
       'amount': 325.0,
       'unit': 'ml',
       'keywords': ['سفن', 'سفن اب', '7up', 'مشروب غازي'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/133/493/product/12000022913_1.png',
-      'prices': {
-        'othaim': 250,
-        'carrefour': 250,
-        'panda': 250,
-        'tamimi': 250,
-        'danube': 250,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/133/493/product/12000022913_1.png',
     },
     {
       'id': 1703,
@@ -849,14 +602,8 @@ class OfflineCatalog {
       'amount': 40.0,
       'unit': 'حبة',
       'keywords': ['ماء', 'مياه', 'صفا', 'كرتون مويه', 'مويه'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/026/784/product/628110006903.jpg',
-      'prices': {
-        'othaim': 1695,
-        'carrefour': 1750,
-        'panda': 1795,
-        'tamimi': 1850,
-        'danube': 1995,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/026/784/product/628110006903.jpg',
     },
     // Malt & Barley Beverages (موسي، بربيكان، هولستن)
     {
@@ -870,15 +617,17 @@ class OfflineCatalog {
       'pack_count': 1,
       'pack_type': 'single',
       'pack_label_ar': 'بالحبّة (مفرد)',
-      'keywords': ['موسي', 'moussy', 'شعير', 'شراب شعير', 'مشروب شعير', 'موسي كلاسيك', 'سادة'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/097/254/product/Panadol_Advance_-_3D_Packshots___Thumbnail_page-0001.jpg',
-      'prices': {
-        'othaim': 495,
-        'carrefour': 500,
-        'panda': 500,
-        'tamimi': 525,
-        'danube': 550,
-      }
+      'keywords': [
+        'موسي',
+        'moussy',
+        'شعير',
+        'شراب شعير',
+        'مشروب شعير',
+        'موسي كلاسيك',
+        'سادة',
+      ],
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/097/254/product/Panadol_Advance_-_3D_Packshots___Thumbnail_page-0001.jpg',
     },
     {
       'id': 1802,
@@ -892,14 +641,8 @@ class OfflineCatalog {
       'pack_type': 'single',
       'pack_label_ar': 'بالحبّة (مفرد)',
       'keywords': ['موسي', 'moussy', 'شعير', 'شراب شعير', 'رمان', 'موسي رمان'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/107/971/product/60602985.jpg',
-      'prices': {
-        'othaim': 495,
-        'carrefour': 500,
-        'panda': 500,
-        'tamimi': 525,
-        'danube': 550,
-      }
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/107/971/product/60602985.jpg',
     },
     {
       'id': 1803,
@@ -912,15 +655,16 @@ class OfflineCatalog {
       'pack_count': 1,
       'pack_type': 'single',
       'pack_label_ar': 'بالحبّة (مفرد)',
-      'keywords': ['بربيكان', 'barbican', 'شعير', 'شراب شعير', 'سادة', 'مشروب شعير'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/127/010/product/6285074002974.jpg',
-      'prices': {
-        'othaim': 395,
-        'carrefour': 425,
-        'panda': 425,
-        'tamimi': 425,
-        'danube': 450,
-      }
+      'keywords': [
+        'بربيكان',
+        'barbican',
+        'شعير',
+        'شراب شعير',
+        'سادة',
+        'مشروب شعير',
+      ],
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/127/010/product/6285074002974.jpg',
     },
     {
       'id': 1804,
@@ -933,15 +677,17 @@ class OfflineCatalog {
       'pack_count': 6,
       'pack_type': 'bundle',
       'pack_label_ar': 'حزمة (6 علب)',
-      'keywords': ['بربيكان', 'barbican', 'شعير', 'شراب شعير', 'تفاح', 'شدة بربيكان', 'حزمة'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/013/593/product/7616297.jpg',
-      'prices': {
-        'othaim': 1195,
-        'carrefour': 1250,
-        'panda': 1250,
-        'tamimi': 1250,
-        'danube': 1395,
-      }
+      'keywords': [
+        'بربيكان',
+        'barbican',
+        'شعير',
+        'شراب شعير',
+        'تفاح',
+        'شدة بربيكان',
+        'حزمة',
+      ],
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/013/593/product/7616297.jpg',
     },
     {
       'id': 1805,
@@ -954,41 +700,18 @@ class OfflineCatalog {
       'pack_count': 1,
       'pack_type': 'single',
       'pack_label_ar': 'بالحبّة (مفرد)',
-      'keywords': ['هولستن', 'holsten', 'شعير', 'شراب شعير', 'مشروب شعير', 'كلاسيك'],
-      'image': 'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/078/981/product/3219110457551.jpg',
-      'prices': {
-        'othaim': 495,
-        'carrefour': 500,
-        'panda': 500,
-        'tamimi': 525,
-        'danube': 550,
-      }
+      'keywords': [
+        'هولستن',
+        'holsten',
+        'شعير',
+        'شراب شعير',
+        'مشروب شعير',
+        'كلاسيك',
+      ],
+      'image':
+          'https://d1c124wpoew66.cloudfront.net/spree/images/attachments/000/078/981/product/3219110457551.jpg',
     },
   ];
-
-  static final Map<String, String> _storeNames = {
-    'danube': 'الدانوب',
-    'panda': 'بنده',
-    'othaim': 'أسواق العثيم',
-    'tamimi': 'أسواق التميمي',
-    'noon_minutes': 'نون منتس (فوري)',
-    'amazon_sa': 'أمازون السعودية',
-    'nahdi': 'صيدلية النهدي',
-    'dawaa': 'صيدلية الدواء',
-    'carrefour': 'كارفور السعودية',
-  };
-
-  static final Map<String, String> _storeUrls = {
-    'danube': 'https://danube.sa',
-    'panda': 'https://panda.com.sa',
-    'othaim': 'https://othaimmarkets.com',
-    'tamimi': 'https://tamimimarkets.com',
-    'noon_minutes': 'https://noon.com',
-    'amazon_sa': 'https://amazon.sa',
-    'nahdi': 'https://nahdionline.com',
-    'dawaa': 'https://al-dawaa.com',
-    'carrefour': 'https://carrefourksa.com',
-  };
 
   static String _normalize(String s) {
     var text = s.toLowerCase();
@@ -1007,8 +730,31 @@ class OfflineCatalog {
   }
 
   static const Set<String> _genericStopwords = {
-    'شراب', 'مشروب', 'عصير', 'علبة', 'علبه', 'كرتون', 'حبة', 'حبه',
-    'طازج', 'كبير', 'صغير', 'وسط', 'اصلي', 'كيلو', 'كجم', 'جرام', 'غرام', 'جم', 'مل', 'لتر', 'سادة', 'ساده', 'فاخر', 'سعر', 'عرض'
+    'شراب',
+    'مشروب',
+    'عصير',
+    'علبة',
+    'علبه',
+    'كرتون',
+    'حبة',
+    'حبه',
+    'طازج',
+    'كبير',
+    'صغير',
+    'وسط',
+    'اصلي',
+    'كيلو',
+    'كجم',
+    'جرام',
+    'غرام',
+    'جم',
+    'مل',
+    'لتر',
+    'سادة',
+    'ساده',
+    'فاخر',
+    'سعر',
+    'عرض',
   };
 
   static SearchResult search({
@@ -1026,57 +772,67 @@ class OfflineCatalog {
     List<Map<String, dynamic>> alternatives = [];
 
     final nonStopTokens = tokens
-        .where((t) => !_genericStopwords.contains(t) && !_genericStopwords.contains(_stripAl(t)))
+        .where(
+          (t) =>
+              !_genericStopwords.contains(t) &&
+              !_genericStopwords.contains(_stripAl(t)),
+        )
         .toList();
 
     for (var item in _staples) {
       final nameNorm = _normalize(item['name_ar'] as String);
       final brandNorm = _normalize(item['brand_ar'] as String? ?? '');
-      final keywordsNorm = (item['keywords'] as List<String>).map(_normalize).toList();
+      final keywordsNorm = (item['keywords'] as List<String>)
+          .map(_normalize)
+          .toList();
       final haystack = '$nameNorm $brandNorm ${keywordsNorm.join(' ')}';
 
-      bool isMatch = false;
-
-      // 1. Exact phrase or substring match
-      if (haystack.contains(normQuery) || keywordsNorm.any((k) => k == normQuery || normQuery.contains(k))) {
-        isMatch = true;
-      } else if (nonStopTokens.isNotEmpty) {
-        // Multi-word query: ALL core non-stopword tokens must match (e.g. "شعير" for "شراب شعير")
-        bool allNonStopMatched = true;
-        for (var t in nonStopTokens) {
-          final stem = _stripAl(t);
-          if (!haystack.contains(t) && !haystack.contains(stem)) {
-            allNonStopMatched = false;
-            break;
-          }
-        }
-        if (allNonStopMatched) {
-          isMatch = true;
-        }
-      } else if (tokens.isNotEmpty) {
-        // If query was only generic words (e.g. "شراب" or "عصير"), match any token
-        for (var t in tokens) {
-          final stem = _stripAl(t);
-          if (haystack.contains(t) || haystack.contains(stem)) {
-            isMatch = true;
-            break;
-          }
-        }
-      }
+      final terms = nonStopTokens
+          .where(
+            (t) =>
+                !RegExp(r'^\d+(?:\.\d+)?$').hasMatch(t) &&
+                ![
+                  'جرام',
+                  'غرام',
+                  'جم',
+                  'كجم',
+                  'كيلو',
+                  'g',
+                  'kg',
+                  'مل',
+                  'ml',
+                  'لتر',
+                  'l',
+                ].contains(t),
+          )
+          .toList();
+      final isMatch =
+          normQuery.isEmpty ||
+          (terms.isNotEmpty
+              ? terms.every(
+                  (t) => haystack.contains(t) || haystack.contains(_stripAl(t)),
+                )
+              : tokens.any((t) => haystack.contains(t)));
 
       if (isMatch) {
-        matched.add(item);
+        final product = _buildProductItem(item, district, sortBy);
+        if (ProductMatching.exactSize(query, product)) {
+          matched.add(item);
+        } else {
+          alternatives.add(item);
+        }
       }
     }
 
-    if (matched.isEmpty) {
+    if (matched.isEmpty && alternatives.isEmpty) {
       // Do NOT inject staples or unrelated products!
       return SearchResult(
         query: query,
         districtName: district,
         exactSizeMatched: false,
         statusMessage: 'لم نجد نتائج مطابقة لبحث «$query» في الكتالوج الحالي.',
-        disclaimer: 'تأكد من كتابة اسم الصنف بدقة أو جرب البحث بكلمات عامة مثل: حليب، أرز، زيت، عصير، بيبسي.',
+        disclaimer:
+            'تأكد من كتابة اسم الصنف بدقة أو جرب البحث بكلمات عامة مثل: حليب، أرز، زيت، عصير، بيبسي.',
         matchedProducts: const [],
         alternativeSizes: const [],
         subCategories: const ['الكل'],
@@ -1085,12 +841,18 @@ class OfflineCatalog {
     }
 
     // If user specified an exact target amount, separate alternatives; otherwise show all matching variants
-    final matchedProducts = matched.map((m) => _buildProductItem(m, district, sortBy)).toList();
-    final altProducts = alternatives.map((m) => _buildProductItem(m, district, sortBy)).toList();
+    final matchedProducts = matched
+        .map((m) => _buildProductItem(m, district, sortBy))
+        .toList();
+    final altProducts = alternatives
+        .map((m) => _buildProductItem(m, district, sortBy))
+        .toList();
 
     final List<String> cats = [];
     for (var p in matchedProducts) {
-      if (p.subCategory != null && p.subCategory!.isNotEmpty && !cats.contains(p.subCategory!)) {
+      if (p.subCategory != null &&
+          p.subCategory!.isNotEmpty &&
+          !cats.contains(p.subCategory!)) {
         cats.add(p.subCategory!);
       }
     }
@@ -1098,73 +860,35 @@ class OfflineCatalog {
     return SearchResult(
       query: query,
       districtName: district,
-      exactSizeMatched: true,
-      statusMessage: 'تم العثور على عروض معتمدة من متاجر المدينة المنورة ($district)',
-      disclaimer: 'الأسعار موحدة لكافة الفروع بالمملكة ومحدثة وفق عروض المدينة المنورة الرسمية.',
+      exactSizeMatched: matchedProducts.isNotEmpty,
+      statusMessage: 'اقتراحات من كتالوج المنتجات؛ لم نتحقق من أسعارها الآن',
+      disclaimer:
+          'هذه أسماء أصناف محفوظة، وليست عروضًا أو تأكيدًا للتوفر. حاول تحديث البحث.',
       matchedProducts: matchedProducts,
       alternativeSizes: altProducts,
-      subCategories: cats.isNotEmpty ? cats : ['الكل', 'الألبان', 'الأرز', 'الزيوت', 'الحلويات'],
-      sourcesSummary: [
-        {'store_name_ar': 'الدانوب', 'status': 'connected'},
-        {'store_name_ar': 'بنده', 'status': 'connected'},
-        {'store_name_ar': 'أسواق العثيم', 'status': 'connected'},
-        {'store_name_ar': 'أسواق التميمي', 'status': 'connected'},
-        {'store_name_ar': 'نون منتس', 'status': 'connected'},
-        {'store_name_ar': 'أمازون السعودية', 'status': 'connected'},
-      ],
+      subCategories: cats.isNotEmpty
+          ? cats
+          : ['الكل', 'الألبان', 'الأرز', 'الزيوت', 'الحلويات'],
+      sourcesSummary: const [],
     );
   }
 
-  static ProductItem _buildProductItem(Map<String, dynamic> raw, String district, String sortBy) {
-    final Map<String, int> prices = raw['prices'] as Map<String, int>;
+  static ProductItem _buildProductItem(
+    Map<String, dynamic> raw,
+    String district,
+    String sortBy,
+  ) {
     final double amount = (raw['amount'] as num).toDouble();
     final String unit = raw['unit'] as String;
     final int packCount = raw['pack_count'] as int? ?? 1;
-    final String packType = raw['pack_type'] as String? ?? (packCount > 1 ? 'bundle' : 'single');
+    final String packType =
+        raw['pack_type'] as String? ?? (packCount > 1 ? 'bundle' : 'single');
     final String? packLabel = raw['pack_label_ar'] as String?;
-
     final List<StoreOffer> offers = [];
-    int minPriceHalalas = 9999999;
-    for (var p in prices.values) {
-      if (p < minPriceHalalas) minPriceHalalas = p;
-    }
-
-    prices.forEach((storeCode, halalas) {
-      final double sar = halalas / 100.0;
-      double? unitPrice100g;
-      if (unit == 'g' || unit == 'ml') {
-        unitPrice100g = double.parse((sar / (amount / 100.0)).toStringAsFixed(2));
-      }
-
-      offers.add(StoreOffer(
-        id: raw['id'] * 100 + storeCode.hashCode.abs() % 100,
-        storeCode: storeCode,
-        storeNameAr: _storeNames[storeCode] ?? storeCode,
-        branchNameAr: 'سعر موحد لكافة الفروع',
-        priceHalalas: halalas,
-        priceSar: sar,
-        originalPriceSar: halalas == minPriceHalalas ? (sar * 1.15) : null,
-        isOnSale: halalas == minPriceHalalas,
-        isInStock: true,
-        productUrl: _storeUrls[storeCode] ?? 'https://google.com',
-        deepLink: null,
-        promoConditions: halalas == minPriceHalalas ? 'أوفر سعر متاح في المدينة المنورة' : null,
-        deliveryFeeSar: 12.0,
-        totalLandedSar: sar,
-        totalStatus: 'CONFIRMED',
-        totalStatusText: 'سعر الرف المباشر',
-        isCheapestProduct: halalas == minPriceHalalas,
-        isCheapestTotal: halalas == minPriceHalalas,
-        unitPricePer100gSar: unitPrice100g,
-      ));
-    });
-
-    // Sort offers
-    offers.sort((a, b) => a.priceHalalas.compareTo(b.priceHalalas));
 
     return ProductItem(
-      id: raw['id'] as int,
-      gtinBarcode: raw['barcode'] as String?,
+      id: -(raw['id'] as int),
+      gtinBarcode: null,
       nameAr: raw['name_ar'] as String,
       brandAr: raw['brand_ar'] as String?,
       subCategory: raw['category'] as String?,
@@ -1184,8 +908,7 @@ class OfflineCatalog {
     final norm = _normalize(query);
     for (var item in _staples) {
       final name = _normalize(item['name_ar'] as String);
-      final brand = _normalize(item['brand_ar'] as String? ?? '');
-      if (name.contains(norm) || norm.contains(name) || (brand.isNotEmpty && norm.contains(brand))) {
+      if (name == norm) {
         final img = item['image'] as String?;
         if (img != null && img.isNotEmpty && img.startsWith('http')) {
           return img;
@@ -1193,183 +916,5 @@ class OfflineCatalog {
       }
     }
     return null;
-  }
-
-  static VoiceBasketResult parseVoice(String query, {List<VoiceBasketItem>? currentBasket}) {
-    List<VoiceBasketItem> basket = List.from(currentBasket ?? []);
-    final clean = query.trim();
-
-    // Check negation
-    if (clean.contains('لا تضيف') || clean.contains('ما أبي') || clean.contains('بدون')) {
-      return VoiceBasketResult(
-        status: 'success',
-        recognizedText: clean,
-        intent: 'negation',
-        messageAr: 'حسناً، تم استبعاد الصنف ولن تتم إضافته إلى السلة.',
-        itemsAdded: [],
-        itemsModified: [],
-        itemsRemoved: [],
-        currentBasket: basket,
-        clarificationOptions: [],
-        canUndo: false,
-        sessionId: 'default_session',
-      );
-    }
-
-    // Check Undo
-    if (clean.contains('تراجع') || clean.contains('رجع') || clean.contains('رجّع')) {
-      if (basket.isNotEmpty) {
-        basket.removeLast();
-      }
-      return VoiceBasketResult(
-        status: 'success',
-        recognizedText: clean,
-        intent: 'undo',
-        messageAr: 'تم التراجع عن آخر تعديل بنجاح.',
-        itemsAdded: [],
-        itemsModified: [],
-        itemsRemoved: [],
-        currentBasket: basket,
-        clarificationOptions: [],
-        canUndo: false,
-        sessionId: 'default_session',
-      );
-    }
-
-    // Check Remove
-    if (clean.contains('شيل') || clean.contains('احذف')) {
-      if (clean.contains('توست') || clean.contains('خبز')) {
-        basket.removeWhere((i) => i.nameAr.contains('توست') || i.nameAr.contains('لوزين'));
-        return VoiceBasketResult(
-          status: 'success',
-          recognizedText: clean,
-          intent: 'remove_item',
-          messageAr: 'تم حذف التوست من السلة بنجاح.',
-          itemsAdded: [],
-          itemsModified: [],
-          itemsRemoved: ['توست'],
-          currentBasket: basket,
-          clarificationOptions: [],
-          canUndo: true,
-          sessionId: 'default_session',
-        );
-      }
-    }
-
-    // Check Modify size: "لا خله كبير"
-    if (clean.contains('كبير') || clean.contains('حجم كبير')) {
-      if (basket.isNotEmpty) {
-        final last = basket.last;
-        final updated = VoiceBasketItem(
-          productId: last.productId,
-          nameAr: last.nameAr.replaceAll('١ لتر', '٢ لتر').replaceAll('٦٠٠ جرام', '٧٥٠ جرام'),
-          brandAr: last.brandAr,
-          quantity: last.quantity,
-          sizeAmount: (last.sizeAmount ?? 1000) * 2,
-          sizeUnit: last.sizeUnit,
-          imageUrl: last.imageUrl,
-        );
-        basket[basket.length - 1] = updated;
-        return VoiceBasketResult(
-          status: 'success',
-          recognizedText: clean,
-          intent: 'change_size_or_type',
-          messageAr: 'تم تعديل الحجم إلى الحجم الكبير دون تكرار البند.',
-          itemsAdded: [],
-          itemsModified: [updated],
-          itemsRemoved: [],
-          currentBasket: basket,
-          clarificationOptions: [],
-          canUndo: true,
-          sessionId: 'default_session',
-        );
-      }
-    }
-
-    // Standard items addition
-    final List<VoiceBasketItem> added = [];
-
-    if (clean.contains('حليب') || clean.contains('السعودية')) {
-      added.add(VoiceBasketItem(
-        productId: 301,
-        nameAr: 'حليب السعودية كامل الدسم طويل الأجل ١ لتر',
-        brandAr: 'السعودية',
-        quantity: 1,
-        sizeAmount: 1000.0,
-        sizeUnit: 'ml',
-      ));
-    }
-
-    if (clean.contains('كيري') || clean.contains('جبن') || clean.contains('جبنة')) {
-      int qty = (clean.contains('اثنين') || clean.contains('حبتين') || clean.contains('واثنين')) ? 2 : 1;
-      added.add(VoiceBasketItem(
-        productId: 501,
-        nameAr: 'جبنة كيري مربعات ١٢ قطعة ٢١٦ جرام',
-        brandAr: 'كيري',
-        quantity: qty,
-        sizeAmount: 216.0,
-        sizeUnit: 'g',
-      ));
-    }
-
-    if (clean.contains('توست') || clean.contains('خبز') || clean.contains('لوزين')) {
-      added.add(VoiceBasketItem(
-        productId: 601,
-        nameAr: 'خبز توست أبيض فاخر لوزين ٦٠٠ جرام',
-        brandAr: 'لوزين',
-        quantity: 1,
-        sizeAmount: 600.0,
-        sizeUnit: 'g',
-      ));
-    }
-
-    if (clean.contains('شعلان') || clean.contains('ارز') || clean.contains('أرز')) {
-      added.add(VoiceBasketItem(
-        productId: 101,
-        nameAr: 'أرز الشعلان مزة بسمتي هندي ١٠ كجم',
-        brandAr: 'الشعلان',
-        quantity: 1,
-        sizeAmount: 10000.0,
-        sizeUnit: 'g',
-      ));
-    }
-
-    if (clean.contains('نوتيلا')) {
-      added.add(VoiceBasketItem(
-        productId: 201,
-        nameAr: 'شوكولاتة نوتيلا قابلة للدهن ٥٠٠ جرام',
-        brandAr: 'نوتيلا',
-        quantity: 1,
-        sizeAmount: 500.0,
-        sizeUnit: 'g',
-      ));
-    }
-
-    for (var a in added) {
-      final existingIndex = basket.indexWhere((i) => i.productId == a.productId);
-      if (existingIndex >= 0) {
-        basket[existingIndex].quantity += a.quantity;
-      } else {
-        basket.add(a);
-      }
-    }
-
-    final String msg = added.isNotEmpty
-        ? 'تمت إضافة ${added.map((a) => "«${a.nameAr}» (${a.quantity} حبة)").join("، ")} إلى السلة بنجاح.'
-        : 'تم فهم الطلب الصوتي: «$clean»';
-
-    return VoiceBasketResult(
-      status: 'success',
-      recognizedText: clean,
-      intent: 'add_items',
-      messageAr: msg,
-      itemsAdded: added,
-      itemsModified: [],
-      itemsRemoved: [],
-      currentBasket: basket,
-      clarificationOptions: [],
-      canUndo: true,
-      sessionId: 'default_session',
-    );
   }
 }

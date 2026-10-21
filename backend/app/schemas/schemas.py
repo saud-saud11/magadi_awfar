@@ -36,6 +36,9 @@ class StoreOut(StoreBase):
     model_config = ConfigDict(from_attributes=True)
 
 class StoreOfferOut(BaseModel):
+    price_verified: bool = False
+    stock_known: bool = False
+    source_url: Optional[str] = None
     id: int
     store_code: str
     store_name_ar: str
@@ -95,13 +98,14 @@ class SearchResponse(BaseModel):
 
 class BasketItemInput(BaseModel):
     product_id: int
-    quantity: int = 1
+    quantity: int = Field(1, ge=1, le=100)
 
 class BasketCompareRequest(BaseModel):
     district_name: Optional[str] = "سلطانة"
     items: List[BasketItemInput]
 
 class StoreBasketResult(BaseModel):
+    branch_id: Optional[int] = None
     store_code: str
     store_name_ar: str
     store_logo: Optional[str] = None
@@ -149,12 +153,13 @@ class AdminStoreUpdate(BaseModel):
 # ==========================================
 class VoiceParseRequest(BaseModel):
     query: str
-    session_id: Optional[str] = "default_session"
+    session_id: str = Field(..., pattern=r"^[a-f0-9]{64}$")
     request_id: Optional[str] = None
     current_basket: Optional[List[Dict[str, Any]]] = None
     user_preferences: Optional[Dict[str, Any]] = None
 
 class VoiceBasketItemOut(BaseModel):
+    pack_count: int = 1
     product_id: int
     name_ar: str
     brand_ar: Optional[str] = None

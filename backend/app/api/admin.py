@@ -2,11 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 from app.database import get_db
+from app.security import require_admin
 from app.models.models import Store, Product, StoreOffer, SearchLog
 from app.connectors.manager import connector_manager
 from app.schemas.schemas import AdminStoreUpdate
 
-router = APIRouter(prefix="/admin", tags=["Admin & Reliability"])
+router = APIRouter(prefix="/admin", tags=["Admin & Reliability"], dependencies=[Depends(require_admin)])
 
 @router.get("/sources")
 def get_sources_dashboard(db: Session = Depends(get_db)):

@@ -13,7 +13,7 @@ def compare_user_basket(
 ):
     """
     Compares the full grocery basket across all stores in Al-Madinah.
-    Accounts for missing items, minimum spend, delivery fees, and split basket savings.
+    Shows known product subtotals and missing items; unknown fees remain unknown.
     """
     items_data = [{"product_id": it.product_id, "quantity": it.quantity} for it in req.items]
     return basket_service.compare_basket(db, items_data, req.district_name or "سلطانة")

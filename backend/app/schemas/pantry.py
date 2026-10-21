@@ -1,4 +1,4 @@
-﻿from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -7,21 +7,23 @@ class PantryItemCreate(BaseModel):
     product_id: int
     district_name: Optional[str] = "سلطانة"
     usual_quantity: int = Field(1, ge=1, le=100)
-    target_price_sar: Optional[float] = None
-    target_discount_percent: Optional[float] = None
+    target_price_sar: Optional[float] = Field(None, gt=0, le=100000)
+    target_discount_percent: Optional[float] = Field(None, gt=0, le=100)
     specific_store_codes: Optional[List[str]] = None
     is_alert_enabled: bool = True
     track_landed_total: bool = False
 
 class PantryItemUpdate(BaseModel):
     usual_quantity: Optional[int] = Field(None, ge=1, le=100)
-    target_price_sar: Optional[float] = None
-    target_discount_percent: Optional[float] = None
+    target_price_sar: Optional[float] = Field(None, gt=0, le=100000)
+    target_discount_percent: Optional[float] = Field(None, gt=0, le=100)
     specific_store_codes: Optional[List[str]] = None
     is_alert_enabled: Optional[bool] = None
     track_landed_total: Optional[bool] = None
 
 class PantryItemOut(BaseModel):
+    server_synced: bool = True
+    has_verified_price: bool = False
     id: int
     device_uuid: str
     product_id: int
@@ -47,8 +49,8 @@ class PantryItemOut(BaseModel):
     is_on_sale: bool
     
     # Settings
-    target_price_sar: Optional[float] = None
-    target_discount_percent: Optional[float] = None
+    target_price_sar: Optional[float] = Field(None, gt=0, le=100000)
+    target_discount_percent: Optional[float] = Field(None, gt=0, le=100)
     specific_store_codes: Optional[List[str]] = None
     is_alert_enabled: bool
     track_landed_total: bool
@@ -76,14 +78,14 @@ class PushSubscriptionCreate(BaseModel):
     auth_key: Optional[str] = None
     fcm_token: Optional[str] = None
     enable_quiet_hours: bool = True
-    quiet_hours_start: str = "23:00"
-    quiet_hours_end: str = "07:00"
+    quiet_hours_start: str = Field("23:00", pattern=r"^(?:[01][0-9]|2[0-3]):[0-5][0-9]$")
+    quiet_hours_end: str = Field("07:00", pattern=r"^(?:[01][0-9]|2[0-3]):[0-5][0-9]$")
     daily_digest_enabled: bool = False
 
 class AlertPreferencesUpdate(BaseModel):
     enable_quiet_hours: Optional[bool] = None
-    quiet_hours_start: Optional[str] = None
-    quiet_hours_end: Optional[str] = None
+    quiet_hours_start: Optional[str] = Field(None, pattern=r"^(?:[01][0-9]|2[0-3]):[0-5][0-9]$")
+    quiet_hours_end: Optional[str] = Field(None, pattern=r"^(?:[01][0-9]|2[0-3]):[0-5][0-9]$")
     daily_digest_enabled: Optional[bool] = None
 
 class NotificationLogOut(BaseModel):

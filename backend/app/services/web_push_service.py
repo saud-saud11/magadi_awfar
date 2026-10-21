@@ -1,81 +1,48 @@
-﻿import json
+import asyncio
+import json
 import logging
-from typing import Dict, Any, Optional
-from datetime import datetime
+from urllib.parse import urlparse
+from app.config import settings
 
-logger = logging.getLogger("web_push")
+logger = logging.getLogger('web_push')
 
 class WebPushService:
-    def __init__(self):
-        # Default application server VAPID public key (subject to production environment override)
-        self.vapid_public_key = "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U"
+    @property
+    def configured(self):
+        return bool(settings.VAPID_PUBLIC_KEY and settings.VAPID_PRIVATE_KEY and settings.VAPID_SUBJECT)
 
-    def format_notification_payload(
-        self,
-        title: str,
-        body: str,
-        product_id: int,
-        store_code: str,
-        store_name_ar: str,
-        new_price_sar: float,
-        old_price_sar: Optional[float] = None,
-        deep_link: Optional[str] = None,
-        image_url: Optional[str] = None
-    ) -> Dict[str, Any]:
-        """Creates a standard W3C Web Push / FCM notification payload."""
-        savings_text = ""
-        if old_price_sar and old_price_sar > new_price_sar:
-            diff = round(old_price_sar - new_price_sar, 2)
-            savings_text = f"وفر {diff} ر.س"
+    @staticmethod
+    def valid_endpoint(endpoint):
+        try:
+            parsed = urlparse(endpoint or '')
+            host = parsed.hostname or ''
+            port = parsed.port
+        except ValueError: return False
+        return (parsed.scheme == 'https' and port in (None, 443) and not parsed.username
+                and not parsed.password and (host in ('fcm.googleapis.com', 'updates.push.services.mozilla.com', 'web.push.apple.com')
+                    or host.endswith('.push.services.mozilla.com') or host.endswith('.notify.windows.com')))
 
-        url = deep_link or f"/product/{product_id}?offer={store_code}"
+    def format_notification_payload(self, title, body, product_id, store_code, store_name_ar,
+                                    new_price_sar, old_price_sar=None, deep_link=None, image_url=None):
+        return {'title': title, 'body': body, 'tag': f'price-{product_id}-{store_code}',
+                'data': {'product_id': product_id, 'store_code': store_code, 'store_name_ar': store_name_ar,
+                         'new_price_sar': new_price_sar, 'old_price_sar': old_price_sar,
+                         'deep_link': settings.PUBLIC_APP_URL.rstrip('/') + '/?view=pantry'}}
 
-        return {
-            "notification": {
-                "title": title,
-                "body": body,
-                "icon": "/assets/icons/Icon-192.png",
-                "badge": "/assets/icons/Icon-192.png",
-                "image": image_url,
-                "tag": f"pantry-{product_id}",
-                "dir": "rtl",
-                "lang": "ar",
-                "vibrate": [200, 100, 200],
-                "data": {
-                    "product_id": product_id,
-                    "store_code": store_code,
-                    "store_name_ar": store_name_ar,
-                    "new_price_sar": new_price_sar,
-                    "old_price_sar": old_price_sar,
-                    "savings_text": savings_text,
-                    "url": url,
-                    "timestamp": datetime.utcnow().isoformat()
-                },
-                "actions": [
-                    {
-                        "action": "open_offer",
-                        "title": "عرض السعر الآن 🛒"
-                    },
-                    {
-                        "action": "dismiss",
-                        "title": "تجاهل"
-                    }
-                ]
-            }
-        }
-
-    async def send_web_push(self, subscription: Dict[str, Any], payload: Dict[str, Any]) -> bool:
-        """
-        Dispatches notification payload to subscription endpoint.
-        Gracefully handles network dispatch, logs payload, and avoids crashing when offline.
-        """
-        endpoint = subscription.get("endpoint")
-        if not endpoint:
-            logger.info(f"[WebPush] No endpoint for device {subscription.get('device_uuid')}. Logged locally.")
+    async def send_web_push(self, subscription, payload):
+        if not self.configured or not self.valid_endpoint(subscription.get('endpoint')): return False
+        if not subscription.get('p256dh_key') or not subscription.get('auth_key'): return False
+        try:
+            from pywebpush import webpush
+            await asyncio.to_thread(webpush,
+                subscription_info={'endpoint': subscription['endpoint'], 'keys': {
+                    'p256dh': subscription['p256dh_key'], 'auth': subscription['auth_key']}},
+                data=json.dumps(payload, ensure_ascii=False), vapid_private_key=settings.VAPID_PRIVATE_KEY,
+                vapid_claims={'sub': settings.VAPID_SUBJECT}, ttl=3600, timeout=10)
             return True
-
-        logger.info(f"[WebPush] Dispatched notification to {endpoint[:40]}... Title: {payload['notification']['title']}")
-        # In testing/local environment, log payload. In production with pywebpush installed, execute webpush()
-        return True
+        except Exception as error:
+            # Do not log endpoint tokens or encryption keys.
+            logger.warning('Web Push delivery failed (%s)', type(error).__name__)
+            return False
 
 web_push_service = WebPushService()

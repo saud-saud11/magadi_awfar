@@ -40,12 +40,16 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
   void initState() {
     super.initState();
     _targetPriceController = TextEditingController(
-      text: widget.item.targetPriceSar != null ? widget.item.targetPriceSar!.toStringAsFixed(2) : '',
+      text: widget.item.targetPriceSar != null
+          ? widget.item.targetPriceSar!.toStringAsFixed(2)
+          : '',
     );
     _quantity = widget.item.usualQuantity;
     _isAlertEnabled = widget.item.isAlertEnabled;
     _selectedDropPercentage = widget.item.dropPercentageThreshold;
-    _selectedStores = widget.item.storeCodes != null ? widget.item.storeCodes!.toSet() : <String>{};
+    _selectedStores = widget.item.storeCodes != null
+        ? widget.item.storeCodes!.toSet()
+        : <String>{};
   }
 
   @override
@@ -56,7 +60,7 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
 
   Future<void> _save() async {
     final targetPrice = double.tryParse(_targetPriceController.text.trim());
-    await PantryService().updateItem(
+    final saved = await PantryService().updateItem(
       widget.item.id,
       usualQuantity: _quantity,
       targetPriceSar: targetPrice,
@@ -64,7 +68,14 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
       storeCodes: _selectedStores.isNotEmpty ? _selectedStores.toList() : null,
       isAlertEnabled: _isAlertEnabled,
     );
-    if (mounted) Navigator.of(context).pop(true);
+    if (!mounted) return;
+    if (saved) {
+      Navigator.of(context).pop(true);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(PantryService().statusNotifier.value)),
+      );
+    }
   }
 
   Future<void> _confirmDelete() async {
@@ -73,9 +84,16 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
       builder: (ctx) => Directionality(
         textDirection: TextDirection.rtl,
         child: AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('إزالة من مقاضي البيت؟', style: TextStyle(fontWeight: FontWeight.w800)),
-          content: Text('هل تود إزالة «${widget.item.productNameAr}» من قائمة المتابعة وتنبيهات الأسعار؟'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            'إزالة من مقاضي البيت؟',
+            style: TextStyle(fontWeight: FontWeight.w800),
+          ),
+          content: Text(
+            'هل تود إزالة «${widget.item.productNameAr}» من قائمة المتابعة وتنبيهات الأسعار؟',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -84,10 +102,18 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red.shade600,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('إزالة', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text(
+                'إزالة',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         ),
@@ -95,8 +121,8 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
     );
 
     if (confirm == true) {
-      await PantryService().removeItem(widget.item.id);
-      if (mounted) Navigator.of(context).pop(true);
+      final removed = await PantryService().removeItem(widget.item.id);
+      if (mounted && removed) Navigator.of(context).pop(true);
     }
   }
 
@@ -116,20 +142,32 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
               decoration: BoxDecoration(
                 gradient: AppTheme.heroGradient,
                 borderRadius: BorderRadius.circular(14),
-                boxShadow: AppTheme.glowShadow(AppTheme.primary.withOpacity(0.25)),
+                boxShadow: AppTheme.glowShadow(
+                  AppTheme.primary.withOpacity(0.25),
+                ),
               ),
-              child: const Icon(Icons.tune_rounded, color: Colors.white, size: 22),
+              child: const Icon(
+                Icons.tune_rounded,
+                color: Colors.white,
+                size: 22,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('إعدادات تنبيه السعر', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                  const Text(
+                    'إعدادات تنبيه السعر',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                  ),
                   const SizedBox(height: 2),
                   Text(
                     widget.item.productNameAr,
-                    style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.textMuted,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -147,12 +185,19 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
                 const SizedBox(height: 8),
                 // Alert Switch
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
-                    color: _isAlertEnabled ? AppTheme.primaryContainer.withOpacity(0.45) : AppTheme.surfaceAlt,
+                    color: _isAlertEnabled
+                        ? AppTheme.primaryContainer.withOpacity(0.45)
+                        : AppTheme.surfaceAlt,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: _isAlertEnabled ? AppTheme.primary.withOpacity(0.35) : AppTheme.border,
+                      color: _isAlertEnabled
+                          ? AppTheme.primary.withOpacity(0.35)
+                          : AppTheme.border,
                     ),
                   ),
                   child: Row(
@@ -161,17 +206,25 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
                       Row(
                         children: [
                           Icon(
-                            _isAlertEnabled ? Icons.notifications_active_rounded : Icons.notifications_off_rounded,
-                            color: _isAlertEnabled ? AppTheme.primary : Colors.grey,
+                            _isAlertEnabled
+                                ? Icons.notifications_active_rounded
+                                : Icons.notifications_off_rounded,
+                            color: _isAlertEnabled
+                                ? AppTheme.primary
+                                : Colors.grey,
                             size: 20,
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            _isAlertEnabled ? 'التنبيهات مفعلة للصنف' : 'التنبيهات متوقفة مؤقتاً',
+                            _isAlertEnabled
+                                ? 'التنبيهات مفعلة للصنف'
+                                : 'التنبيهات متوقفة مؤقتاً',
                             style: TextStyle(
                               fontWeight: FontWeight.w800,
                               fontSize: 13,
-                              color: _isAlertEnabled ? AppTheme.primary : AppTheme.textDark,
+                              color: _isAlertEnabled
+                                  ? AppTheme.primary
+                                  : AppTheme.textDark,
                             ),
                           ),
                         ],
@@ -187,7 +240,10 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
                 const SizedBox(height: 18),
 
                 // Usual Quantity
-                const Text('الكمية المعتادة للمنزل:', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                const Text(
+                  'الكمية المعتادة للمنزل:',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
@@ -196,13 +252,20 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
                       style: IconButton.styleFrom(
                         backgroundColor: AppTheme.surfaceAlt,
                         foregroundColor: AppTheme.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
-                      onPressed: _quantity > 1 ? () => setState(() => _quantity--) : null,
+                      onPressed: _quantity > 1
+                          ? () => setState(() => _quantity--)
+                          : null,
                     ),
                     const SizedBox(width: 14),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: AppTheme.surfaceAlt,
                         borderRadius: BorderRadius.circular(12),
@@ -210,7 +273,11 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
                       ),
                       child: Text(
                         '$_quantity حبات',
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppTheme.textDark),
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          color: AppTheme.textDark,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -219,7 +286,9 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
                       style: IconButton.styleFrom(
                         backgroundColor: AppTheme.primary,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       onPressed: () => setState(() => _quantity++),
                     ),
@@ -228,18 +297,31 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
                 const SizedBox(height: 18),
 
                 // Target Price
-                const Text('السعر المستهدف للتنبيه (اختياري):', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                const Text(
+                  'السعر المستهدف للتنبيه (اختياري):',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                ),
                 const SizedBox(height: 4),
                 Text(
-                  'سعر الأساس الحالي: ${widget.item.baselinePriceSar.toStringAsFixed(2)} ر.س',
-                  style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                  widget.item.hasVerifiedPrice
+                      ? 'سعر الأساس الموثق: ${widget.item.baselinePriceSar.toStringAsFixed(2)} ر.س'
+                      : 'بانتظار سعر أساس موثوق',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppTheme.textMuted,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _targetPriceController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: InputDecoration(
-                    hintText: 'مثال: ${(widget.item.baselinePriceSar * 0.9).toStringAsFixed(2)}',
+                    hintText:
+                        widget.item.hasVerifiedPrice
+                            ? 'مثال: ${(widget.item.baselinePriceSar * 0.9).toStringAsFixed(2)}'
+                            : 'أدخل السعر الذي تريده',
                     suffixText: 'ر.س',
                     filled: true,
                     fillColor: AppTheme.surfaceAlt,
@@ -253,15 +335,24 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: AppTheme.primary, width: 1.5),
+                      borderSide: const BorderSide(
+                        color: AppTheme.primary,
+                        width: 1.5,
+                      ),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 18),
 
                 // Percentage Drop
-                const Text('نسبة التخفيض المطلوبة للتنبيه:', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                const Text(
+                  'نسبة التخفيض المطلوبة للتنبيه:',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -276,7 +367,10 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
                 const SizedBox(height: 18),
 
                 // Specific Stores Filter
-                const Text('المتاجر المشمولة بالتنبيه (الكل افتراضياً):', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                const Text(
+                  'المتاجر المشمولة بالتنبيه (الكل افتراضياً):',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 6,
@@ -297,7 +391,9 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
                       ),
                       labelStyle: TextStyle(
                         fontSize: 11,
-                        fontWeight: isChecked ? FontWeight.w800 : FontWeight.w600,
+                        fontWeight: isChecked
+                            ? FontWeight.w800
+                            : FontWeight.w600,
                         color: isChecked ? AppTheme.primary : AppTheme.textDark,
                       ),
                       onSelected: (selected) {
@@ -322,8 +418,18 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
             children: [
               TextButton.icon(
                 onPressed: _confirmDelete,
-                icon: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 18),
-                label: const Text('إزالة', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                icon: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: Colors.red,
+                  size: 18,
+                ),
+                label: const Text(
+                  'إزالة',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
               const Spacer(),
               ElevatedButton(
@@ -331,11 +437,19 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   elevation: 2,
                 ),
-                child: const Text('حفظ التعديلات', style: TextStyle(fontWeight: FontWeight.w800)),
+                child: const Text(
+                  'حفظ التعديلات',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
               ),
             ],
           ),
@@ -368,4 +482,3 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
     );
   }
 }
-

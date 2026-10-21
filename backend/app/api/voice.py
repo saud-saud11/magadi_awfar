@@ -2,11 +2,12 @@ from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
 from app.database import get_db
+from app.security import require_device
 from app.schemas.schemas import VoiceParseRequest, VoiceParseResponse, VoiceBasketItemOut
 from app.services.voice_basket_service import voice_basket_service
 from app.config import settings
 
-router = APIRouter(prefix="/voice", tags=["Voice Basket AI"])
+router = APIRouter(prefix="/voice", tags=["Voice Basket AI"], dependencies=[Depends(require_device)])
 
 @router.post("/parse", response_model=VoiceParseResponse)
 def parse_voice_command(
@@ -20,7 +21,7 @@ def parse_voice_command(
     return voice_basket_service.parse_and_execute(
         db_session=db,
         query=req.query,
-        session_id=req.session_id or "default_session",
+        session_id=req.session_id,
         request_id=req.request_id,
         user_preferences=req.user_preferences
     )
@@ -54,7 +55,7 @@ async def process_voice_audio(
 
 @router.post("/undo")
 def undo_voice_command(
-    session_id: str = "default_session"
+    session_id: str = Depends(require_device)
 ):
     """
     Reverts the last voice basket operation for the given session.

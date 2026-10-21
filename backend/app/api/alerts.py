@@ -2,10 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
+from app.security import require_device
 from app.models.models import PriceAlert, Product, District
 from app.schemas.schemas import PriceAlertCreate, PriceAlertOut
 
-router = APIRouter(prefix="/alerts", tags=["Price Alerts"])
+router = APIRouter(prefix="/alerts", tags=["Price Alerts"], dependencies=[Depends(require_device)])
 
 @router.post("", response_model=PriceAlertOut)
 def create_price_alert(data: PriceAlertCreate, db: Session = Depends(get_db)):

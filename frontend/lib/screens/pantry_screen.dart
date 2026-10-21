@@ -30,6 +30,8 @@ class _PantryScreenState extends State<PantryScreen> {
   bool _isLoading = false;
   bool _isCheckingPrices = false;
   PantrySummaryModel? _summary;
+  Map<String, dynamic> _pushConfig = {};
+  bool _pushBusy = false;
 
   @override
   void initState() {
@@ -37,6 +39,9 @@ class _PantryScreenState extends State<PantryScreen> {
     _summary = _buildSummaryFromCache();
     _pantryService.trackedItemsNotifier.addListener(_onTrackedItemsChanged);
     _loadData();
+    _pantryService.getPushConfig().then((config) {
+      if (mounted) setState(() => _pushConfig = config);
+    });
   }
 
   @override
@@ -59,7 +64,10 @@ class _PantryScreenState extends State<PantryScreen> {
       totalItems: list.length,
       activeAlertsCount: list.where((it) => it.isAlertEnabled).length,
       itemsWithDropsCount: list.where((it) => it.hasPriceDrop).length,
-      totalPotentialSavingsSar: list.fold(0.0, (acc, it) => acc + (it.priceDropSar * it.usualQuantity)),
+      totalPotentialSavingsSar: list.fold(
+        0.0,
+        (acc, it) => acc + (it.priceDropSar * it.usualQuantity),
+      ),
       items: list,
     );
   }
@@ -90,9 +98,11 @@ class _PantryScreenState extends State<PantryScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            alertsCount > 0
+            alertsCount < 0
+                ? 'تعذر فحص الأسعار الآن؛ لم يتم تأكيد تحديثها'
+                : alertsCount > 0
                 ? 'تم فحص الأسعار بنجاح! تم إرسال $alertsCount تنبيهات جديدة.'
-                : 'تم فحص أحدث الأسعار لدى جميع المتاجر وتحديث المقاضي بنجاح.',
+                : 'اكتمل طلب الفحص للمصادر المتاحة؛ راجع وقت آخر تحقق لكل صنف.',
           ),
           backgroundColor: AppTheme.primary,
           behavior: SnackBarBehavior.floating,
@@ -108,33 +118,54 @@ class _PantryScreenState extends State<PantryScreen> {
   }
 
   Future<void> _requestWebPush() async {
-    if (PushNotificationService.isIos && !PushNotificationService.isStandalone) {
+    if (PushNotificationService.isIos &&
+        !PushNotificationService.isStandalone) {
       if (mounted) IosPwaInstallDialog.show(context);
       return;
     }
 
+    if (_pushBusy) return;
+    if (_pushConfig['enabled'] != true ||
+        _pushConfig['public_key'] is! String) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'خدمة التنبيهات لم تتصل بخادم مهيأ بعد. أصنافك محفوظة ويمكنك متابعة أسعارها هنا.',
+          ),
+        ),
+      );
+      return;
+    }
+    setState(() => _pushBusy = true);
     final res = await PushNotificationService.registerAndSubscribe(
-      'BCa_Fake_Vapid_Public_Key_Sample_4PushNotifications_MagadiAwfar_Demo_Key'
+      _pushConfig['public_key'] as String,
     );
+    if (res['success'] == true) {
+      res['success'] = await _pantryService.registerPush(res);
+    }
+    if (mounted) setState(() => _pushBusy = false);
 
     if (!mounted) return;
 
     if (res['success'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('تم تفعيل التنبيهات الفورية بنجاح! ستصلك إشعارات عند نزول الأسعار.'),
+          content: Text(
+            'تم تسجيل جهازك للتنبيهات. ستصلك عند رصد انخفاض أثناء الفحص الدوري.',
+          ),
           backgroundColor: AppTheme.primary,
         ),
       );
     } else {
-      final errMsg = res['error']?.toString() ?? 'تعذر تفعيل الإشعارات، يمكنك متابعة الأسعار داخل التطبيق';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('تنبيه: $errMsg'),
-        ),
-      );
+      final errMsg =
+          res['error']?.toString() ??
+          'تعذر تفعيل الإشعارات، يمكنك متابعة الأسعار داخل التطبيق';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('تنبيه: $errMsg')));
     }
-    setState(() {});
+    _pushConfig = await _pantryService.getPushConfig();
+    if (mounted) setState(() {});
   }
 
   void _showNotificationHistorySheet() {
@@ -152,9 +183,15 @@ class _PantryScreenState extends State<PantryScreen> {
   Widget build(BuildContext context) {
     final items = _summary?.items ?? _pantryService.trackedItemsNotifier.value;
     final totalItems = items.length;
-    final activeAlerts = items.where((i) => i.isAlertEnabled).length;
-    final itemsWithDrops = items.where((i) => i.hasPriceDrop).length;
-    final totalSavings = items.fold(0.0, (acc, i) => acc + (i.priceDropSar * i.usualQuantity));
+    final activeAlerts = items
+        .where((i) => i.serverSynced && i.isAlertEnabled)
+        .length;
+    final itemsWithDrops = items
+        .where((i) => i.hasVerifiedPrice && i.hasPriceDrop)
+        .length;
+    final totalSavings = items
+        .where((i) => i.hasVerifiedPrice)
+        .fold(0.0, (acc, i) => acc + (i.priceDropSar * i.usualQuantity));
     final allAlertsActive = totalItems > 0 && activeAlerts == totalItems;
 
     return Directionality(
@@ -169,7 +206,10 @@ class _PantryScreenState extends State<PantryScreen> {
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Icon(Icons.bolt, color: Colors.amberAccent),
               tooltip: 'تحقق فوري من الأسعار الآن',
@@ -208,6 +248,17 @@ class _PantryScreenState extends State<PantryScreen> {
                   padding: const EdgeInsets.all(16),
                   children: [
                     _buildPushBanner(),
+                    const SizedBox(height: 8),
+                    ValueListenableBuilder<String>(
+                      valueListenable: _pantryService.statusNotifier,
+                      builder: (context, status, _) => Text(
+                        status,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textMuted,
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     _buildSummaryCard(
                       totalItems: totalItems,
@@ -225,7 +276,9 @@ class _PantryScreenState extends State<PantryScreen> {
                             widget.onAddPantryToBasket(items);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('تمت إضافة ${items.length} أصناف من مقاضي البيت إلى سلة المقاضي بنجاح!'),
+                                content: Text(
+                                  'تمت إضافة ${items.length} أصناف من مقاضي البيت إلى سلة المقاضي بنجاح!',
+                                ),
                                 backgroundColor: AppTheme.primary,
                                 action: SnackBarAction(
                                   label: 'عرض السلة',
@@ -236,7 +289,8 @@ class _PantryScreenState extends State<PantryScreen> {
                             );
                           },
                           icon: Icons.shopping_basket_rounded,
-                          label: 'أضف مقاضي البيت للسلة (${items.length} أصناف)',
+                          label:
+                              'أضف مقاضي البيت للسلة (${items.length} أصناف)',
                         ),
                       ),
                     Row(
@@ -244,13 +298,19 @@ class _PantryScreenState extends State<PantryScreen> {
                       children: [
                         const Text(
                           'أصنافي المحفوظة للمتابعة الدائمة',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textDark),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: AppTheme.textDark,
+                          ),
                         ),
                         if (totalItems > 0)
                           TextButton.icon(
                             onPressed: () => _toggleAllAlerts(!allAlertsActive),
                             icon: Icon(
-                              allAlertsActive ? Icons.notifications_off_outlined : Icons.notifications_active_outlined,
+                              allAlertsActive
+                                  ? Icons.notifications_off_outlined
+                                  : Icons.notifications_active_outlined,
                               size: 16,
                             ),
                             label: Text(
@@ -297,21 +357,31 @@ class _PantryScreenState extends State<PantryScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('تفعيل إشعارات الآيفون (iOS)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                  Text('أضف التطبيق للشاشة الرئيسية لتلقي تنبيهات الأسعار الفورية', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                  Text(
+                    'تفعيل إشعارات الآيفون (iOS)',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  Text(
+                    'أضف التطبيق للشاشة الرئيسية لتلقي تنبيهات الأسعار الفورية',
+                    style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                  ),
                 ],
               ),
             ),
             TextButton(
               onPressed: () => IosPwaInstallDialog.show(context),
-              child: const Text('الطريقة', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text(
+                'الطريقة',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),
       );
     }
 
-    if (perm != 'granted' && PushNotificationService.isSupported) {
+    if ((perm != 'granted' || _pushConfig['registered'] != true) &&
+        PushNotificationService.isSupported) {
       return Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -321,14 +391,28 @@ class _PantryScreenState extends State<PantryScreen> {
         ),
         child: Row(
           children: [
-            const Icon(Icons.notification_add, color: AppTheme.primary, size: 24),
+            const Icon(
+              Icons.notification_add,
+              color: AppTheme.primary,
+              size: 24,
+            ),
             const SizedBox(width: 10),
             const Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('تفعيل الإشعارات الفورية', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.primary)),
-                  Text('احصل على تنبيه فوري فور انخفاض أسعار مقاضيك حتى عند إغلاق التطبيق', style: TextStyle(fontSize: 11, color: AppTheme.textDark)),
+                  Text(
+                    'تفعيل الإشعارات الفورية',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: AppTheme.primary,
+                    ),
+                  ),
+                  Text(
+                    'احصل على تنبيه فوري عند رصد انخفاض أسعار مقاضيك حتى عند إغلاق التطبيق',
+                    style: TextStyle(fontSize: 11, color: AppTheme.textDark),
+                  ),
                 ],
               ),
             ),
@@ -337,10 +421,18 @@ class _PantryScreenState extends State<PantryScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
-              child: const Text('تفعيل', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+              child: const Text(
+                'تفعيل',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              ),
             ),
           ],
         ),
@@ -390,29 +482,50 @@ class _PantryScreenState extends State<PantryScreen> {
                               gradient: AppTheme.goldGradient,
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(Icons.kitchen_rounded, color: Colors.white, size: 20),
+                            child: const Icon(
+                              Icons.kitchen_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                           ),
                           const SizedBox(width: 10),
                           const Text(
                             'مراقبة أسعار مقاضي البيت',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                            ),
                           ),
                         ],
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.18),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white.withOpacity(0.25)),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.25),
+                          ),
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.cloud_sync_rounded, color: AppTheme.accentGold, size: 14),
+                            Icon(
+                              Icons.cloud_sync_rounded,
+                              color: AppTheme.accentGold,
+                              size: 14,
+                            ),
                             SizedBox(width: 5),
                             Text(
-                              'مراقبة آلية 24/7',
-                              style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800),
+                              'حسب آخر تحقق',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ],
                         ),
@@ -422,10 +535,26 @@ class _PantryScreenState extends State<PantryScreen> {
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      _buildStatItem('المقاضي المتابعة', '$totalItems', Icons.playlist_add_check_rounded),
-                      _buildStatItem('تنبيهات نشطة', '$activeAlerts', Icons.notifications_active_rounded),
-                      _buildStatItem('عروض وتخفيضات', '$itemsWithDrops', Icons.trending_down_rounded),
-                      _buildStatItem('وفر محتمل', '${totalSavings.toStringAsFixed(1)} ر.س', Icons.savings_rounded),
+                      _buildStatItem(
+                        'المقاضي المتابعة',
+                        '$totalItems',
+                        Icons.playlist_add_check_rounded,
+                      ),
+                      _buildStatItem(
+                        'تنبيهات نشطة',
+                        '$activeAlerts',
+                        Icons.notifications_active_rounded,
+                      ),
+                      _buildStatItem(
+                        'عروض وتخفيضات',
+                        '$itemsWithDrops',
+                        Icons.trending_down_rounded,
+                      ),
+                      _buildStatItem(
+                        'وفر محتمل',
+                        '${totalSavings.toStringAsFixed(1)} ر.س',
+                        Icons.savings_rounded,
+                      ),
                     ],
                   ),
                 ],
@@ -455,12 +584,20 @@ class _PantryScreenState extends State<PantryScreen> {
               value,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 13,
+              ),
             ),
             const SizedBox(height: 2),
             Text(
               label,
-              style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 9.5, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.8),
+                fontSize: 9.5,
+                fontWeight: FontWeight.w600,
+              ),
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -477,17 +614,28 @@ class _PantryScreenState extends State<PantryScreen> {
       padding: const EdgeInsets.all(26),
       child: Column(
         children: [
-          const EmptyIllustration(icon: Icons.notifications_active_rounded, size: 90),
+          const EmptyIllustration(
+            icon: Icons.notifications_active_rounded,
+            size: 90,
+          ),
           const SizedBox(height: 18),
           const Text(
             'قائمة مقاضي البيت فارغة حالياً',
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: AppTheme.textDark),
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 17,
+              color: AppTheme.textDark,
+            ),
           ),
           const SizedBox(height: 8),
           const Text(
             'احفظ المنتجات التي تشتريها باستمرار (مثل الحليب، الأرز، الجبن، الزيت)، وسيقوم النظام بمراقبة أسعارها عبر المتاجر وتنبيهك فوراً بأي تخفيض.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: AppTheme.textMuted, height: 1.5),
+            style: TextStyle(
+              fontSize: 13,
+              color: AppTheme.textMuted,
+              height: 1.5,
+            ),
           ),
           const SizedBox(height: 20),
           if (widget.onNavigateToSearch != null)
@@ -509,15 +657,40 @@ class _PantryScreenState extends State<PantryScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.lightbulb_rounded, color: AppTheme.accentGold, size: 18),
+                    Icon(
+                      Icons.lightbulb_rounded,
+                      color: AppTheme.accentGold,
+                      size: 18,
+                    ),
                     SizedBox(width: 6),
-                    Text('طرق سهلة لإضافة الأصناف:', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppTheme.primary)),
+                    Text(
+                      'طرق سهلة لإضافة الأصناف:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        color: AppTheme.primary,
+                      ),
+                    ),
                   ],
                 ),
                 SizedBox(height: 6),
-                Text('1. انقر على أيقونة الجرس 🔔 بجانب أي منتج في نتائج البحث.', style: TextStyle(fontSize: 12, color: AppTheme.textDark, height: 1.4)),
+                Text(
+                  '1. انقر على أيقونة الجرس 🔔 بجانب أي منتج في نتائج البحث.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textDark,
+                    height: 1.4,
+                  ),
+                ),
                 SizedBox(height: 3),
-                Text('2. أو استخدم الأمر الصوتي: «حط حليب السعودية في قائمة المتابعة».', style: TextStyle(fontSize: 12, color: AppTheme.textDark, height: 1.4)),
+                Text(
+                  '2. أو استخدم الأمر الصوتي: «حط حليب السعودية في قائمة المتابعة».',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textDark,
+                    height: 1.4,
+                  ),
+                ),
               ],
             ),
           ),
@@ -550,7 +723,11 @@ class _PantryScreenState extends State<PantryScreen> {
                     children: [
                       Text(
                         item.productNameAr,
-                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppTheme.textDark),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          color: AppTheme.textDark,
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -561,24 +738,41 @@ class _PantryScreenState extends State<PantryScreen> {
                         children: [
                           if (item.brandAr != null)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 2.5,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppTheme.surfaceAlt,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(color: AppTheme.border),
                               ),
-                              child: Text(item.brandAr!, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppTheme.textDark)),
+                              child: Text(
+                                item.brandAr!,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.textDark,
+                                ),
+                              ),
                             ),
                           if (item.packLabelAr != null)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 2.5,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppTheme.primaryContainer,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 item.packLabelAr!,
-                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.primary),
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.primary,
+                                ),
                               ),
                             ),
                         ],
@@ -587,12 +781,21 @@ class _PantryScreenState extends State<PantryScreen> {
                       Row(
                         children: [
                           Text(
-                            '${item.lastLowestPriceSar.toStringAsFixed(2)} ر.س',
-                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AppTheme.primary),
+                            item.hasVerifiedPrice
+                                ? '${item.lastLowestPriceSar.toStringAsFixed(2)} ر.س'
+                                : 'بانتظار سعر موثوق',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 15,
+                              color: AppTheme.primary,
+                            ),
                           ),
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2.5,
+                            ),
                             decoration: BoxDecoration(
                               color: AppTheme.surfaceAlt,
                               borderRadius: BorderRadius.circular(8),
@@ -600,7 +803,11 @@ class _PantryScreenState extends State<PantryScreen> {
                             ),
                             child: Text(
                               item.lastLowestStoreName ?? 'المتجر',
-                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.textDark),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.textDark,
+                              ),
                             ),
                           ),
                         ],
@@ -613,7 +820,9 @@ class _PantryScreenState extends State<PantryScreen> {
                   children: [
                     AnimatedBell(
                       active: item.isAlertEnabled,
-                      tooltip: item.isAlertEnabled ? 'التنبيه مفعل (انقر للتعطيل)' : 'التنبيه معطل (انقر للتفعيل)',
+                      tooltip: item.isAlertEnabled
+                          ? 'التنبيه مفعل (انقر للتعطيل)'
+                          : 'التنبيه معطل (انقر للتفعيل)',
                       onTap: () async {
                         await _pantryService.toggleAlert(item.id);
                         if (mounted) {
@@ -632,10 +841,17 @@ class _PantryScreenState extends State<PantryScreen> {
                       },
                     ),
                     IconButton(
-                      icon: const Icon(Icons.tune_rounded, color: AppTheme.textMuted, size: 20),
+                      icon: const Icon(
+                        Icons.tune_rounded,
+                        color: AppTheme.textMuted,
+                        size: 20,
+                      ),
                       tooltip: 'تخصيص شروط التنبيه والكمية',
                       onPressed: () async {
-                        final changed = await PantryAlertDialog.show(context, item);
+                        final changed = await PantryAlertDialog.show(
+                          context,
+                          item,
+                        );
                         if (changed == true) _loadData();
                       },
                     ),
@@ -643,10 +859,13 @@ class _PantryScreenState extends State<PantryScreen> {
                 ),
               ],
             ),
-            if (item.hasPriceDrop)
+            if (item.hasVerifiedPrice && item.hasPriceDrop)
               Container(
                 margin: const EdgeInsets.only(top: 10),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFECFDF5),
                   borderRadius: BorderRadius.circular(10),
@@ -654,12 +873,20 @@ class _PantryScreenState extends State<PantryScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.trending_down_rounded, color: Color(0xFF047857), size: 16),
+                    const Icon(
+                      Icons.trending_down_rounded,
+                      color: Color(0xFF047857),
+                      size: 16,
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         'وفر ${item.priceDropSar.toStringAsFixed(2)} ر.س (${item.priceDropPercentage.toStringAsFixed(0)}%) مقارنة بسعر الأساس (${item.baselinePriceSar.toStringAsFixed(2)} ر.س)',
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF065F46)),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF065F46),
+                        ),
                       ),
                     ),
                   ],
@@ -668,7 +895,10 @@ class _PantryScreenState extends State<PantryScreen> {
             if (item.isTargetMet)
               Container(
                 margin: const EdgeInsets.only(top: 6),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFFBEB),
                   borderRadius: BorderRadius.circular(10),
@@ -676,12 +906,20 @@ class _PantryScreenState extends State<PantryScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.check_circle_rounded, color: Color(0xFFB45309), size: 16),
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      color: Color(0xFFB45309),
+                      size: 16,
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         'وصل السعر إلى المستهدف المطلوب (${item.targetPriceSar?.toStringAsFixed(2)} ر.س أو أقل)!',
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF92400E)),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF92400E),
+                        ),
                       ),
                     ),
                   ],
@@ -693,11 +931,21 @@ class _PantryScreenState extends State<PantryScreen> {
               children: [
                 Row(
                   children: [
-                    const Text('الكمية المعتادة: ', style: TextStyle(fontSize: 12, color: AppTheme.textMuted, fontWeight: FontWeight.w600)),
+                    const Text(
+                      'الكمية المعتادة: ',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textMuted,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     InkWell(
                       onTap: item.usualQuantity > 1
                           ? () async {
-                              await _pantryService.updateItem(item.id, usualQuantity: item.usualQuantity - 1);
+                              await _pantryService.updateItem(
+                                item.id,
+                                usualQuantity: item.usualQuantity - 1,
+                              );
                               _loadData();
                             }
                           : null,
@@ -705,22 +953,36 @@ class _PantryScreenState extends State<PantryScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(5),
                         decoration: BoxDecoration(
-                          color: item.usualQuantity > 1 ? AppTheme.surfaceAlt : AppTheme.border.withOpacity(0.3),
+                          color: item.usualQuantity > 1
+                              ? AppTheme.surfaceAlt
+                              : AppTheme.border.withOpacity(0.3),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.remove_rounded, size: 14, color: item.usualQuantity > 1 ? AppTheme.textDark : Colors.grey),
+                        child: Icon(
+                          Icons.remove_rounded,
+                          size: 14,
+                          color: item.usualQuantity > 1
+                              ? AppTheme.textDark
+                              : Colors.grey,
+                        ),
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: Text(
                         '${item.usualQuantity}',
-                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 15,
+                        ),
                       ),
                     ),
                     InkWell(
                       onTap: () async {
-                        await _pantryService.updateItem(item.id, usualQuantity: item.usualQuantity + 1);
+                        await _pantryService.updateItem(
+                          item.id,
+                          usualQuantity: item.usualQuantity + 1,
+                        );
                         _loadData();
                       },
                       borderRadius: BorderRadius.circular(15),
@@ -730,7 +992,11 @@ class _PantryScreenState extends State<PantryScreen> {
                           gradient: AppTheme.emeraldButton,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.add_rounded, size: 14, color: Colors.white),
+                        child: const Icon(
+                          Icons.add_rounded,
+                          size: 14,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -740,14 +1006,21 @@ class _PantryScreenState extends State<PantryScreen> {
                     widget.onAddSingleToBasket(item.toProductItem());
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('تمت إضافة «${item.productNameAr}» لسلة المشتريات'),
+                        content: Text(
+                          'تمت إضافة «${item.productNameAr}» لسلة المشتريات',
+                        ),
                         duration: const Duration(seconds: 2),
                       ),
                     );
                   },
                   icon: const Icon(Icons.add_shopping_cart_rounded, size: 16),
-                  label: const Text('أضف للسلة', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                  style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
+                  label: const Text(
+                    'أضف للسلة',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                  ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.primary,
+                  ),
                 ),
               ],
             ),
@@ -762,7 +1035,8 @@ class NotificationHistorySheet extends StatefulWidget {
   const NotificationHistorySheet({super.key});
 
   @override
-  State<NotificationHistorySheet> createState() => _NotificationHistorySheetState();
+  State<NotificationHistorySheet> createState() =>
+      _NotificationHistorySheetState();
 }
 
 class _NotificationHistorySheetState extends State<NotificationHistorySheet> {
@@ -796,15 +1070,17 @@ class _NotificationHistorySheetState extends State<NotificationHistorySheet> {
 
   Future<void> _clearHistory() async {
     setState(() => _isClearing = true);
-    await _pantryService.clearNotificationHistory();
+    final success = await _pantryService.clearNotificationHistory();
     if (mounted) {
       setState(() {
         _isClearing = false;
-        _notifications = [];
+        if (success) _notifications = [];
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تم مسح سجل الإشعارات بنجاح'),
+        SnackBar(
+          content: Text(
+            success ? 'تم مسح سجل الإشعارات' : 'تعذر مسح السجل؛ حاول مجددًا',
+          ),
           duration: Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),
@@ -814,15 +1090,19 @@ class _NotificationHistorySheetState extends State<NotificationHistorySheet> {
 
   Future<void> _sendTestNotification() async {
     setState(() => _isSendingTest = true);
-    await _pantryService.sendTestNotification();
+    final success = await _pantryService.sendTestNotification();
     if (mounted) {
       setState(() {
         _isSendingTest = false;
         _notifications = _pantryService.cachedNotifications;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('🔔 تم إرسال تنبيه تجريبي بنجاح!'),
+        SnackBar(
+          content: Text(
+            success
+                ? 'تم إرسال التنبيه إلى مزود الإشعارات'
+                : 'تعذر إرسال التنبيه؛ تحقق من تفعيل الاشتراك وإعدادات الخادم',
+          ),
           backgroundColor: AppTheme.primary,
           duration: Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
@@ -855,7 +1135,11 @@ class _NotificationHistorySheetState extends State<NotificationHistorySheet> {
                       SizedBox(width: 8),
                       Text(
                         'سجل الإشعارات والتنبيهات',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textDark),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: AppTheme.textDark,
+                        ),
                       ),
                     ],
                   ),
@@ -881,11 +1165,16 @@ class _NotificationHistorySheetState extends State<NotificationHistorySheet> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.send_rounded, size: 16),
-                      label: const Text('تجربة تنبيه فوري 🔔', style: TextStyle(fontSize: 12)),
+                      label: const Text(
+                        'تجربة تنبيه فوري 🔔',
+                        style: TextStyle(fontSize: 12),
+                      ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppTheme.primary,
                         side: const BorderSide(color: AppTheme.primary),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     ),
                   ),
@@ -900,11 +1189,16 @@ class _NotificationHistorySheetState extends State<NotificationHistorySheet> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.delete_sweep_outlined, size: 16),
-                      label: const Text('مسح السجل', style: TextStyle(fontSize: 12)),
+                      label: const Text(
+                        'مسح السجل',
+                        style: TextStyle(fontSize: 12),
+                      ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.red.shade700,
                         side: BorderSide(color: Colors.red.shade300),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     ),
                   ],
@@ -927,17 +1221,29 @@ class _NotificationHistorySheetState extends State<NotificationHistorySheet> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.notifications_none, size: 48, color: Colors.grey.shade400),
+                        Icon(
+                          Icons.notifications_none,
+                          size: 48,
+                          color: Colors.grey.shade400,
+                        ),
                         const SizedBox(height: 12),
                         const Text(
                           'لا توجد تنبيهات سابقة بعد',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.textDark),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: AppTheme.textDark,
+                          ),
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'ستظهر هنا جميع التنبيهات الفورية فور نزول أسعار مقاضيك المتابعة أو توفر عروض استثنائية.',
+                          'ستظهر هنا التغيّرات التي رصدها الفحص الدوري للأصناف المتابعة.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600, height: 1.4),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                            height: 1.4,
+                          ),
                         ),
                       ],
                     ),
@@ -947,7 +1253,10 @@ class _NotificationHistorySheetState extends State<NotificationHistorySheet> {
             else
               Expanded(
                 child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   itemCount: _notifications.length,
                   separatorBuilder: (_, __) => const Divider(height: 12),
                   itemBuilder: (context, index) {
@@ -967,7 +1276,9 @@ class _NotificationHistorySheetState extends State<NotificationHistorySheet> {
                       title: Text(
                         notif.titleAr,
                         style: TextStyle(
-                          fontWeight: notif.isRead ? FontWeight.normal : FontWeight.bold,
+                          fontWeight: notif.isRead
+                              ? FontWeight.normal
+                              : FontWeight.bold,
                           fontSize: 13,
                         ),
                       ),
@@ -977,13 +1288,19 @@ class _NotificationHistorySheetState extends State<NotificationHistorySheet> {
                           const SizedBox(height: 4),
                           Text(
                             notif.bodyAr,
-                            style: const TextStyle(fontSize: 12, color: AppTheme.textDark),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.textDark,
+                            ),
                           ),
                           if (notif.createdAt != null) ...[
                             const SizedBox(height: 4),
                             Text(
                               _formatTime(notif.createdAt!),
-                              style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey.shade500,
+                              ),
                             ),
                           ],
                         ],
@@ -1012,4 +1329,3 @@ class _NotificationHistorySheetState extends State<NotificationHistorySheet> {
     return 'منذ ${diff.inDays} يوم';
   }
 }
-

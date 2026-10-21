@@ -46,13 +46,25 @@ class AppTheme {
 
   // ── Shadows ───────────────────────────────────────────────────
   static List<BoxShadow> softShadow = [
-    BoxShadow(color: const Color(0xFF0E3B33).withOpacity(0.06), blurRadius: 18, offset: const Offset(0, 6)),
-    BoxShadow(color: const Color(0xFF0E3B33).withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 1)),
+    BoxShadow(
+      color: const Color(0xFF0E3B33).withOpacity(0.06),
+      blurRadius: 18,
+      offset: const Offset(0, 6),
+    ),
+    BoxShadow(
+      color: const Color(0xFF0E3B33).withOpacity(0.03),
+      blurRadius: 4,
+      offset: const Offset(0, 1),
+    ),
   ];
 
   static List<BoxShadow> glowShadow(Color c) => [
-        BoxShadow(color: c.withOpacity(0.35), blurRadius: 24, offset: const Offset(0, 10)),
-      ];
+    BoxShadow(
+      color: c.withOpacity(0.35),
+      blurRadius: 24,
+      offset: const Offset(0, 10),
+    ),
+  ];
 
   static const double radius = 22;
 
@@ -72,7 +84,11 @@ class AppTheme {
       scaffoldBackgroundColor: background,
       splashFactory: InkSparkle.splashFactory,
       textTheme: const TextTheme(
-        headlineMedium: TextStyle(fontWeight: FontWeight.w800, color: textDark, height: 1.3),
+        headlineMedium: TextStyle(
+          fontWeight: FontWeight.w800,
+          color: textDark,
+          height: 1.3,
+        ),
         titleLarge: TextStyle(fontWeight: FontWeight.w800, color: textDark),
         titleMedium: TextStyle(fontWeight: FontWeight.w700, color: textDark),
         bodyLarge: TextStyle(color: textDark, height: 1.5),
@@ -110,28 +126,46 @@ class AppTheme {
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          textStyle: const TextStyle(fontFamily: fontFamily, fontWeight: FontWeight.w700, fontSize: 15),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          textStyle: const TextStyle(
+            fontFamily: fontFamily,
+            fontWeight: FontWeight.w700,
+            fontSize: 15,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: primary,
           side: const BorderSide(color: primary, width: 1.2),
-          textStyle: const TextStyle(fontFamily: fontFamily, fontWeight: FontWeight.w700),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          textStyle: const TextStyle(
+            fontFamily: fontFamily,
+            fontWeight: FontWeight.w700,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: primary,
-          textStyle: const TextStyle(fontFamily: fontFamily, fontWeight: FontWeight.w700),
+          textStyle: const TextStyle(
+            fontFamily: fontFamily,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: surface,
         side: const BorderSide(color: border),
-        labelStyle: const TextStyle(fontFamily: fontFamily, color: textDark, fontWeight: FontWeight.w500),
+        labelStyle: const TextStyle(
+          fontFamily: fontFamily,
+          color: textDark,
+          fontWeight: FontWeight.w500,
+        ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       ),
@@ -139,14 +173,27 @@ class AppTheme {
         filled: true,
         fillColor: surface,
         hintStyle: const TextStyle(color: textMuted, fontFamily: fontFamily),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: border)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: border)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: primary, width: 1.5)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: primary, width: 1.5),
+        ),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         backgroundColor: primaryDark,
-        contentTextStyle: const TextStyle(fontFamily: fontFamily, color: Colors.white, fontWeight: FontWeight.w500),
+        contentTextStyle: const TextStyle(
+          fontFamily: fontFamily,
+          color: Colors.white,
+          fontWeight: FontWeight.w500,
+        ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         insetPadding: const EdgeInsets.fromLTRB(16, 0, 16, 90),
       ),
@@ -154,7 +201,9 @@ class AppTheme {
         backgroundColor: surface,
         surfaceTintColor: Colors.transparent,
         showDragHandle: true,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: surface,
@@ -162,18 +211,16 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
       ),
       switchTheme: SwitchThemeData(
-        thumbColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? Colors.white : null),
-        trackColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? primary : null),
+        thumbColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected) ? Colors.white : null,
+        ),
+        trackColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected) ? primary : null,
+        ),
       ),
       dividerTheme: const DividerThemeData(color: border, thickness: 1),
       progressIndicatorTheme: const ProgressIndicatorThemeData(color: primary),
-      pageTransitionsTheme: const PageTransitionsTheme(builders: {
-        TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
-        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-        TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
-        TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
-        TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
-      }),
+      pageTransitionsTheme: const PageTransitionsTheme(),
     );
   }
 }

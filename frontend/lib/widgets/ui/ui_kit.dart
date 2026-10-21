@@ -41,7 +41,8 @@ class IslamicPatternPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant IslamicPatternPainter old) => old.color != color || old.cell != cell;
+  bool shouldRepaint(covariant IslamicPatternPainter old) =>
+      old.color != color || old.cell != cell;
 }
 
 /// Hero header: emerald gradient + pattern + glow orb.
@@ -60,13 +61,19 @@ class GradientHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.vertical(bottom: Radius.circular(bottomRadius)),
+      borderRadius: BorderRadius.vertical(
+        bottom: Radius.circular(bottomRadius),
+      ),
       child: Container(
         decoration: const BoxDecoration(gradient: AppTheme.heroGradient),
         child: Stack(
           children: [
             Positioned.fill(
-              child: CustomPaint(painter: IslamicPatternPainter(color: Colors.white.withOpacity(0.07))),
+              child: CustomPaint(
+                painter: IslamicPatternPainter(
+                  color: Colors.white.withOpacity(0.07),
+                ),
+              ),
             ),
             Positioned(
               top: -60,
@@ -76,10 +83,12 @@ class GradientHeader extends StatelessWidget {
                 height: 200,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: RadialGradient(colors: [
-                    AppTheme.primaryLight.withOpacity(0.45),
-                    Colors.transparent,
-                  ]),
+                  gradient: RadialGradient(
+                    colors: [
+                      AppTheme.primaryLight.withOpacity(0.45),
+                      Colors.transparent,
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -91,10 +100,12 @@ class GradientHeader extends StatelessWidget {
                 height: 180,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: RadialGradient(colors: [
-                    AppTheme.accentGold.withOpacity(0.22),
-                    Colors.transparent,
-                  ]),
+                  gradient: RadialGradient(
+                    colors: [
+                      AppTheme.accentGold.withOpacity(0.22),
+                      Colors.transparent,
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -130,14 +141,19 @@ class GlassCard extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
         child: Material(
-          color: dark ? Colors.white.withOpacity(0.12) : Colors.white.withOpacity(0.82),
+          color: dark
+              ? Colors.white.withOpacity(0.12)
+              : Colors.white.withOpacity(0.82),
           child: InkWell(
             onTap: onTap,
             child: Container(
               padding: padding,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(radius),
-                border: Border.all(color: Colors.white.withOpacity(dark ? 0.22 : 0.9), width: 1.2),
+                border: Border.all(
+                  color: Colors.white.withOpacity(dark ? 0.22 : 0.9),
+                  width: 1.2,
+                ),
               ),
               child: child,
             ),
@@ -202,7 +218,13 @@ class SectionTitle extends StatelessWidget {
   final String? actionLabel;
   final VoidCallback? onAction;
 
-  const SectionTitle(this.title, {super.key, this.emoji, this.actionLabel, this.onAction});
+  const SectionTitle(
+    this.title, {
+    super.key,
+    this.emoji,
+    this.actionLabel,
+    this.onAction,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -226,7 +248,11 @@ class SectionTitle extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppTheme.textDark),
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.textDark,
+              ),
             ),
           ),
           if (actionLabel != null)
@@ -286,7 +312,11 @@ class GradientButton extends StatelessWidget {
                     child: Text(
                       label,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                      ),
                     ),
                   ),
                 ],
@@ -310,12 +340,20 @@ class SavingsBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        gradient: gold ? AppTheme.goldGradient : const LinearGradient(colors: [Color(0xFF16C784), Color(0xFF0E9F6E)]),
+        gradient: gold
+            ? AppTheme.goldGradient
+            : const LinearGradient(
+                colors: [Color(0xFF16C784), Color(0xFF0E9F6E)],
+              ),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
         text,
-        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
@@ -328,14 +366,24 @@ class AnimatedBell extends StatefulWidget {
   final double size;
   final String? tooltip;
 
-  const AnimatedBell({super.key, required this.active, this.onTap, this.size = 22, this.tooltip});
+  const AnimatedBell({
+    super.key,
+    required this.active,
+    this.onTap,
+    this.size = 22,
+    this.tooltip,
+  });
 
   @override
   State<AnimatedBell> createState() => _AnimatedBellState();
 }
 
-class _AnimatedBellState extends State<AnimatedBell> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+class _AnimatedBellState extends State<AnimatedBell>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 600),
+  );
 
   @override
   void didUpdateWidget(covariant AnimatedBell oldWidget) {
@@ -367,17 +415,25 @@ class _AnimatedBellState extends State<AnimatedBell> with SingleTickerProviderSt
             shape: BoxShape.circle,
             gradient: widget.active ? AppTheme.goldGradient : null,
             color: widget.active ? null : AppTheme.surfaceAlt,
-            boxShadow: widget.active ? AppTheme.glowShadow(AppTheme.accentGold) : null,
+            boxShadow: widget.active
+                ? AppTheme.glowShadow(AppTheme.accentGold)
+                : null,
           ),
           child: AnimatedBuilder(
             animation: _c,
             builder: (_, child) {
               final t = _c.value;
               final angle = math.sin(t * math.pi * 6) * (1 - t) * 0.5;
-              return Transform.rotate(angle: angle, alignment: Alignment.topCenter, child: child);
+              return Transform.rotate(
+                angle: angle,
+                alignment: Alignment.topCenter,
+                child: child,
+              );
             },
             child: Icon(
-              widget.active ? Icons.notifications_active_rounded : Icons.notifications_none_rounded,
+              widget.active
+                  ? Icons.notifications_active_rounded
+                  : Icons.notifications_none_rounded,
               size: widget.size,
               color: widget.active ? Colors.white : AppTheme.textMuted,
             ),
@@ -385,7 +441,9 @@ class _AnimatedBellState extends State<AnimatedBell> with SingleTickerProviderSt
         ),
       ),
     );
-    return widget.tooltip != null ? Tooltip(message: widget.tooltip!, child: btn) : btn;
+    return widget.tooltip != null
+        ? Tooltip(message: widget.tooltip!, child: btn)
+        : btn;
   }
 }
 
@@ -394,15 +452,23 @@ class ShimmerBox extends StatefulWidget {
   final double height;
   final double? width;
   final double radius;
-  const ShimmerBox({super.key, required this.height, this.width, this.radius = 16});
+  const ShimmerBox({
+    super.key,
+    required this.height,
+    this.width,
+    this.radius = 16,
+  });
 
   @override
   State<ShimmerBox> createState() => _ShimmerBoxState();
 }
 
-class _ShimmerBoxState extends State<ShimmerBox> with SingleTickerProviderStateMixin {
-  late final AnimationController _c =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 1300))..repeat();
+class _ShimmerBoxState extends State<ShimmerBox>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1300),
+  )..repeat();
 
   @override
   void dispose() {
@@ -424,7 +490,11 @@ class _ShimmerBoxState extends State<ShimmerBox> with SingleTickerProviderStateM
             gradient: LinearGradient(
               begin: Alignment(v - 1, 0),
               end: Alignment(v + 1, 0),
-              colors: const [Color(0xFFEFECE4), Color(0xFFF9F7F2), Color(0xFFEFECE4)],
+              colors: const [
+                Color(0xFFEFECE4),
+                Color(0xFFF9F7F2),
+                Color(0xFFEFECE4),
+              ],
             ),
           ),
         );
@@ -481,8 +551,12 @@ class FadeSlideIn extends StatefulWidget {
   State<FadeSlideIn> createState() => _FadeSlideInState();
 }
 
-class _FadeSlideInState extends State<FadeSlideIn> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 450));
+class _FadeSlideInState extends State<FadeSlideIn>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 450),
+  );
   Timer? _timer;
 
   @override
@@ -511,7 +585,10 @@ class _FadeSlideInState extends State<FadeSlideIn> with SingleTickerProviderStat
     return FadeTransition(
       opacity: curve,
       child: SlideTransition(
-        position: Tween(begin: const Offset(0, 0.08), end: Offset.zero).animate(curve),
+        position: Tween(
+          begin: const Offset(0, 0.08),
+          end: Offset.zero,
+        ).animate(curve),
         child: widget.child,
       ),
     );
@@ -535,12 +612,18 @@ class EmptyIllustration extends StatelessWidget {
           Container(
             width: size,
             height: size,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.primaryContainer.withOpacity(0.7)),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppTheme.primaryContainer.withOpacity(0.7),
+            ),
           ),
           Container(
             width: size * 0.72,
             height: size * 0.72,
-            decoration: const BoxDecoration(shape: BoxShape.circle, color: AppTheme.primaryContainer),
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppTheme.primaryContainer,
+            ),
           ),
           Container(
             width: size * 0.48,
@@ -558,7 +641,10 @@ class EmptyIllustration extends StatelessWidget {
             child: Container(
               width: 12,
               height: 12,
-              decoration: const BoxDecoration(shape: BoxShape.circle, gradient: AppTheme.goldGradient),
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: AppTheme.goldGradient,
+              ),
             ),
           ),
         ],
@@ -588,31 +674,58 @@ class ProductImage extends StatelessWidget {
 
   IconData _getFallbackIcon() {
     final n = (nameAr ?? '').toLowerCase();
-    if (n.contains('حليب') || n.contains('لبن') || n.contains('عصير') || n.contains('مياه') || n.contains('ماء')) {
+    if (n.contains('حليب') ||
+        n.contains('لبن') ||
+        n.contains('عصير') ||
+        n.contains('مياه') ||
+        n.contains('ماء')) {
       return Icons.local_drink_rounded;
     }
-    if (n.contains('أرز') || n.contains('ارز') || n.contains('شعلان') || n.contains('حبوب')) {
+    if (n.contains('أرز') ||
+        n.contains('ارز') ||
+        n.contains('شعلان') ||
+        n.contains('حبوب')) {
       return Icons.rice_bowl_rounded;
     }
-    if (n.contains('شوكولاتة') || n.contains('شوكولاته') || n.contains('نوتيلا') || n.contains('سكر')) {
+    if (n.contains('شوكولاتة') ||
+        n.contains('شوكولاته') ||
+        n.contains('نوتيلا') ||
+        n.contains('سكر')) {
       return Icons.cake_rounded;
     }
-    if (n.contains('زيت') || n.contains('عافية') || n.contains('نور') || n.contains('سمن')) {
+    if (n.contains('زيت') ||
+        n.contains('عافية') ||
+        n.contains('نور') ||
+        n.contains('سمن')) {
       return Icons.opacity_rounded;
     }
     if (n.contains('شاي') || n.contains('قهوة') || n.contains('كوفيه')) {
       return Icons.coffee_rounded;
     }
-    if (n.contains('جبن') || n.contains('جبنة') || n.contains('كيري') || n.contains('بوك') || n.contains('قشطة')) {
+    if (n.contains('جبن') ||
+        n.contains('جبنة') ||
+        n.contains('كيري') ||
+        n.contains('بوك') ||
+        n.contains('قشطة')) {
       return Icons.breakfast_dining_rounded;
     }
-    if (n.contains('تونة') || n.contains('دجاج') || n.contains('لحم') || n.contains('سمك')) {
+    if (n.contains('تونة') ||
+        n.contains('دجاج') ||
+        n.contains('لحم') ||
+        n.contains('سمك')) {
       return Icons.set_meal_rounded;
     }
-    if (n.contains('خبز') || n.contains('توست') || n.contains('لوزين') || n.contains('كرواسون')) {
+    if (n.contains('خبز') ||
+        n.contains('توست') ||
+        n.contains('لوزين') ||
+        n.contains('كرواسون')) {
       return Icons.bakery_dining_rounded;
     }
-    if (n.contains('صابون') || n.contains('تايد') || n.contains('فيري') || n.contains('غسيل') || n.contains('منظف')) {
+    if (n.contains('صابون') ||
+        n.contains('تايد') ||
+        n.contains('فيري') ||
+        n.contains('غسيل') ||
+        n.contains('منظف')) {
       return Icons.cleaning_services_rounded;
     }
     if (n.contains('أطفال') || n.contains('حفاض') || n.contains('بيبي')) {
@@ -621,17 +734,14 @@ class ProductImage extends StatelessWidget {
     return Icons.shopping_bag_rounded;
   }
 
-  static String safeWebImageUrl(String url) {
-    final clean = url.trim();
-    if (!clean.startsWith('http')) return clean;
-    if (clean.contains('wsrv.nl')) return clean;
-    final noProto = clean.replaceFirst(RegExp(r'^https?:\/\/'), '');
-    return 'https://wsrv.nl/?url=${Uri.encodeComponent(noProto)}&output=webp&q=85';
-  }
+  static String safeWebImageUrl(String url) => url.trim();
 
   @override
   Widget build(BuildContext context) {
-    final validUrl = (imageUrl != null && imageUrl!.trim().isNotEmpty && imageUrl!.startsWith('http'));
+    final validUrl =
+        (imageUrl != null &&
+        imageUrl!.trim().isNotEmpty &&
+        imageUrl!.startsWith('http'));
     final webUrl = validUrl ? safeWebImageUrl(imageUrl!) : '';
 
     return Container(
@@ -647,10 +757,16 @@ class ProductImage extends StatelessWidget {
         child: validUrl
             ? Image.network(
                 webUrl,
+                webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
+                semanticLabel: nameAr,
                 fit: fit,
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
-                  return ShimmerBox(width: width, height: height, radius: borderRadius);
+                  return ShimmerBox(
+                    width: width,
+                    height: height,
+                    radius: borderRadius,
+                  );
                 },
                 errorBuilder: (context, error, stackTrace) => _buildFallback(),
               )
@@ -662,15 +778,15 @@ class ProductImage extends StatelessWidget {
   Widget _buildFallback() {
     return Center(
       child: Container(
-        width: width * 0.75,
-        height: height * 0.75,
+        width: width.isFinite ? width * 0.75 : 60,
+        height: height.isFinite ? height * 0.75 : 60,
         decoration: BoxDecoration(
           color: AppTheme.primaryContainer.withOpacity(0.5),
           shape: BoxShape.circle,
         ),
         child: Icon(
           _getFallbackIcon(),
-          size: width * 0.42,
+          size: width.isFinite ? width * 0.42 : 30,
           color: AppTheme.primary,
         ),
       ),

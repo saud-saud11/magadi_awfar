@@ -1,19 +1,24 @@
 import pytest
-from app.database import SessionLocal
+from app.database import Base
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from app.services.voice_basket_service import voice_basket_service
 from app.services.store_catalog_service import seed_staple_products_to_db
 
 @pytest.fixture(scope="module")
 def db():
-    session = SessionLocal()
-    seed_staple_products_to_db(session)
-    yield session
-    session.close()
+    # Each suite owns a fresh database; never depend on a developer's app data.
+    engine = create_engine('sqlite://')
+    Base.metadata.create_all(engine)
+    with sessionmaker(bind=engine)() as session:
+        seed_staple_products_to_db(session)
+        yield session
+    engine.dispose()
 
 def test_scenario_1_default_single_pack(db):
     """
     Scenario 1: «حليب السعودية»
-    Adds single default small/medium individual pack (1L, Full Fat), quantity: 1.
+    Adds the smallest actual individual pack (200ml, Full Fat), quantity: 1.
     """
     session_id = "test_s1"
     res = voice_basket_service.parse_and_execute(
@@ -26,7 +31,7 @@ def test_scenario_1_default_single_pack(db):
     item = res.items_added[0]
     assert item.quantity == 1
     assert "السعودية" in item.name_ar
-    assert item.size_amount == 1000.0  # 1L normalized to 1000ml
+    assert item.size_amount == 200.0  # Smallest actual individual pack
     assert "كامل الدسم" in item.name_ar
 
 def test_scenario_2_explicit_quantity_and_size(db):
@@ -51,7 +56,7 @@ def test_scenario_3_compound_multi_item_addition(db):
     """
     Scenario 3: «أبي حليب السعودية واثنين جبن كيري وخبز توست»
     Creates 3 distinct valid items:
-    1. Saudia Milk (qty: 1, 1L)
+    1. Saudia Milk (qty: 1, 200ml)
     2. Kiri Cheese (qty: 2)
     3. Toast Bread (qty: 1, Lusine Toast)
     """
@@ -68,7 +73,7 @@ def test_scenario_3_compound_multi_item_addition(db):
     milk = next((i for i in res.items_added if "حليب" in i.name_ar), None)
     assert milk is not None
     assert milk.quantity == 1
-    assert milk.size_amount == 1000.0
+    assert milk.size_amount == 200.0
 
     # 2. Kiri Cheese
     kiri = next((i for i in res.items_added if "كيري" in i.name_ar), None)
@@ -89,7 +94,7 @@ def test_scenario_4_modify_size_without_duplicate(db):
     # First: add 1L Saudia milk
     voice_basket_service.parse_and_execute(
         db,
-        query="حليب السعودية",
+        query="حليب السعودية لتر",
         session_id=session_id
     )
     
