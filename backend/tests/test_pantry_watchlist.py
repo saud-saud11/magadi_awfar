@@ -1,6 +1,8 @@
 import pytest
 from datetime import datetime
-from app.database import SessionLocal, engine, Base
+from app.database import Base
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from app.models.models import (
     PantryItem, Product, StoreOffer, Store, District, PushSubscription, NotificationLog
 )
@@ -12,11 +14,13 @@ from app.services.store_catalog_service import seed_staple_products_to_db
 
 @pytest.fixture(scope="module")
 def db():
-    Base.metadata.create_all(bind=engine)
-    session = SessionLocal()
-    seed_staple_products_to_db(session)
-    yield session
-    session.close()
+    # Each suite owns a fresh database; never depend on a developer's app data.
+    engine = create_engine('sqlite://')
+    Base.metadata.create_all(engine)
+    with sessionmaker(bind=engine)() as session:
+        seed_staple_products_to_db(session)
+        yield session
+    engine.dispose()
 
 def test_baseline_price_recording_is_not_price_drop(db):
     """Test that adding an item to pantry records initial price as baseline without sending an alert."""
@@ -135,6 +139,21 @@ def test_voice_commands_for_pantry(db):
     """Test voice commands: add to watchlist, set target price, and mute alerts."""
     session_id = "test_voice_pantry_session"
     
+    # No observation: neither a baseline nor a successful subscription is invented.
+    missing = voice_basket_service.parse_and_execute(db,
+        query="حط حليب السعودية في قائمة المتابعة", session_id=session_id)
+    assert missing.status == 'requires_setup'
+    assert db.query(PantryItem).filter(PantryItem.device_uuid == session_id).count() == 0
+    store = Store(code='danube', name_ar='الدانوب', name_en='Danube')
+    db.add(store); db.flush()
+    milk = db.query(Product).filter(Product.brand_ar == 'السعودية').first()
+    rice = db.query(Product).filter(Product.brand_ar == 'الشعلان').first()
+    for product in [milk, rice]:
+        db.add(StoreOffer(product_id=product.id, store_id=store.id,
+            price_halalas=9000, product_url='https://danube.sa', is_in_stock=True,
+            last_verified_at=datetime.utcnow(), raw_data_json='{"verified":true,"stock_known":true}'))
+    db.commit()
+
     # 1. «حط حليب السعودية في قائمة المتابعة»
     res1 = voice_basket_service.parse_and_execute(
         db_session=db,
@@ -173,3 +192,7 @@ def test_voice_commands_for_pantry(db):
     assert res4.intent == "mute_alerts"
     assert res4.status == "success"
     assert "جميع تنبيهات" in res4.message_ar
+    tracked = db.query(PantryItem).filter(PantryItem.device_uuid == session_id).all()
+    assert len(tracked) == 2
+    assert all(i.baseline_version == 2 and not i.is_alert_enabled for i in tracked)
+    assert next(i for i in tracked if i.product_id == rice.id).target_price_halalas == 7500

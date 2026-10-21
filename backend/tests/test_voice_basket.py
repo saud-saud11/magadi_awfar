@@ -1,14 +1,19 @@
 import pytest
-from app.database import SessionLocal
+from app.database import Base
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from app.services.voice_basket_service import voice_basket_service
 from app.services.store_catalog_service import seed_staple_products_to_db
 
 @pytest.fixture(scope="module")
 def db():
-    session = SessionLocal()
-    seed_staple_products_to_db(session)
-    yield session
-    session.close()
+    # Each suite owns a fresh database; never depend on a developer's app data.
+    engine = create_engine('sqlite://')
+    Base.metadata.create_all(engine)
+    with sessionmaker(bind=engine)() as session:
+        seed_staple_products_to_db(session)
+        yield session
+    engine.dispose()
 
 def test_scenario_1_default_single_pack(db):
     """

@@ -615,7 +615,7 @@ class VoiceBasketService:
         """Finds closest matching product in DB for a term."""
         # Strip digits/numbers first so target price doesn't pollute product title
         term_clean = re.sub(r"\d+(?:\.\d+)?", " ", term)
-        term_clean = re.sub(r"(?:حط|ضيف|تابع|سعر|في|قائمة|المتابعة|مقاضي|البيت|نبهني|إذا|اذا|صار|أقل|اقل|أكثر|اكثر|من|ريال|ر\.س|رس|وقف|تنبيهات|تنبيه|عطل|علمني|لو|سمحت)", " ", term_clean).strip()
+        term_clean = re.sub(r"\b(?:حط|ضيف|تابع|سعر|في|قائمه|المتابعه|مقاضي|البيت|نبهني|اذا|صار|اقل|اكثر|من|ريال|ر\.س|رس|وقف|تنبيهات|تنبيه|عطل|علمني|لو|سمحت)\b", " ", term_clean).strip()
         term_clean = re.sub(r"\s+", " ", term_clean).strip()
         if not term_clean:
             return None
