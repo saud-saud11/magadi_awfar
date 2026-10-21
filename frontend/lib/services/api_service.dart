@@ -81,7 +81,7 @@ class ApiService {
             'sort_by': sortBy,
           },
         );
-        final res = await http.get(uri).timeout(const Duration(seconds: 16));
+        final res = await http.get(uri).timeout(const Duration(seconds: 26));
         if (res.statusCode == 200) {
           final result = SearchResult.fromJson(
             jsonDecode(utf8.decode(res.bodyBytes)),

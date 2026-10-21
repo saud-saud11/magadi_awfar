@@ -20,7 +20,7 @@ class LiveDanubeClient {
           },
           body: jsonEncode({
             'query': query,
-            'hitsPerPage': 30,
+            'hitsPerPage': 80,
             'filters': 'tenant_id = 1',
           }),
         )
@@ -115,7 +115,10 @@ class LiveDanubeClient {
               isCheapestProduct: true,
               isCheapestTotal: false,
               unitPricePer100gSar:
-                  size.amount != null && size.amount! > 0 && pack == 1
+                  size.amount != null &&
+                      size.amount! > 0 &&
+                      size.unit != 'count' &&
+                      pack == 1
                   ? price * 100 / size.amount!
                   : null,
             ),

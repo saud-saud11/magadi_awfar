@@ -216,6 +216,7 @@ class ProductItem {
   final String? canonicalId;
   final List<int> catalogProductIds;
   final String? matchingMethod;
+  final String? quantityStatus;
   final String? gtinBarcode;
   final String nameAr;
   final String? nameEn;
@@ -235,6 +236,7 @@ class ProductItem {
     this.canonicalId,
     this.catalogProductIds = const [],
     this.matchingMethod,
+    this.quantityStatus,
     this.gtinBarcode,
     required this.nameAr,
     this.nameEn,
@@ -250,6 +252,25 @@ class ProductItem {
     required this.offers,
   });
 
+  bool get hasExactQuantity =>
+      normalizedSizeAmount != null &&
+      normalizedSizeAmount! > 0 &&
+      (quantityStatus == null || quantityStatus == 'exact');
+
+  String get displaySize {
+    if (!hasExactQuantity) return 'الحجم أو عدد العبوات غير مؤكد';
+    final amount = normalizedSizeAmount!;
+    final unit = normalizedSizeUnit == 'ml'
+        ? 'مل'
+        : normalizedSizeUnit == 'count'
+        ? 'قطعة'
+        : 'جرام';
+    final number = amount == amount.roundToDouble()
+        ? amount.toStringAsFixed(0)
+        : amount.toString();
+    return '$number $unit';
+  }
+
   bool get isBundle =>
       packCount > 1 ||
       (packType == 'bundle') ||
@@ -260,6 +281,8 @@ class ProductItem {
       nameAr.contains('ربطة');
 
   String get displayPackBadge {
+    if (!hasExactQuantity) return 'عبوة غير مؤكدة';
+    if (normalizedSizeUnit == 'count' && packCount == 1) return 'عبوة واحدة';
     if (packLabelAr != null &&
         packLabelAr!.isNotEmpty &&
         packLabelAr != 'بالحبّة') {
@@ -289,6 +312,7 @@ class ProductItem {
     'canonical_id': canonicalId,
     'catalog_product_ids': catalogProductIds,
     'matching_method': matchingMethod,
+    'quantity_status': quantityStatus,
     'gtin_barcode': gtinBarcode,
     'name_ar': nameAr,
     'name_en': nameEn,
@@ -313,6 +337,7 @@ class ProductItem {
           .whereType<int>()
           .toList(),
       matchingMethod: json['matching_method'] as String?,
+      quantityStatus: json['quantity_status'] as String?,
       gtinBarcode: json['gtin_barcode'] as String?,
       nameAr: json['name_ar'] as String? ?? '',
       nameEn: json['name_en'] as String?,

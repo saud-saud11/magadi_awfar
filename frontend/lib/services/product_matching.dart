@@ -18,55 +18,170 @@ class ProductMatching {
         .trim();
   }
 
-  static ({double? amount, String? unit, int? pack}) measurement(String value) {
-    final text = normalize(value)
-        .replaceAllMapped(
-          RegExp(r'(\d+(?:\.\d+)?)\s*\+\s*(\d+(?:\.\d+)?)'),
-          (m) => '${num.parse(m[1]!) + num.parse(m[2]!)} ',
+  static const _units =
+      r'كيلو\s*جرام|كيلوجرام|كيلو|كجم|كغم|كغ|kg|جرام|غرام|جم|غم|grams?|gm|g|ملليلتر|مليلتر|ml|مل|لتر|liters?|litres?|ltr|l';
+  static const _counts =
+      r'عبوات|عبوه|علب|علبه|حبات|حبه|قطع|قطعه|حفاضات|حفاضه|مناديل|منديل|pieces?|pcs?|counts?|ct|diapers?|sheets?|wipes?|tablets?|capsules?|bottles?|cans?|sachets?';
+  static int? _arithmetic(String value) {
+    final tokens = RegExp(r'\d+|[+*()]')
+        .allMatches(
+          value
+              .replaceAll(RegExp(r'free|مجانا|مجاني'), '')
+              .replaceAll(RegExp(r'[x×]'), '*'),
         )
-        .replaceAll(RegExp(r'[()]'), ' ');
-    final size = RegExp(
-      r'(\d+(?:\.\d+)?)\s*(كيلو\s*جرام|كيلوجرام|كيلو|كجم|كغم|كغ|kg|جرام|غرام|جم|غم|grams?|gm|g|ملليلتر|مليلتر|ml|مل|لتر|liters?|litres?|l)(?![a-z\u0600-\u06ff])',
-      caseSensitive: false,
-    ).firstMatch(text);
+        .map((m) => m[0]!)
+        .toList();
+    var i = 0;
+    late int Function() sum;
+    int atom() {
+      if (i >= tokens.length) throw const FormatException();
+      if (tokens[i] == '(') {
+        i++;
+        final n = sum();
+        if (i >= tokens.length || tokens[i++] != ')') {
+          throw const FormatException();
+        }
+        return n;
+      }
+      final n = int.parse(tokens[i++]);
+      if (n < 1) throw const FormatException();
+      return n;
+    }
+
+    int multiply() {
+      var n = atom();
+      while (i < tokens.length && tokens[i] == '*') {
+        i++;
+        n *= atom();
+      }
+      return n;
+    }
+
+    sum = () {
+      var n = multiply();
+      while (i < tokens.length && tokens[i] == '+') {
+        i++;
+        n += multiply();
+      }
+      return n;
+    };
+    try {
+      final n = sum();
+      return i == tokens.length && n > 0 && n <= 10000 ? n : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static ({double? amount, String? unit, int? pack}) measurement(String value) {
+    const unknown = (amount: null, unit: null, pack: null);
+    var text = normalize(value);
+    final countPattern = RegExp(
+      r'(\d+)\s*(' + _counts + r')(?![a-z\u0600-\u06ff])',
+    );
+    if (RegExp(r'diapers?|nappies|حفاضات|حفاضه').hasMatch(text) &&
+        countPattern.hasMatch(text)) {
+      text = text.replaceAll(
+        RegExp(
+          r'(?:\d+(?:\.\d+)?\s*[-–]\s*)?\d+(?:\.\d+)?\s*(?:kg|كيلو(?:\s*جرام)?|كجم)(?![a-z\u0600-\u06ff])',
+        ),
+        ' ',
+      );
+    }
+    if (RegExp(
+      r'\d+(?:\.\d+)?\s*(?:(?:' +
+          _units +
+          r')\s*)?(?:[-–—]|to|الي)\s*\d+(?:\.\d+)?\s*(?:' +
+          _units +
+          r')(?![a-z\u0600-\u06ff])',
+    ).hasMatch(text)) {
+      return unknown;
+    }
+    text = text.replaceAllMapped(
+      RegExp(r'(\d+(?:\.\d+)?)\s*\+\s*(\d+(?:\.\d+)?)'),
+      (m) => '${num.parse(m[1]!) + num.parse(m[2]!)} ',
+    );
+    final sizes = RegExp(
+      r'(\d+(?:\.\d+)?)\s*(' + _units + r')(?![a-z\u0600-\u06ff])',
+    ).allMatches(text).toList();
+    if (sizes.length > 1 &&
+        RegExp(
+          r'&|\b(?:plus|with free)\b|\sو\s',
+        ).hasMatch(text.substring(sizes.first.end, sizes.last.start))) {
+      return unknown;
+    }
     double? amount;
     String? unit;
-    if (size != null) {
-      amount = double.parse(size[1]!);
-      final rawUnit = size[2]!.replaceAll(RegExp(r'\s'), '');
-      if (['كيلوجرام', 'كيلو', 'كجم', 'كغم', 'كغ', 'kg'].contains(rawUnit)) {
-        amount *= 1000;
-        unit = 'g';
+    for (final size in sizes) {
+      var n = double.parse(size[1]!);
+      final raw = size[2]!.replaceAll(RegExp(r'\s'), '');
+      String u;
+      if (['كيلوجرام', 'كيلو', 'كجم', 'كغم', 'كغ', 'kg'].contains(raw)) {
+        n *= 1000;
+        u = 'g';
       } else if ([
         'لتر',
         'l',
+        'ltr',
         'liter',
         'litre',
         'liters',
         'litres',
-      ].contains(rawUnit)) {
-        amount *= 1000;
-        unit = 'ml';
+      ].contains(raw)) {
+        n *= 1000;
+        u = 'ml';
       } else {
-        unit = ['مل', 'ml', 'ملليلتر', 'مليلتر'].contains(rawUnit) ? 'ml' : 'g';
+        u = ['مل', 'ml', 'ملليلتر', 'مليلتر'].contains(raw) ? 'ml' : 'g';
+      }
+      if (amount != null && (amount != n || unit != u)) return unknown;
+      amount = n;
+      unit = u;
+    }
+    RegExpMatch? measured = sizes.isEmpty ? null : sizes.first;
+    if (measured == null) {
+      measured = countPattern.firstMatch(text);
+      if (measured != null) {
+        amount = double.parse(measured[1]!);
+        unit = 'count';
       }
     }
-    final pack =
-        RegExp(r'(\d+)\s*[x×*]\s*\d', caseSensitive: false).firstMatch(text) ??
+    int? pack;
+    if (measured != null) {
+      final prefix = RegExp(r'(\d+(?:\s*[x×*]\s*\d+)*\s*[x×*]\s*)$').firstMatch(
+        text.substring(0, measured.start).replaceAll(RegExp(r'[()]'), ' '),
+      );
+      if (prefix != null) {
+        pack = _arithmetic(prefix[1]!.replaceAll(RegExp(r'[x×*]\s*$'), ''));
+      }
+      final suffix = RegExp(
+        r'^\s*\)*\s*[x×*]\s*(\(?\s*\d+(?:\s*[+*x×]\s*\(?\s*\d+\s*\)?)*(?:\s*free)?\s*\)?)',
+      ).firstMatch(text.substring(measured.end));
+      if (suffix != null) {
+        final n = _arithmetic(suffix[1]!);
+        if (n != null) pack = (pack ?? 1) * n;
+      }
+    }
+    if (unit != 'count') {
+      final count =
+          countPattern.firstMatch(text) ??
+          RegExp(
+            r'(?:^|\s)(?:حزمه|كرتون|شده|pack)\s*(?:of\s*)?\(?\s*(\d+)(?![\d.]|\s*(?:' +
+                _units +
+                r'))',
+          ).firstMatch(text);
+      if (count != null) {
+        final n = int.parse(count[1]!);
+        if (pack != null && pack != n) return unknown;
+        pack = n;
+      }
+    }
+    if (pack == null &&
         RegExp(
-          r'(?:جرام|غرام|جم|kg|g|ml|مل|لتر|l)\s*[x×*]\s*(\d+)',
-        ).firstMatch(text) ??
-        RegExp(
-          r'(\d+)\s*(?:عبوات|عبوه|علب|علبه|حبات|قطع|pieces?|pcs|bottles?|cans?|sachets?)(?![a-z\u0600-\u06ff])',
-        ).firstMatch(text) ??
-        RegExp(
-          r'(?:حزمه|كرتون|شده|pack)\s*(?:of\s*)?\(?\s*(\d+)',
-        ).firstMatch(text);
-    return (
-      amount: amount,
-      unit: unit,
-      pack: pack == null ? null : int.tryParse(pack[1]!),
-    );
+          r'multi\s*pack|multipack|عبوه متعدده|عبوات متعدده',
+        ).hasMatch(text)) {
+      return unknown;
+    }
+    return (amount: amount, unit: unit, pack: pack);
   }
 
   static String variantName(String name) => normalize(name)
@@ -94,7 +209,9 @@ class ProductMatching {
   }
 
   static bool sameProduct(ProductItem a, ProductItem b) {
-    if (a.normalizedSizeAmount == null ||
+    if (!a.hasExactQuantity ||
+        !b.hasExactQuantity ||
+        a.normalizedSizeAmount == null ||
         a.normalizedSizeAmount! <= 0 ||
         a.normalizedSizeAmount != b.normalizedSizeAmount ||
         a.normalizedSizeUnit != b.normalizedSizeUnit ||

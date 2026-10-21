@@ -76,7 +76,9 @@ class _VerifiedProductCardState extends State<VerifiedProductCard> {
                         ),
                         const SizedBox(height: 5),
                         Text(
-                          '${p.displayPackBadge}${p.normalizedSizeAmount == null ? '' : ' • ${p.normalizedSizeAmount!.toStringAsFixed(0)} ${p.normalizedSizeUnit == 'ml' ? 'مل' : 'جرام'}'}',
+                          p.hasExactQuantity
+                              ? '${p.displayPackBadge} • ${p.displaySize}'
+                              : p.displaySize,
                           style: const TextStyle(
                             color: AppTheme.textMuted,
                             fontSize: 12,
