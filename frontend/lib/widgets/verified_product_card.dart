@@ -39,6 +39,7 @@ class _VerifiedProductCardState extends State<VerifiedProductCard> {
       });
     final comparable = offers.where((o) => o.canCompare).toList();
     final lowest = comparable.isEmpty ? null : comparable.first;
+    final storeCount = offers.map((o) => o.storeCode).toSet().length;
     final visible = widget.expanded || _showAll
         ? offers
         : offers.take(3).toList();
@@ -81,6 +82,23 @@ class _VerifiedProductCardState extends State<VerifiedProductCard> {
                             fontSize: 12,
                           ),
                         ),
+                        if (storeCount > 1)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Tooltip(
+                              message: p.matchingMethod == 'barcode'
+                                  ? 'تطابق الباركود والحجم وعدد العبوات'
+                                  : 'تطابق العلامة والنوع والمواصفات والحجم وعدد العبوات',
+                              child: Text(
+                                'نفس المنتج في $storeCount متاجر',
+                                style: const TextStyle(
+                                  color: AppTheme.primary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
                         if (lowest != null)
                           Padding(
                             padding: const EdgeInsets.only(top: 8),

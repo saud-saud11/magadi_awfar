@@ -213,6 +213,9 @@ class StoreOffer {
 
 class ProductItem {
   final int id;
+  final String? canonicalId;
+  final List<int> catalogProductIds;
+  final String? matchingMethod;
   final String? gtinBarcode;
   final String nameAr;
   final String? nameEn;
@@ -229,6 +232,9 @@ class ProductItem {
 
   ProductItem({
     required this.id,
+    this.canonicalId,
+    this.catalogProductIds = const [],
+    this.matchingMethod,
     this.gtinBarcode,
     required this.nameAr,
     this.nameEn,
@@ -280,6 +286,9 @@ class ProductItem {
 
   Map<String, dynamic> toJson() => {
     'id': id,
+    'canonical_id': canonicalId,
+    'catalog_product_ids': catalogProductIds,
+    'matching_method': matchingMethod,
     'gtin_barcode': gtinBarcode,
     'name_ar': nameAr,
     'name_en': nameEn,
@@ -299,6 +308,11 @@ class ProductItem {
     var rawOffers = json['offers'] as List<dynamic>? ?? [];
     return ProductItem(
       id: json['id'] as int? ?? 0,
+      canonicalId: json['canonical_id'] as String?,
+      catalogProductIds: (json['catalog_product_ids'] as List<dynamic>? ?? [])
+          .whereType<int>()
+          .toList(),
+      matchingMethod: json['matching_method'] as String?,
       gtinBarcode: json['gtin_barcode'] as String?,
       nameAr: json['name_ar'] as String? ?? '',
       nameEn: json['name_en'] as String?,

@@ -93,12 +93,38 @@ class ProductMatching {
     return true;
   }
 
-  static bool sameProduct(ProductItem a, ProductItem b) =>
-      a.normalizedSizeAmount == b.normalizedSizeAmount &&
-      a.normalizedSizeUnit == b.normalizedSizeUnit &&
-      a.packCount == b.packCount &&
-      ((a.gtinBarcode != null && a.gtinBarcode == b.gtinBarcode) ||
-          normalize(a.nameAr) == normalize(b.nameAr));
+  static bool sameProduct(ProductItem a, ProductItem b) {
+    if (a.normalizedSizeAmount == null ||
+        a.normalizedSizeAmount! <= 0 ||
+        a.normalizedSizeAmount != b.normalizedSizeAmount ||
+        a.normalizedSizeUnit != b.normalizedSizeUnit ||
+        a.packCount != b.packCount) {
+      return false;
+    }
+    String? barcode(ProductItem p) =>
+        p.gtinBarcode != null && validBarcode(p.gtinBarcode!)
+        ? p.gtinBarcode!.padLeft(14, '0')
+        : null;
+    final leftBarcode = barcode(a), rightBarcode = barcode(b);
+    if (leftBarcode != null &&
+        rightBarcode != null &&
+        leftBarcode != rightBarcode) {
+      return false;
+    }
+    // The server owns cross-store matching. Preserve its aliases when an old
+    // basket item is refreshed or a retailer is temporarily unavailable.
+    if (a.id > 0 && b.id > 0) {
+      final leftIds = {a.id, ...a.catalogProductIds};
+      final rightIds = {b.id, ...b.catalogProductIds};
+      if (leftIds.intersection(rightIds).isNotEmpty) return true;
+    }
+    if (a.canonicalId != null && b.canonicalId != null) {
+      return a.canonicalId == b.canonicalId;
+    }
+    if (leftBarcode != null && leftBarcode == rightBarcode) return true;
+    return normalize(a.nameAr).isNotEmpty &&
+        normalize(a.nameAr) == normalize(b.nameAr);
+  }
 
   /// Stable negative IDs keep local/search-provider products separate from database IDs.
   static int localId(String identity) {
