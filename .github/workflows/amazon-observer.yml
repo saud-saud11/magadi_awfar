@@ -1,0 +1,25 @@
+name: Check Amazon public prices
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/amazon-observer/**'
+      - '.github/workflows/amazon-observer.yml'
+permissions:
+  contents: read
+concurrency:
+  group: amazon-observer
+  cancel-in-progress: false
+jobs:
+  observe:
+    # Standard runners for this public repository; no artifacts or paid services.
+    if: github.event.repository.private == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node tools/amazon-observer/check.mjs
