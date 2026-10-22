@@ -35,6 +35,7 @@ class StoreOffer {
   final String? priceSourceType;
   final String? priceSourceName;
   final String? sourcePriceAgeText;
+  final String priceKind;
   final bool priceVerified;
   final bool stockKnown;
   final String? sourceUrl;
@@ -64,6 +65,7 @@ class StoreOffer {
     this.priceSourceType,
     this.priceSourceName,
     this.sourcePriceAgeText,
+    this.priceKind = 'listed',
     this.priceVerified = false,
     this.stockKnown = false,
     this.sourceUrl,
@@ -95,6 +97,7 @@ class StoreOffer {
       priceSourceType: json['price_source_type'] as String?,
       priceSourceName: json['price_source_name'] as String?,
       sourcePriceAgeText: json['source_price_age_text'] as String?,
+      priceKind: json['price_kind'] as String? ?? 'listed',
       priceVerified: json['price_verified'] == true,
       stockKnown: json['stock_known'] == true,
       sourceUrl: json['source_url'] as String?,
@@ -132,6 +135,11 @@ class StoreOffer {
       DateTime.now().difference(lastVerifiedAt!.toLocal()) <
           const Duration(hours: 24);
   bool get canCompare => isFresh && (!stockKnown || isInStock);
+  bool get isStartingFrom => priceKind == 'starting_from';
+  bool get isIndicative =>
+      isStartingFrom || priceSourceType == 'amazon_public_page';
+  String get priceLabel =>
+      '${isStartingFrom ? 'ابتداءً من ' : ''}${priceSar.toStringAsFixed(2)} ر.س';
   String get verificationText {
     if (!isFresh) return 'السعر يحتاج تحديثًا';
     if (priceSourceType == 'aggregator') {
@@ -145,6 +153,9 @@ class StoreOffer {
         : minutes < 60
         ? 'منذ $minutes دقيقة'
         : 'منذ ${minutes ~/ 60} ساعة';
+    if (priceSourceType == 'amazon_public_page') {
+      return 'سعر استرشادي ظاهر في أمازون • قُرئ $age • التوفر والتوصيل للمدينة يُؤكدان لدى المتجر';
+    }
     return 'تم جلب السعر $age • ${stockKnown ? (isInStock ? 'متوفر حسب المصدر' : 'غير متوفر') : 'التوفر يُؤكّد لدى المتجر'}';
   }
 
@@ -173,6 +184,7 @@ class StoreOffer {
     'price_source_type': priceSourceType,
     'price_source_name': priceSourceName,
     'source_price_age_text': sourcePriceAgeText,
+    'price_kind': priceKind,
     'price_verified': priceVerified,
     'stock_known': stockKnown,
     'source_url': sourceUrl,
@@ -184,6 +196,7 @@ class StoreOffer {
     String? priceSourceType,
     String? priceSourceName,
     String? sourcePriceAgeText,
+    String? priceKind,
     bool? priceVerified,
     bool? stockKnown,
     String? sourceUrl,
@@ -213,6 +226,7 @@ class StoreOffer {
       priceSourceType: priceSourceType ?? this.priceSourceType,
       priceSourceName: priceSourceName ?? this.priceSourceName,
       sourcePriceAgeText: sourcePriceAgeText ?? this.sourcePriceAgeText,
+      priceKind: priceKind ?? this.priceKind,
       priceVerified: priceVerified ?? this.priceVerified,
       stockKnown: stockKnown ?? this.stockKnown,
       sourceUrl: sourceUrl ?? this.sourceUrl,

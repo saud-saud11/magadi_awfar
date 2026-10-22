@@ -15,13 +15,15 @@ class BasketQuote {
   final int subtotalHalalas;
   final int matchedCount;
   final List<String> missing;
+  final bool indicative;
   BasketQuote(
     this.storeName,
     this.scope,
     this.subtotalHalalas,
     this.matchedCount,
-    this.missing,
-  );
+    this.missing, {
+    this.indicative = false,
+  });
   bool get complete => missing.isEmpty;
 }
 
@@ -36,6 +38,7 @@ List<BasketQuote> compareKnownBasket(List<BasketItem> items) {
   final quotes = <BasketQuote>[];
   for (final entry in scopes.entries) {
     var subtotal = 0, matched = 0;
+    var indicative = false;
     final missing = <String>[];
     for (final item in items) {
       final offers =
@@ -52,6 +55,7 @@ List<BasketQuote> compareKnownBasket(List<BasketItem> items) {
         missing.add(item.product.nameAr);
       } else {
         subtotal += offers.first.priceHalalas * item.quantity;
+        indicative = indicative || offers.first.isIndicative;
         matched++;
       }
     }
@@ -63,6 +67,7 @@ List<BasketQuote> compareKnownBasket(List<BasketItem> items) {
           subtotal,
           matched,
           missing,
+          indicative: indicative,
         ),
       );
     }
@@ -276,7 +281,7 @@ class BasketScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            '${(quote.subtotalHalalas / 100).toStringAsFixed(2)} ر.س',
+                            '${quote.indicative ? 'ابتداءً من ' : ''}${(quote.subtotalHalalas / 100).toStringAsFixed(2)} ر.س',
                             style: const TextStyle(
                               fontWeight: FontWeight.w900,
                               fontSize: 26,
@@ -288,6 +293,14 @@ class BasketScreen extends StatelessWidget {
                                 ? 'أسعار جميع الأصناف • قبل الرسوم'
                                 : 'مجموع جزئي • ${quote.matchedCount} من ${basketItems.length} أصناف',
                           ),
+                          if (quote.indicative)
+                            const Text(
+                              'مجموع استرشادي يتضمن أسعار أمازون الظاهرة؛ يُؤكد الإجمالي لدى المتجر.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.textMuted,
+                              ),
+                            ),
                           if (!quote.complete)
                             Text(
                               'بلا سعر مطابق: ${quote.missing.join('، ')}',

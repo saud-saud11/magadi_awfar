@@ -469,7 +469,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         textInputAction: TextInputAction.search,
                         onSubmitted: _performSearch,
                         decoration: InputDecoration(
-                          hintText: 'ابحث عن منتج: مثال «نوتيلا 500 جرام»',
+                          hintText: 'اسم المنتج أو رابط منتج أمازون',
                           hintStyle: const TextStyle(
                             color: AppTheme.textMuted,
                             fontSize: 14,
@@ -663,7 +663,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         itemBuilder: (context, i) {
                           final item = _featuredDeals[i];
                           final bestOffer = item.lowestOffer;
-                          final price = bestOffer?.priceSar ?? 0.0;
                           final storeName =
                               bestOffer?.storeNameAr ?? 'ابحث للتحقق من السعر';
                           return FadeSlideIn(
@@ -788,7 +787,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                               Text(
                                                 bestOffer == null
                                                     ? 'تحقق من السعر'
-                                                    : '${price.toStringAsFixed(2)} ر.س',
+                                                    : bestOffer.priceLabel,
                                                 style: const TextStyle(
                                                   fontSize: 15,
                                                   fontWeight: FontWeight.w900,

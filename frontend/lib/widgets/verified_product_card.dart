@@ -105,7 +105,9 @@ class _VerifiedProductCardState extends State<VerifiedProductCard> {
                           Padding(
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
-                              'من ${lowest.priceSar.toStringAsFixed(2)} ر.س',
+                              lowest.isStartingFrom
+                                  ? lowest.priceLabel
+                                  : 'من ${lowest.priceLabel}',
                               style: const TextStyle(
                                 color: AppTheme.primary,
                                 fontSize: 20,
@@ -199,12 +201,15 @@ class _VerifiedProductCardState extends State<VerifiedProductCard> {
                             style: const TextStyle(fontWeight: FontWeight.w800),
                           ),
                         ),
-                        Text(
-                          '${offer.priceSar.toStringAsFixed(2)} ر.س',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 16,
-                            color: AppTheme.primary,
+                        Flexible(
+                          child: Text(
+                            offer.priceLabel,
+                            textAlign: TextAlign.end,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                              color: AppTheme.primary,
+                            ),
                           ),
                         ),
                       ],
@@ -238,7 +243,7 @@ class _VerifiedProductCardState extends State<VerifiedProductCard> {
                       ),
                     if (offer.unitPricePer100gSar != null)
                       Text(
-                        'لكل 100 ${p.normalizedSizeUnit == 'ml' ? 'مل' : 'جرام'}: ${offer.unitPricePer100gSar!.toStringAsFixed(2)} ر.س',
+                        'لكل 100 ${p.normalizedSizeUnit == 'ml' ? 'مل' : 'جرام'}: ${offer.isStartingFrom ? 'ابتداءً من ' : ''}${offer.unitPricePer100gSar!.toStringAsFixed(2)} ر.س',
                         style: const TextStyle(fontSize: 11),
                       ),
                     Align(

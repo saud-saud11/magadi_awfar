@@ -194,7 +194,26 @@ class ProductMatching {
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
 
+  static String? amazonAsin(String query) {
+    final value = query.trim();
+    if (RegExp(r'^[A-Z0-9]{10}$', caseSensitive: false).hasMatch(value)) {
+      return value.toUpperCase();
+    }
+    final uri = Uri.tryParse(value);
+    if (uri == null ||
+        uri.scheme != 'https' ||
+        !['amazon.sa', 'www.amazon.sa'].contains(uri.host) ||
+        uri.hasPort ||
+        uri.userInfo.isNotEmpty)
+      return null;
+    return RegExp(
+      r'/(?:dp|gp/product)/([A-Z0-9]{10})(?:/|$)',
+      caseSensitive: false,
+    ).firstMatch(uri.path)?.group(1)?.toUpperCase();
+  }
+
   static bool exactSize(String query, ProductItem product) {
+    if (amazonAsin(query) != null) return true;
     final target = measurement(query);
     if (target.amount != null &&
         (product.normalizedSizeAmount != target.amount ||

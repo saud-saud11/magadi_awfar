@@ -53,6 +53,19 @@ ProductItem product({
   offers: offers,
 );
 
+StoreOffer amazonOffer() => offer(5399).copyWith(
+  storeCode: 'amazon',
+  storeNameAr: 'أمازون السعودية',
+  stockKnown: false,
+  isInStock: false,
+  priceSourceType: 'amazon_public_page',
+  priceSourceName: 'أمازون السعودية',
+  priceKind: 'starting_from',
+  priceExpiresAt: DateTime.now().add(const Duration(hours: 1)),
+  branchNameAr:
+      'وجهة المقارنة المفترضة: المدينة المنورة؛ التوصيل يُؤكد لدى المتجر',
+);
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => SharedPreferences.setMockInitialValues({}));
@@ -214,6 +227,46 @@ void main() {
     expect(quotes.firstWhere((q) => q.scope == 'A').subtotalHalalas, 5625);
   });
   test(
+    'Amazon starting prices survive persistence and qualify basket totals',
+    () {
+      final restored = StoreOffer.fromJson(
+        jsonDecode(jsonEncode(amazonOffer().toJson())),
+      );
+      expect(restored.priceLabel, 'ابتداءً من 53.99 ر.س');
+      expect(restored.verificationText, contains('سعر استرشادي'));
+      expect(
+        restored.verificationText,
+        contains('التوفر والتوصيل للمدينة يُؤكدان'),
+      );
+      expect(restored.stockKnown, isFalse);
+      expect(restored.canCompare, isTrue);
+      final quotes = compareKnownBasket([
+        BasketItem(product: product(offers: [restored]), quantity: 2),
+      ]);
+      expect(quotes.single.indicative, isTrue);
+      expect(quotes.single.subtotalHalalas, 10798);
+      expect(
+        compareKnownBasket([
+          BasketItem(product: product(offers: [offer(1800)])),
+        ]).single.indicative,
+        isFalse,
+      );
+    },
+  );
+  test(
+    'Amazon link search uses ASIN instead of sizes from an old URL slug',
+    () {
+      const url = 'https://www.amazon.sa/old-500g-title/dp/B00IDIX2EW?ref=abc';
+      expect(ProductMatching.amazonAsin(url), 'B00IDIX2EW');
+      expect(ProductMatching.exactSize(url, product(amount: 750)), isTrue);
+      expect(ProductMatching.amazonAsin('b00idix2ew'), 'B00IDIX2EW');
+      expect(
+        ProductMatching.amazonAsin('https://amazon.sa.evil/dp/B00IDIX2EW'),
+        isNull,
+      );
+    },
+  );
+  test(
     'local voice keeps state, negation, quantity, undo and real variants',
     () {
       final add = LocalVoiceBasket.execute('حليب السعودية');
@@ -255,7 +308,7 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
-      final p = product(offers: [offer(1875)]);
+      final p = product(offers: [amazonOffer(), offer(6000)]);
       final key = GlobalKey();
       final fonts = FontLoader('Tajawal')
         ..addFont(rootBundle.load('assets/fonts/Tajawal-Regular.ttf'));
@@ -284,6 +337,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
+      expect(find.text('ابتداءً من 53.99 ر.س'), findsNWidgets(2));
       if (width == 390 && Platform.environment['MAGADI_CAPTURE'] == '1') {
         await tester.runAsync(() async {
           final image =

@@ -76,7 +76,7 @@ class ApiService {
       try {
         final uri = Uri.parse('$baseUrl/search').replace(
           queryParameters: {
-            'q': query,
+            'q': ProductMatching.amazonAsin(query) ?? query,
             'district': district,
             'sort_by': sortBy,
           },
