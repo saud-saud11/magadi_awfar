@@ -204,8 +204,9 @@ class ProductMatching {
         uri.scheme != 'https' ||
         !['amazon.sa', 'www.amazon.sa'].contains(uri.host) ||
         uri.hasPort ||
-        uri.userInfo.isNotEmpty)
+        uri.userInfo.isNotEmpty) {
       return null;
+    }
     return RegExp(
       r'/(?:dp|gp/product)/([A-Z0-9]{10})(?:/|$)',
       caseSensitive: false,
@@ -213,7 +214,9 @@ class ProductMatching {
   }
 
   static bool exactSize(String query, ProductItem product) {
-    if (amazonAsin(query) != null) return true;
+    if (amazonAsin(query) != null) {
+      return true;
+    }
     final target = measurement(query);
     if (target.amount != null &&
         (product.normalizedSizeAmount != target.amount ||
