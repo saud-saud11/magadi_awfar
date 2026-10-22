@@ -265,6 +265,90 @@ class ProductMatching {
         normalize(a.nameAr) == normalize(b.nameAr);
   }
 
+  /// Enforce one card per server-approved identity. Names alone never authorize
+  /// a merge here; uncertain variants remain the server's responsibility.
+  static List<ProductItem> consolidateCards(List<ProductItem> products) {
+    Set<String> keys(ProductItem p) => {
+      if (p.canonicalId?.isNotEmpty == true) 'canonical:${p.canonicalId}',
+      for (final id in {p.id, ...p.catalogProductIds})
+        if (id > 0) 'id:$id',
+    };
+    final identities = products.map(keys).toList();
+    final visited = <int>{};
+    final result = <ProductItem>[];
+    for (var start = 0; start < products.length; start++) {
+      if (!visited.add(start)) continue;
+      final component = [start];
+      for (var cursor = 0; cursor < component.length; cursor++) {
+        final i = component[cursor];
+        for (var j = 0; j < products.length; j++) {
+          if (!visited.contains(j) &&
+              identities[i].intersection(identities[j]).isNotEmpty) {
+            visited.add(j);
+            component.add(j);
+          }
+        }
+      }
+      final group = component.map((i) => products[i]).toList();
+      // A shared alias must not bridge incompatible sizes, packs or barcodes.
+      if (group.any((a) => group.any((b) => !sameProduct(a, b)))) {
+        result.addAll(group);
+        continue;
+      }
+      group.sort((a, b) {
+        final byId = a.id.compareTo(b.id);
+        return byId != 0 ? byId : a.nameAr.compareTo(b.nameAr);
+      });
+      final base = group.first;
+      final ids = {
+        for (final p in group) ...{p.id, ...p.catalogProductIds},
+      }.where((id) => id > 0).toList()..sort();
+      final id = ids.isEmpty ? base.id : ids.first;
+      String storeKey(StoreOffer o) => '${o.storeCode}|${o.branchNameAr ?? ''}';
+      String listingKey(StoreOffer o) =>
+          '${storeKey(o)}|${o.sourceUrl ?? o.productUrl}';
+      final latest = <String, StoreOffer>{};
+      for (final o in group.expand((p) => p.offers).where((o) => o.isFresh)) {
+        final key = listingKey(o), previous = latest[key];
+        if (previous == null ||
+            o.lastVerifiedAt!.isAfter(previous.lastVerifiedAt!) ||
+            (o.lastVerifiedAt == previous.lastVerifiedAt &&
+                o.priceHalalas > previous.priceHalalas)) {
+          latest[key] = o;
+        }
+      }
+      final sorted = latest.values.toList()
+        ..sort((a, b) {
+          final availability = (a.canCompare ? 0 : 1).compareTo(
+            b.canCompare ? 0 : 1,
+          );
+          if (availability != 0) return availability;
+          final price = a.priceHalalas.compareTo(b.priceHalalas);
+          return price != 0 ? price : listingKey(a).compareTo(listingKey(b));
+        });
+      final stores = <String>{};
+      final offers = sorted.where((o) => stores.add(storeKey(o))).toList();
+      result.add(
+        ProductItem.fromJson({
+          ...base.toJson(),
+          'id': id,
+          'catalog_product_ids': ids,
+          'offers': [
+            for (var i = 0; i < offers.length; i++)
+              offers[i]
+                  .copyWith(
+                    id: id,
+                    isCheapestProduct: i == 0 && offers[i].canCompare,
+                    isCheapestTotal: false,
+                  )
+                  .toJson(),
+          ],
+        }),
+      );
+    }
+    return result;
+  }
+
   /// Stable negative IDs keep local/search-provider products separate from database IDs.
   static int localId(String identity) {
     var hash = 2166136261;

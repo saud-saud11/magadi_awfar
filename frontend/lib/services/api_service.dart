@@ -133,6 +133,7 @@ class ApiService {
           }),
         )
         .toList();
+    live = ProductMatching.consolidateCards(live);
     final matched = live
         .where((p) => ProductMatching.exactSize(query, p))
         .toList();

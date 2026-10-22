@@ -10,6 +10,7 @@ ProductItem item(
   String? barcode,
   double amount = 1000,
   int pack = 1,
+  List<StoreOffer> offers = const [],
 }) => ProductItem(
   id: id,
   nameAr: name,
@@ -20,10 +21,125 @@ ProductItem item(
   normalizedSizeAmount: amount,
   normalizedSizeUnit: 'ml',
   packCount: pack,
-  offers: [],
+  offers: offers,
 );
 
+StoreOffer offer(
+  String store,
+  int price, {
+  int minutes = 1,
+  String sku = '1',
+  bool stock = true,
+}) => StoreOffer.fromJson({
+  'store_code': store,
+  'price_halalas': price,
+  'price_sar': price / 100,
+  'price_verified': true,
+  'stock_known': true,
+  'is_in_stock': stock,
+  'product_url': 'https://$store.example/$sku',
+  'last_verified_at': DateTime.now()
+      .toUtc()
+      .subtract(Duration(minutes: minutes))
+      .toIso8601String(),
+});
+
 void main() {
+  test(
+    'one canonical card preserves current store offers and is idempotent',
+    () {
+      final a = item(
+        11,
+        'المراعي لبن',
+        canonical: 'product:11',
+        aliases: [11, 22],
+        offers: [offer('danube', 700)],
+      );
+      final b = item(
+        22,
+        'Almarai Fresh Laban',
+        canonical: 'product:11',
+        aliases: [11, 22],
+        offers: [offer('panda', 600)],
+      );
+      final merged = ProductMatching.consolidateCards([a, b]);
+      expect(merged, hasLength(1));
+      expect(merged.single.id, 11);
+      expect(merged.single.catalogProductIds, [11, 22]);
+      expect(merged.single.offers.map((o) => o.storeCode), ['panda', 'danube']);
+      expect(merged.single.offers.map((o) => o.isCheapestProduct), [
+        true,
+        false,
+      ]);
+      expect(
+        ProductMatching.consolidateCards([b, a]).single.toJson(),
+        merged.single.toJson(),
+      );
+      expect(
+        ProductMatching.consolidateCards(merged).single.toJson(),
+        merged.single.toJson(),
+      );
+    },
+  );
+  test(
+    'newer observation wins over an older cheaper price for the same listing',
+    () {
+      final a = item(
+        11,
+        'لبن',
+        offers: [
+          offer('danube', 300, minutes: 60),
+          offer('panda', 200, minutes: 1500),
+        ],
+      );
+      final b = item(
+        11,
+        'لبن',
+        offers: [
+          offer('danube', 700),
+          offer('danube', 100, sku: '2', stock: false),
+        ],
+      );
+      for (final inputs in [
+        [a, b],
+        [b, a],
+      ]) {
+        final merged = ProductMatching.consolidateCards(inputs);
+        expect(merged.single.offers, hasLength(1));
+        expect(merged.single.offers.single.priceHalalas, 700);
+        expect(merged.single.offers.single.isInStock, isTrue);
+      }
+    },
+  );
+  test(
+    'same wording does not override server splits or conflicting specifications',
+    () {
+      final a = item(11, 'لبن', canonical: 'product:11');
+      for (final b in [
+        item(22, 'لبن', canonical: 'product:22'),
+        item(11, 'لبن', canonical: 'product:11', amount: 500),
+        item(11, 'لبن', canonical: 'product:11', pack: 6),
+      ]) {
+        expect(ProductMatching.consolidateCards([a, b]), hasLength(2));
+      }
+      final left = item(11, 'لبن', aliases: [11, 22], barcode: '6281007117913');
+      final bridge = item(22, 'لبن', aliases: [11, 22, 33]);
+      final right = item(
+        33,
+        'لبن',
+        aliases: [22, 33],
+        barcode: '6281007118132',
+      );
+      expect(
+        ProductMatching.consolidateCards([left, bridge, right]),
+        hasLength(3),
+      );
+      expect(
+        ProductMatching.consolidateCards([right, bridge, left]),
+        hasLength(3),
+      );
+    },
+  );
   test(
     'saved basket keeps canonical identity and source aliases after restart',
     () {
@@ -108,7 +224,9 @@ void main() {
         (amount: 60.0, unit: 'count', pack: null),
       );
       expect(
-        ProductMatching.measurement('بامبرز كلوت (5) 12-18 كيلو صندوق جامبو 72 حفاض'),
+        ProductMatching.measurement(
+          'بامبرز كلوت (5) 12-18 كيلو صندوق جامبو 72 حفاض',
+        ),
         (amount: 72.0, unit: 'count', pack: null),
       );
       for (final title in [
