@@ -31,6 +31,10 @@ class District {
 
 class StoreOffer {
   final DateTime? lastVerifiedAt;
+  final DateTime? priceExpiresAt;
+  final String? priceSourceType;
+  final String? priceSourceName;
+  final String? sourcePriceAgeText;
   final bool priceVerified;
   final bool stockKnown;
   final String? sourceUrl;
@@ -56,6 +60,10 @@ class StoreOffer {
 
   StoreOffer({
     this.lastVerifiedAt,
+    this.priceExpiresAt,
+    this.priceSourceType,
+    this.priceSourceName,
+    this.sourcePriceAgeText,
     this.priceVerified = false,
     this.stockKnown = false,
     this.sourceUrl,
@@ -83,6 +91,10 @@ class StoreOffer {
   factory StoreOffer.fromJson(Map<String, dynamic> json) {
     return StoreOffer(
       lastVerifiedAt: parseServerTime(json['last_verified_at']),
+      priceExpiresAt: parseServerTime(json['price_expires_at']),
+      priceSourceType: json['price_source_type'] as String?,
+      priceSourceName: json['price_source_name'] as String?,
+      sourcePriceAgeText: json['source_price_age_text'] as String?,
       priceVerified: json['price_verified'] == true,
       stockKnown: json['stock_known'] == true,
       sourceUrl: json['source_url'] as String?,
@@ -115,12 +127,16 @@ class StoreOffer {
       priceVerified &&
       priceHalalas > 0 &&
       lastVerifiedAt != null &&
+      (priceExpiresAt == null || DateTime.now().isBefore(priceExpiresAt!)) &&
       DateTime.now().difference(lastVerifiedAt!.toLocal()) >= Duration.zero &&
       DateTime.now().difference(lastVerifiedAt!.toLocal()) <
           const Duration(hours: 24);
   bool get canCompare => isFresh && (!stockKnown || isInStock);
   String get verificationText {
     if (!isFresh) return 'السعر يحتاج تحديثًا';
+    if (priceSourceType == 'aggregator') {
+      return 'سعر مرصود عبر ${priceSourceName ?? 'مصدر مقارنة'} • بحسب المصدر عند القراءة: ${sourcePriceAgeText ?? 'وقت التحديث غير مؤكد'} • التوفر يُؤكّد لدى المتجر';
+    }
     final minutes = DateTime.now()
         .difference(lastVerifiedAt!.toLocal())
         .inMinutes;
@@ -153,6 +169,10 @@ class StoreOffer {
     'is_cheapest_total': isCheapestTotal,
     'unit_price_per_100g_sar': unitPricePer100gSar,
     'last_verified_at': lastVerifiedAt?.toUtc().toIso8601String(),
+    'price_expires_at': priceExpiresAt?.toUtc().toIso8601String(),
+    'price_source_type': priceSourceType,
+    'price_source_name': priceSourceName,
+    'source_price_age_text': sourcePriceAgeText,
     'price_verified': priceVerified,
     'stock_known': stockKnown,
     'source_url': sourceUrl,
@@ -160,6 +180,10 @@ class StoreOffer {
 
   StoreOffer copyWith({
     DateTime? lastVerifiedAt,
+    DateTime? priceExpiresAt,
+    String? priceSourceType,
+    String? priceSourceName,
+    String? sourcePriceAgeText,
     bool? priceVerified,
     bool? stockKnown,
     String? sourceUrl,
@@ -185,6 +209,10 @@ class StoreOffer {
   }) {
     return StoreOffer(
       lastVerifiedAt: lastVerifiedAt ?? this.lastVerifiedAt,
+      priceExpiresAt: priceExpiresAt ?? this.priceExpiresAt,
+      priceSourceType: priceSourceType ?? this.priceSourceType,
+      priceSourceName: priceSourceName ?? this.priceSourceName,
+      sourcePriceAgeText: sourcePriceAgeText ?? this.sourcePriceAgeText,
       priceVerified: priceVerified ?? this.priceVerified,
       stockKnown: stockKnown ?? this.stockKnown,
       sourceUrl: sourceUrl ?? this.sourceUrl,
@@ -411,6 +439,7 @@ class SourceInfo {
   final String status;
   final String statusText;
   final bool isEnabled;
+  final bool supportsAlerts;
   final String? websiteUrl;
   final String? searchUrl;
   final String category;
@@ -421,6 +450,7 @@ class SourceInfo {
     required this.status,
     required this.statusText,
     required this.isEnabled,
+    this.supportsAlerts = true,
     this.websiteUrl,
     this.searchUrl,
     this.category = 'grocery',
@@ -434,6 +464,7 @@ class SourceInfo {
       statusText:
           (json['status_text'] ?? json['status_message']) as String? ?? '',
       isEnabled: json['is_enabled'] as bool? ?? true,
+      supportsAlerts: json['supports_alerts'] as bool? ?? true,
       websiteUrl: json['website_url'] as String?,
       searchUrl: json['search_url'] as String?,
       category: json['category'] as String? ?? 'grocery',

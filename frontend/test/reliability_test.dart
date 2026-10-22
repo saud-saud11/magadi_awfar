@@ -170,6 +170,34 @@ void main() {
       1800,
     );
   });
+  test(
+    'observed prices keep attribution and expire without a new merchant check',
+    () {
+      final observed = offer(23201).copyWith(
+        storeCode: 'amazon',
+        stockKnown: false,
+        isInStock: false,
+        priceSourceType: 'aggregator',
+        priceSourceName: 'برايسنا',
+        sourcePriceAgeText: 'اخر تحديث للسعر قبل 22 ساعة',
+        priceExpiresAt: DateTime.now().add(const Duration(hours: 1)),
+      );
+      final restored = StoreOffer.fromJson(
+        jsonDecode(jsonEncode(observed.toJson())),
+      );
+      expect(restored.isFresh, isTrue);
+      expect(restored.verificationText, contains('سعر مرصود عبر برايسنا'));
+      expect(restored.verificationText, isNot(contains('تم جلب السعر الآن')));
+      final expired = restored.copyWith(
+        priceExpiresAt: DateTime.now().subtract(const Duration(seconds: 1)),
+      );
+      expect(expired.isFresh, isFalse);
+      expect(
+        product(offers: [expired, offer(24000)]).lowestOffer!.priceHalalas,
+        24000,
+      );
+    },
+  );
   test('basket uses integers and never merges branch coverage', () {
     final basket = [
       BasketItem(

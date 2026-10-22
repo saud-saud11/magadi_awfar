@@ -35,7 +35,11 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
     if (!mounted) return;
     setState(() {
       _availableStores = stores
-          .where((s) => s.isEnabled || _selectedStores.contains(s.code))
+          .where(
+            (s) =>
+                (s.isEnabled && s.supportsAlerts) ||
+                _selectedStores.contains(s.code),
+          )
           .toList();
       _loadingStores = false;
     });
@@ -391,7 +395,11 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
                     final isChecked = _selectedStores.contains(st.code);
                     return FilterChip(
                       label: Text(
-                        st.isEnabled ? st.nameAr : '${st.nameAr} (غير مرتبط)',
+                        !st.supportsAlerts
+                            ? '${st.nameAr} (للمقارنة فقط)'
+                            : st.isEnabled
+                            ? st.nameAr
+                            : '${st.nameAr} (غير مرتبط)',
                       ),
                       selected: isChecked,
                       selectedColor: AppTheme.primaryContainer,
@@ -411,6 +419,7 @@ class _PantryAlertDialogState extends State<PantryAlertDialog> {
                         color: isChecked ? AppTheme.primary : AppTheme.textDark,
                       ),
                       onSelected: (selected) {
+                        if (selected && !st.supportsAlerts) return;
                         setState(() {
                           if (selected) {
                             _selectedStores.add(st.code);
